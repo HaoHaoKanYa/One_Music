@@ -25,13 +25,33 @@ ios/.xcode.env.local
 # Android/IntelliJ
 #
 build/
-.idea
 .gradle
 local.properties
 keystore.properties
-*.iml
 *.hprof
 .cxx/
+
+# Keep gradle wrapper in root (for Android Studio)
+!gradle/wrapper/gradle-wrapper.properties
+!gradle/wrapper/gradle-wrapper.jar
+
+# Android Studio - ignore most files but keep gradle.xml for project structure
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/assetWizardSettings.xml
+.idea/dictionaries
+.idea/libraries
+.idea/caches
+.idea/navEditor.xml
+.idea/misc.xml
+.idea/compiler.xml
+.idea/jarRepositories.xml
+.idea/deploymentTargetDropDown.xml
+.idea/render.experimental.xml
+.idea/vcs.xml
+.idea/modules.xml
+.idea/*.iml
+# Keep only gradle.xml for Android project recognition
 
 # node.js
 #
@@ -68,3 +88,8 @@ buck-out/
 /coverage
 -.zip
 洛雪音乐-音源/
+运行日志
+android/One_Music_mobile_Key/One_Music_mobile_Key.jks
+
+# Android Studio setup documentation (local only, not committed)
+doc/android-studio-setup/

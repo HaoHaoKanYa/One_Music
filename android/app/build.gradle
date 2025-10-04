@@ -93,7 +93,7 @@ def reactNativeArchitectures() {
 
 // Get version number
 def getNpmPackageJson() {
-    def inputFile = new File("../package.json")
+    def inputFile = new File(rootProject.projectDir, "../package.json")
     def packageJson = new JsonSlurper().parseText(inputFile.text)
     return packageJson
 }
@@ -144,10 +144,14 @@ android {
             }
         }
         debug {
-            storeFile file('debug.keystore')
-            storePassword 'android'
-            keyAlias 'androiddebugkey'
-            keyPassword 'android'
+            def keystorePropertiesFile = rootProject.file("keystore.properties")
+            def keystoreProperties = new Properties()
+            keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+
+            storeFile file(keystoreProperties['storeFile'])
+            storePassword keystoreProperties['storePassword']
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
         }
     }
     buildTypes {
@@ -155,13 +159,10 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Use the same keystore as debug for both development and production
+            signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
-
-            signingConfig signingConfigs.release
         }
     }
 

@@ -1,0 +1,8 @@
+// Root project settings for Android Studio integration
+// This file allows Android Studio to recognize the React Native project structure
+
+rootProject.name = 'One_Music_mobile'
+
+// Note: We don't include the android directory here as a module
+// The android directory is a separate, self-contained Gradle project
+// Android Studio will recognize it through the .idea configuration
