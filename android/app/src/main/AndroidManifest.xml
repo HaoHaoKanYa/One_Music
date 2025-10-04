@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
   xmlns:tools="http://schemas.android.com/tools"
-  package="cn.toside.music.mobile">
+  package="online.onetvs.music.mobile">
 
     <!-- 获取读写外置存储权限 -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
@@ -35,7 +35,7 @@
           <action android:name="android.intent.action.VIEW" />
           <category android:name="android.intent.category.DEFAULT" />
           <category android:name="android.intent.category.BROWSABLE" />
-          <data android:scheme="lxmusic" android:host="*" />
+          <data android:scheme="onemusic" android:host="*" />
         </intent-filter>
         <intent-filter android:priority="80">
           <action android:name="android.intent.action.VIEW" />
@@ -84,10 +84,10 @@
           <data android:pathPattern=".*\\..*\\..*\\.json" />
           <data android:pathSuffix=".json" tools:targetApi="s" />
 
-          <data android:pathPattern=".*\\.lxmc" />
-          <data android:pathPattern=".*\\..*\\.lxmc" />
-          <data android:pathPattern=".*\\..*\\..*\\.lxmc" />
-          <data android:pathSuffix=".lxmc" tools:targetApi="s" />
+          <data android:pathPattern=".*\\.omc" />
+          <data android:pathPattern=".*\\..*\\.omc" />
+          <data android:pathPattern=".*\\..*\\..*\\.omc" />
+          <data android:pathSuffix=".omc" tools:targetApi="s" />
         </intent-filter>
       </activity>
 

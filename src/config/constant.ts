@@ -95,7 +95,7 @@ export const storageDataPrefixOld = {
   notificationTipEnable: '@notification_tip_enable',
 } as const
 
-export const APP_PROVIDER_NAME = 'cn.toside.music.mobile.provider'
+export const APP_PROVIDER_NAME = 'online.onetvs.music.mobile.provider'
 
 
 export const NAV_MENUS = [
@@ -109,7 +109,7 @@ export const NAV_MENUS = [
 
 export type NAV_ID_Type = typeof NAV_MENUS[number]['id']
 
-export const LXM_FILE_EXT_RXP = ['json', 'lxmc', 'bin']
+export const LXM_FILE_EXT_RXP = ['json', 'omc', 'bin']
 export const USER_API_SOURCE_FILE_EXT_RXP = ['js']
 
 export const MUSIC_TOGGLE_MODE = {

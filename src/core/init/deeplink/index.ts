@@ -10,7 +10,7 @@ import { handleFileMusicAction, handleFileJSAction, handleFileLXMCAction } from 
 const handleLinkAction = async(link: string) => {
   // console.log(link)
   const [url, search] = link.split('?')
-  const [type, action, ...paths] = url.replace('lxmusic://', '').split('/')
+  const [type, action, ...paths] = url.replace('onemusic://', '').split('/')
   const params: {
     paths: string[]
     data?: string
@@ -46,7 +46,7 @@ const handleFileAction = async(link: string) => {
   // console.log(file)
   switch (extname(file.name)) {
     case 'json':
-    case 'lxmc':
+    case 'omc':
       await handleFileLXMCAction(file)
       break
     case 'js':
@@ -70,7 +70,7 @@ const handleFileAction = async(link: string) => {
 
 
 const runLinkAction = async(link: string) => {
-  if (link.startsWith('lxmusic://')) {
+  if (link.startsWith('onemusic://')) {
     try {
       await handleLinkAction(link)
     } catch (err: any) {
