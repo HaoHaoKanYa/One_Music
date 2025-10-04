@@ -1,15 +1,15 @@
-<p align="center"><a href="https://github.com/lyswhut/lx-music-mobile"><img width="200" src="https://github.com/lyswhut/lx-music-mobile/blob/master/doc/images/icon.png" alt="lx-music logo"></a></p>
+<p align="center"><a href="https://github.com/HaoHaoKanYa/One_Music"><img width="200" src="https://github.com/HaoHaoKanYa/One_Music/blob/master/doc/images/icon.png" alt="one-music logo"></a></p>
 
-<h1 align="center">LX Music 移动版</h1>
+<h1 align="center">One Music 移动版</h1>
 
 <p align="center">
-  <a href="https://github.com/lyswhut/lx-music-mobile/releases"><img src="https://img.shields.io/github/release/lyswhut/lx-music-mobile" alt="Release version"></a>
-  <a href="https://github.com/lyswhut/lx-music-mobile/actions/workflows/release.yml"><img src="https://github.com/lyswhut/lx-music-mobile/workflows/Build/badge.svg" alt="Build status"></a>
-  <a href="https://github.com/lyswhut/lx-music-mobile/actions/workflows/beta-pack.yml"><img src="https://github.com/lyswhut/lx-music-mobile/workflows/Build%20Beta/badge.svg" alt="Build status"></a>
-  <a href="https://github.com/facebook/react-native"><img src="https://img.shields.io/github/package-json/dependency-version/lyswhut/lx-music-mobile/react-native/master" alt="React native version"></a>
-  <!-- <a href="https://github.com/lyswhut/lx-music-mobile/releases"><img src="https://img.shields.io/github/downloads/lyswhut/lx-music-mobile/latest/total" alt="Downloads"></a> -->
-  <a href="https://github.com/lyswhut/lx-music-mobile/tree/dev"><img src="https://img.shields.io/github/package-json/v/lyswhut/lx-music-mobile/dev" alt="Dev branch version"></a>
-  <!-- <a href="https://github.com/lyswhut/lx-music-mobile/blob/master/LICENSE"><img src="https://img.shields.io/github/license/lyswhut/lx-music-mobile" alt="License"></a> -->
+  <a href="https://github.com/HaoHaoKanYa/One_Music/releases"><img src="https://img.shields.io/github/release/HaoHaoKanYa/One_Music" alt="Release version"></a>
+  <a href="https://github.com/HaoHaoKanYa/One_Music/actions/workflows/release.yml"><img src="https://github.com/HaoHaoKanYa/One_Music/workflows/Build/badge.svg" alt="Build status"></a>
+  <a href="https://github.com/HaoHaoKanYa/One_Music/actions/workflows/beta-pack.yml"><img src="https://github.com/HaoHaoKanYa/One_Music/workflows/Build%20Beta/badge.svg" alt="Build status"></a>
+  <a href="https://github.com/facebook/react-native"><img src="https://img.shields.io/github/package-json/dependency-version/HaoHaoKanYa/One_Music/react-native/master" alt="React native version"></a>
+  <!-- <a href="https://github.com/HaoHaoKanYa/One_Music/releases"><img src="https://img.shields.io/github/downloads/HaoHaoKanYa/One_Music/latest/total" alt="Downloads"></a> -->
+  <a href="https://github.com/HaoHaoKanYa/One_Music/tree/dev"><img src="https://img.shields.io/github/package-json/v/HaoHaoKanYa/One_Music/dev" alt="Dev branch version"></a>
+  <!-- <a href="https://github.com/HaoHaoKanYa/One_Music/blob/master/LICENSE"><img src="https://img.shields.io/github/license/HaoHaoKanYa/One_Music" alt="License"></a> -->
 </p>
 
 <p align="center">一个基于 React Native 开发的音乐软件</p>
