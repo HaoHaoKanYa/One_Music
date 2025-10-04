@@ -93,3 +93,12 @@ android/One_Music_mobile_Key/One_Music_mobile_Key.jks
 
 # Android Studio setup documentation (local only, not committed)
 doc/android-studio-setup/
+
+# Kiro IDE configuration
+.kiro/
+
+# Android Studio project files in android subdirectory
+android/.idea/
+
+# Android release builds
+android/app/release/
