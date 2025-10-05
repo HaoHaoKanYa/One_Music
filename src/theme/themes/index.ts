@@ -13,6 +13,14 @@ export const BG_IMAGES = {
   'landingMoon.png': require('./images/landingMoon2.png') as ImageSourcePropType,
   'myzcbg.jpg': require('./images/myzcbg.jpg') as ImageSourcePropType,
   'xnkl.png': require('./images/xnkl.png') as ImageSourcePropType,
+  'gqnh.jpg': require('./images/gqnh.jpg') as ImageSourcePropType,
+  'jtnh.jpg': require('./images/jtnh.jpg') as ImageSourcePropType,
+  'dznh.jpg': require('./images/dznh.jpg') as ImageSourcePropType,
+  'qgnh.jpg': require('./images/qgnh.jpg') as ImageSourcePropType,
+  'gznh.jpg': require('./images/gznh.jpg') as ImageSourcePropType,
+  'htnh.jpg': require('./images/htnh.jpg') as ImageSourcePropType,
+  'twnh.jpg': require('./images/twnh.jpg') as ImageSourcePropType,
+  'dzqnh.jpg': require('./images/dzqnh.jpg') as ImageSourcePropType,
 } as const
 
 
