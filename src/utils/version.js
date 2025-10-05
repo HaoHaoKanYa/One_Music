@@ -13,10 +13,10 @@ const abis = [
 ]
 
 const address = [
-  [`https://raw.githubusercontent.com/${author.name}/${name}/master/publish/version.json`, 'direct'],
-  [`https://cdn.jsdelivr.net/gh/${author.name}/${name}/publish/version.json`, 'direct'],
-  [`https://fastly.jsdelivr.net/gh/${author.name}/${name}/publish/version.json`, 'direct'],
-  [`https://gcore.jsdelivr.net/gh/${author.name}/${name}/publish/version.json`, 'direct'],
+  [`https://raw.githubusercontent.com/HaoHaoKanYa/One_Music/master/publish/version.json`, 'direct'],
+  [`https://cdn.jsdelivr.net/gh/HaoHaoKanYa/One_Music/publish/version.json`, 'direct'],
+  [`https://fastly.jsdelivr.net/gh/HaoHaoKanYa/One_Music/publish/version.json`, 'direct'],
+  [`https://gcore.jsdelivr.net/gh/HaoHaoKanYa/One_Music/publish/version.json`, 'direct'],
 ]
 
 
@@ -82,7 +82,7 @@ let apkSavePath
 
 export const downloadNewVersion = async (version, onDownload = noop) => {
   const abi = await getTargetAbi()
-  const url = `https://github.com/${author.name}/${name}/releases/download/v${version}/${name}-v${version}-${abi}.apk`
+  const url = `https://github.com/HaoHaoKanYa/One_Music/releases/download/v${version}/one-music-mobile-v${version}-${abi}.apk`
   let savePath = temporaryDirectoryPath + '/one-music-mobile.apk'
 
   if (downloadJobId) stopDownload(downloadJobId)

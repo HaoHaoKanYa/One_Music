@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, memo } from 'react'
-import { View, ScrollView } from 'react-native'
+import { View, ScrollView, Image } from 'react-native'
 
 import { compareVer, sizeFormate } from '@/utils'
 
@@ -23,9 +23,10 @@ const VersionItem = ({ version, desc }: VersionInfo) => {
   )
 }
 
-const Content = memo(({ title, newVersionInfo }: {
+const Content = memo(({ title, newVersionInfo, isLatest }: {
   title: string
   newVersionInfo: VersionInfo | null
+  isLatest: boolean
 }) => {
   const t = useI18n()
 
@@ -38,6 +39,23 @@ const Content = memo(({ title, newVersionInfo }: {
     return arr
   }, [newVersionInfo])
 
+  // 如果是最新版本，显示公众号二维码
+  if (isLatest) {
+    return (
+      <View style={styles.main}>
+        <Text style={styles.title}>{title}</Text>
+        <View style={styles.qrcodeContainer}>
+          <Image
+            source={require('@/theme/themes/images/vod_img_tme.png')}
+            style={styles.qrcodeImage}
+            resizeMode="contain"
+          />
+        </View>
+      </View>
+    )
+  }
+
+  // 否则显示正常的版本更新信息
   return (
     <View style={styles.main}>
       <Text style={styles.title}>{title}</Text>
@@ -47,25 +65,25 @@ const Content = memo(({ title, newVersionInfo }: {
         {
           newVersionInfo?.desc
             ? (
-                <View>
-                  <Text style={styles.label}>{t('version_label_change_log')}</Text>
-                  <View style={{ paddingLeft: 10, marginTop: 5 }}>
-                    <Text selectable style={styles.desc}>{newVersionInfo.desc}</Text>
-                  </View>
+              <View>
+                <Text style={styles.label}>{t('version_label_change_log')}</Text>
+                <View style={{ paddingLeft: 10, marginTop: 5 }}>
+                  <Text selectable style={styles.desc}>{newVersionInfo.desc}</Text>
                 </View>
-              )
+              </View>
+            )
             : null
         }
         {
           history.length
             ? (
-                <View style={styles.history}>
-                  <Text style={styles.label}>{t('version_label_history')}</Text>
-                  <View style={{ paddingLeft: 10, marginTop: 5 }}>
-                    {history.map((item, index) => <VersionItem key={index} version={item.version} desc={item.desc} />)}
-                  </View>
+              <View style={styles.history}>
+                <Text style={styles.label}>{t('version_label_history')}</Text>
+                <View style={{ paddingLeft: 10, marginTop: 5 }}>
+                  {history.map((item, index) => <VersionItem key={index} version={item.version} desc={item.desc} />)}
                 </View>
-              )
+              </View>
+            )
             : null
         }
       </ScrollView>
@@ -152,7 +170,7 @@ const VersionModal = ({ componentId }: { componentId: string }) => {
     ignoreBtnConfig.text = t(ignoreVersion == versionInfo.newVersion?.version ? 'version_btn_ignore_cancel' : 'version_btn_ignore')
     setIgnoreBtn(ignoreBtnConfig)
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [t, versionInfo, ignoreVersion, progress])
 
   const handleCancel = () => {
@@ -175,16 +193,16 @@ const VersionModal = ({ componentId }: { componentId: string }) => {
 
   return (
     <ModalContent>
-      <Content title={title} newVersionInfo={versionInfo.newVersion} />
-      { tip.length ? <Text style={styles.tip} color={theme['c-primary-font']}>{tip}</Text> : null }
+      <Content title={title} newVersionInfo={versionInfo.newVersion} isLatest={versionInfo.isLatest} />
+      {tip.length ? <Text style={styles.tip} color={theme['c-primary-font']}>{tip}</Text> : null}
       <View style={styles.btns}>
         {
           ignoreBtn.show
             ? (
-                <Button disabled={ignoreBtn.disabled} style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={handleIgnore}>
-                  <Text color={theme['c-button-font']}>{ignoreBtn.text}</Text>
-                </Button>
-              )
+              <Button disabled={ignoreBtn.disabled} style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={handleIgnore}>
+                <Text color={theme['c-button-font']}>{ignoreBtn.text}</Text>
+              </Button>
+            )
             : null
         }
         <Button style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={handleCancel}>
@@ -193,10 +211,10 @@ const VersionModal = ({ componentId }: { componentId: string }) => {
         {
           confirmBtn.show
             ? (
-                <Button disabled={confirmBtn.disabled} style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={handleConfirm}>
-                  <Text color={theme['c-button-font']}>{confirmBtn.text}</Text>
-                </Button>
-              )
+              <Button disabled={confirmBtn.disabled} style={{ ...styles.btn, backgroundColor: theme['c-button-background'] }} onPress={handleConfirm}>
+                <Text color={theme['c-button-font']}>{confirmBtn.text}</Text>
+              </Button>
+            )
             : null
         }
       </View>
@@ -220,6 +238,15 @@ const styles = createStyle({
     fontSize: 18,
     textAlign: 'center',
     marginBottom: 15,
+  },
+  qrcodeContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 20,
+  },
+  qrcodeImage: {
+    width: 250,
+    height: 250,
   },
   history: {
     marginTop: 15,
