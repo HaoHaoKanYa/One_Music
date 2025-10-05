@@ -13,6 +13,14 @@
       </SelectionState>
       <SelectionState runConfigName="online.onetvs.music.mobile.app.main">
         <option name="selectionMode" value="DROPDOWN" />
+        <DropdownSelection timestamp="2025-10-05T08:19:01.199517400Z">
+          <Target type="DEFAULT_BOOT">
+            <handle>
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\cyuan\.android\avd\Pixel_9_Pro_XL.avd" />
+            </handle>
+          </Target>
+        </DropdownSelection>
+        <DialogSelection />
       </SelectionState>
     </selectionStates>
   </component>
