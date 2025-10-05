@@ -148,11 +148,13 @@ jobs:
   Release:
     name: Release
     runs-on: ubuntu-latest
-    # needs: [Android, Android_SL]
     needs: [Android]
     steps:
       - name: Check out git repository
         uses: actions/checkout@v4
+
+      - name: Get package version
+        run: node -p -e '`PACKAGE_VERSION=${require("./package.json").version}`' >> $GITHUB_ENV
 
       - name: Download Artifacts
         uses: actions/download-artifact@v4
@@ -160,21 +162,50 @@ jobs:
           path: ./artifacts
           merge-multiple: true
 
-      - name: Generate file MD5
+      - name: Extract changelog for current version
         run: |
-          echo -e '\n### File MD5\n```' >> ./publish/changeLog.md
+          VERSION="${{ env.PACKAGE_VERSION }}"
+          
+          # 从 CHANGELOG.md 提取当前版本的内容
+          awk -v ver="$VERSION" '
+            /^## \['"$VERSION"'\]/ { found=1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md > release_notes.md
+          
+          # 添加 MD5 校验和
+          echo "" >> release_notes.md
+          echo "---" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## 文件校验" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### MD5 校验和" >> release_notes.md
+          echo "" >> release_notes.md
+          echo '```' >> release_notes.md
           cd artifacts
-          md5sum *.apk >> ../publish/changeLog.md
-          echo -e '```\n' >> ../publish/changeLog.md
-          echo -e '\n[软件安装包说明](https://lyswhut.github.io/lx-music-doc/download#%E8%BD%AF%E4%BB%B6%E5%AE%89%E8%A3%85%E5%8C%85%E8%AF%B4%E6%98%8E)\n' >> ../publish/changeLog.md
-
-      - name: Get package version
-        run: node -p -e '`PACKAGE_VERSION=${require("./package.json").version}`' >> $GITHUB_ENV
+          md5sum *.apk >> ../release_notes.md
+          cd ..
+          echo '```' >> release_notes.md
+          
+          # 添加安装说明
+          echo "" >> release_notes.md
+          echo "---" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "## 安装说明" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### 推荐下载" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "- **大多数用户**: 下载 \`universal.apk\` (通用版，兼容所有设备)" >> release_notes.md
+          echo "- **追求体积小**: 根据手机架构选择对应的 APK" >> release_notes.md
+          echo "  - \`arm64-v8a.apk\`: 64位 ARM 处理器 (大多数现代手机)" >> release_notes.md
+          echo "  - \`armeabi-v7a.apk\`: 32位 ARM 处理器 (较老的手机)" >> release_notes.md
+          echo "  - \`x86_64.apk\`: 64位 x86 处理器 (模拟器)" >> release_notes.md
+          echo "  - \`x86.apk\`: 32位 x86 处理器 (老模拟器)" >> release_notes.md
 
       - name: Release
         uses: softprops/action-gh-release@v2
         with:
-          body_path: ./publish/changeLog.md
+          body_path: ./release_notes.md
           prerelease: false
           draft: false
           tag_name: v${{ env.PACKAGE_VERSION }}
