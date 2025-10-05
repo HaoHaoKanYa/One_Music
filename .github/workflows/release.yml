@@ -20,23 +20,9 @@ jobs:
         shell: bash
         run: |
           cd android
-          # 检查是否配置了签名密钥
-          if [ -n "${{ secrets.KEYSTORE_STORE_FILE_BASE64 }}" ]; then
-            echo "使用签名密钥构建 Release 版本"
-            echo ${{ secrets.KEYSTORE_STORE_FILE_BASE64 }} | base64 --decode > app/${{ secrets.KEYSTORE_STORE_FILE }}
-            ./gradlew assembleRelease -PMYAPP_UPLOAD_STORE_FILE='${{ secrets.KEYSTORE_STORE_FILE }}' -PMYAPP_UPLOAD_KEY_ALIAS='${{ secrets.KEYSTORE_KEY_ALIAS }}' -PMYAPP_UPLOAD_STORE_PASSWORD='${{ secrets.KEYSTORE_PASSWORD }}' -PMYAPP_UPLOAD_KEY_PASSWORD='${{ secrets.KEYSTORE_KEY_PASSWORD }}'
-            rm -f app/${{ secrets.KEYSTORE_STORE_FILE }}
-          else
-            echo "未配置签名密钥，构建 Debug 版本"
-            ./gradlew assembleDebug
-            # 将 debug APK 重命名为 release 以便后续步骤使用
-            cd app/build/outputs/apk/debug
-            for file in *.apk; do
-              mv "$file" "${file/debug/release}"
-            done
-            mkdir -p ../../release
-            mv *.apk ../../release/
-          fi
+          echo ${{ secrets.KEYSTORE_STORE_FILE_BASE64 }} | base64 --decode > app/${{ secrets.KEYSTORE_STORE_FILE }}
+          ./gradlew assembleRelease -PMYAPP_UPLOAD_STORE_FILE='${{ secrets.KEYSTORE_STORE_FILE }}' -PMYAPP_UPLOAD_KEY_ALIAS='${{ secrets.KEYSTORE_KEY_ALIAS }}' -PMYAPP_UPLOAD_STORE_PASSWORD='${{ secrets.KEYSTORE_PASSWORD }}' -PMYAPP_UPLOAD_KEY_PASSWORD='${{ secrets.KEYSTORE_KEY_PASSWORD }}'
+          rm -f app/${{ secrets.KEYSTORE_STORE_FILE }}
 
       # Push tag to GitHub if package.json version's tag is not tagged
       - name: Get package version
