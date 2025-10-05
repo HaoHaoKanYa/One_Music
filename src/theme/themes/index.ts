@@ -25,7 +25,7 @@ export const BG_IMAGES = {
 
 
 let userThemes: LX.Theme[]
-export const getAllThemes = async() => {
+export const getAllThemes = async () => {
   // eslint-disable-next-line require-atomic-updates
   userThemes ??= await getUserTheme()
   return {
@@ -35,14 +35,14 @@ export const getAllThemes = async() => {
   }
 }
 
-export const saveTheme = async(theme: LX.Theme) => {
+export const saveTheme = async (theme: LX.Theme) => {
   const targetTheme = userThemes.find(t => t.id === theme.id)
   if (targetTheme) Object.assign(targetTheme, theme)
   else userThemes.push(theme)
   await saveUserTheme(userThemes)
 }
 
-export const removeTheme = async(id: string) => {
+export const removeTheme = async (id: string) => {
   const index = userThemes.findIndex(t => t.id === id)
   if (index < 0) return
   userThemes.splice(index, 1)
@@ -116,7 +116,7 @@ export const buildActiveThemeColors = (theme: LX.Theme): LX.ActiveTheme => {
 //   }
 // }
 // type IDS = LocalTheme['id']
-export const getTheme = async() => {
+export const getTheme = async () => {
   // fs.promises.readdir()
   const shouldUseDarkColors = themeState.shouldUseDarkColors
   // let themeId = settingState.setting['theme.id'] == 'auto'
