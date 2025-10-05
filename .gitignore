@@ -102,3 +102,6 @@ android/.idea/
 
 # Android release builds
 android/app/release/
+替换启动屏幕说明.md
+replace_launch_screen.py
+启动屏幕替换完成报告.md

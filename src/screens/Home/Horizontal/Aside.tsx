@@ -1,5 +1,5 @@
 import { memo } from 'react'
-import { ScrollView, TouchableOpacity, View } from 'react-native'
+import { ScrollView, TouchableOpacity, View, Image } from 'react-native'
 import { useNavActiveId, useStatusbarHeight } from '@/store/common/hook'
 import { useTheme } from '@/store/theme/hook'
 import { Icon } from '@/components/common/Icon'
@@ -30,6 +30,10 @@ const styles = createStyle({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  headerLogo: {
+    width: 22,
+    height: 22,
   },
   headerText: {
     textAlign: 'center',
@@ -69,8 +73,12 @@ const Header = () => {
   return (
     <View style={{ paddingTop: statusBarHeight }}>
       <View style={styles.header}>
-        <Icon name="logo" color={theme['c-primary-dark-100-alpha-300']} size={22} />
-        {/* <Text style={styles.headerText} size={16} color={theme['c-primary-dark-100-alpha-300']}>LX Music</Text> */}
+        <Image 
+          source={require('@/theme/themes/images/one_logo.png')} 
+          style={styles.headerLogo}
+          resizeMode="contain"
+        />
+        {/* <Text style={styles.headerText} size={16} color={theme['c-primary-dark-100-alpha-300']}>One Music</Text> */}
       </View>
     </View>
   )
