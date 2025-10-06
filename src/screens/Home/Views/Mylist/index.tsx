@@ -24,23 +24,23 @@ export default () => {
       if (visible) {
         requestAnimationFrame(() => {
           drawer.current?.openDrawer()
-          setIsDrawerOpen(true)
         })
       } else {
         drawer.current?.closeDrawer()
-        setIsDrawerOpen(false)
       }
     }
-    
+
     const toggleVisible = () => {
-      requestAnimationFrame(() => {
-        if (isDrawerOpen) {
-          drawer.current?.closeDrawer()
-          setIsDrawerOpen(false)
-        } else {
-          drawer.current?.openDrawer()
-          setIsDrawerOpen(true)
-        }
+      // 使用函数式更新来获取最新状态
+      setIsDrawerOpen(prevState => {
+        requestAnimationFrame(() => {
+          if (prevState) {
+            drawer.current?.closeDrawer()
+          } else {
+            drawer.current?.openDrawer()
+          }
+        })
+        return !prevState
       })
     }
 
