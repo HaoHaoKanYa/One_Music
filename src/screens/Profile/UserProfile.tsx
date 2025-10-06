@@ -141,11 +141,8 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
             name: screenName,
             options: {
               topBar: {
-                title: { text: title },
-                leftButtons: [{
-                  id: 'close',
-                  text: '关闭',
-                }],
+                visible: false,
+                height: 0,
               },
             },
           },

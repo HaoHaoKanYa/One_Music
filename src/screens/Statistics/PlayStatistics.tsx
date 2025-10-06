@@ -66,7 +66,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
       setDailyStats(daily)
       setArtistStats(artists)
       setOverallStats(overall)
-      
+
       // 模拟歌曲统计数据（实际项目中需要从API获取）
       setSongStats([
         { song_id: '1', title: '示例歌曲1', artist: '示例歌手1', play_count: 25, total_duration: 750, last_played_at: new Date().toISOString() },
@@ -95,7 +95,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
     return (
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: theme['c-font'] }]}>总体统计</Text>
-        
+
         <View style={styles.statsGrid}>
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: theme['c-primary-font'] }]}>
