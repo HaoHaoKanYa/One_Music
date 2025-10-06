@@ -3,6 +3,7 @@ import { ScrollView, TouchableOpacity, View, Image } from 'react-native'
 import { useNavActiveId, useStatusbarHeight } from '@/store/common/hook'
 import { useTheme } from '@/store/theme/hook'
 import { Icon } from '@/components/common/Icon'
+import Text from '@/components/common/Text'
 import { confirmDialog, createStyle, exitApp as backHome } from '@/utils/tools'
 import { NAV_MENUS } from '@/config/constant'
 import type { InitState } from '@/store/common/state'
@@ -65,6 +66,15 @@ const styles = createStyle({
     paddingLeft: 15,
     // fontWeight: '500',
   },
+  userIcon: {
+    width: 20,
+    height: 20,
+    marginBottom: 4,
+  },
+  userLabel: {
+    fontSize: 10,
+    textAlign: 'center',
+  },
 })
 
 const Header = () => {
@@ -94,19 +104,42 @@ const MenuItem = ({ id, icon, onPress }: {
   // const t = useI18n()
   const activeId = useNavActiveId()
   const theme = useTheme()
+  
+  // nav_user使用logo图片
+  const isUserMenu = id === 'nav_user'
 
   return activeId == id
     ? <View style={styles.menuItem}>
         <View style={styles.iconContent}>
-          <Icon name={icon} size={20} color={theme['c-primary-font-active']} />
+          {isUserMenu ? (
+            <>
+              <Image 
+                source={require('@/theme/themes/images/one_logo.png')} 
+                style={styles.userIcon}
+                resizeMode="contain"
+              />
+              <Text style={styles.userLabel} color={theme['c-primary-font-active']}>我的</Text>
+            </>
+          ) : (
+            <Icon name={icon} size={20} color={theme['c-primary-font-active']} />
+          )}
         </View>
-        {/* <Text style={styles.text} size={14} color={theme['c-primary-font']}>{t(id)}</Text> */}
       </View>
     : <TouchableOpacity style={styles.menuItem} onPress={() => { onPress(id) }}>
         <View style={styles.iconContent}>
-          <Icon name={icon} size={20} color={theme['c-font-label']} />
+          {isUserMenu ? (
+            <>
+              <Image 
+                source={require('@/theme/themes/images/one_logo.png')} 
+                style={styles.userIcon}
+                resizeMode="contain"
+              />
+              <Text style={styles.userLabel} color={theme['c-font-label']}>我的</Text>
+            </>
+          ) : (
+            <Icon name={icon} size={20} color={theme['c-font-label']} />
+          )}
         </View>
-        {/* <Text style={styles.text} size={14}>{t(id)}</Text> */}
       </TouchableOpacity>
 }
 
