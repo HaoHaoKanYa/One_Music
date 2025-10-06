@@ -188,7 +188,8 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
     console.log('[PlayStatistics] 原始数据长度:', dailyStats.length)
     console.log('[PlayStatistics] 填充后数据:', filledData.map(d => `${d.date}: ${d.total_plays}`).join(', '))
 
-    const maxPlays = Math.max(...filledData.map(s => s.total_plays), 1)
+    // 如果最大值太小，设置一个最小刻度以便更好地显示
+    const maxPlays = Math.max(...filledData.map(s => s.total_plays), 5)
     const chartHeight = 150
     const pointWidth = 50
     const chartWidth = filledData.length * pointWidth
@@ -209,12 +210,21 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
       dataCount: filledData.length 
     })
 
+    // 计算有数据的天数
+    const daysWithData = filledData.filter(d => d.total_plays > 0).length
+    
     return (
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: theme['c-font'] }]}>
           播放趋势
         </Text>
         {renderPeriodSelector()}
+        
+        {daysWithData < 3 && (
+          <Text style={{ fontSize: 12, color: theme['c-350'], marginBottom: 8, fontStyle: 'italic' }}>
+            💡 继续使用应用，积累更多播放数据后，趋势图会更加丰富
+          </Text>
+        )}
 
         <View style={{ marginTop: 10, marginHorizontal: -16, overflow: 'hidden' }}>
           <ScrollView
@@ -254,6 +264,17 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
                 }}
               >
                 {maxPlays}
+              </Text>
+              <Text
+                style={{
+                  position: 'absolute',
+                  left: -30,
+                  bottom: chartHeight * 0.5 + paddingBottom - 8,
+                  fontSize: 10,
+                  color: theme['c-350'],
+                }}
+              >
+                {Math.floor(maxPlays / 2)}
               </Text>
               <Text
                 style={{
