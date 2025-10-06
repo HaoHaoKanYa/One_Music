@@ -8,7 +8,6 @@ export { default as Comment } from './Comment'
 export { SignInScreen } from './Auth/SignIn'
 export { SignUpScreen } from './Auth/SignUp'
 export { ForgotPasswordScreen } from './Auth/ForgotPassword'
-export { TestConnectionScreen } from './Auth/TestConnection'
 
 // 用户资料界面
 export { UserProfileScreen } from './Profile/UserProfile'

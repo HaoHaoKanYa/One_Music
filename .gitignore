@@ -141,3 +141,4 @@ commit-user-system.bat
 commit-user-system.sh
 FILES_TO_COMMIT.md
 GIT_COMMIT_GUIDE.md
+.idea/gradle.xml

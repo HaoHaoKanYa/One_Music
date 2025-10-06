@@ -40,6 +40,7 @@
             <option value="$PROJECT_DIR$/node_modules/react-native-exception-handler/android" />
             <option value="$PROJECT_DIR$/node_modules/react-native-file-system/android" />
             <option value="$PROJECT_DIR$/node_modules/react-native-fs/android" />
+            <option value="$PROJECT_DIR$/node_modules/react-native-image-picker/android" />
             <option value="$PROJECT_DIR$/node_modules/react-native-local-media-metadata/android" />
             <option value="$PROJECT_DIR$/node_modules/react-native-navigation/lib/android/app" />
             <option value="$PROJECT_DIR$/node_modules/react-native-pager-view/android" />
