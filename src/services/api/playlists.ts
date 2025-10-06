@@ -74,7 +74,10 @@ export const playlistsAPI = {
    * 获取当前用户的歌单
    */
   getMyPlaylists: async () => {
-    return playlistsAPI.getPlaylists({})
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('未登录')
+    
+    return playlistsAPI.getPlaylists({ userId: user.id })
   },
 
   /**

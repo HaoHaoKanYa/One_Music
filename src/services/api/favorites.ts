@@ -48,7 +48,7 @@ export const favoritesAPI = {
     query = query.order(sortBy, { ascending: sortOrder === 'asc' })
     query = query.range(offset, offset + limit - 1)
 
-    const { data, error} = await query
+    const { data, error } = await query
 
     if (error) throw error
     return data || []

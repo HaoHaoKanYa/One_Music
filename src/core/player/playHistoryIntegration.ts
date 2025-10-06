@@ -93,6 +93,7 @@ export const recordPlayEnd = async () => {
 export const initPlayHistoryIntegration = () => {
   // 监听音乐切换事件
   global.app_event.on('musicToggled', () => {
+    console.log('musicToggled事件触发')
     // 先记录上一首歌的播放结束
     void recordPlayEnd()
     
@@ -105,7 +106,17 @@ export const initPlayHistoryIntegration = () => {
 
   // 监听播放暂停事件
   global.app_event.on('pause', () => {
+    console.log('pause事件触发')
     void recordPlayEnd()
+  })
+
+  // 监听播放开始事件
+  global.app_event.on('play', () => {
+    console.log('play事件触发')
+    const musicInfo = playerState.playMusicInfo.musicInfo
+    if (musicInfo && !currentPlayStartTime) {
+      void recordPlayStart(musicInfo)
+    }
   })
 
   console.log('播放历史集成已初始化')
