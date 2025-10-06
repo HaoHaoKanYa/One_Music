@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   TouchableOpacity,
+  Image,
 } from 'react-native'
 import { useTheme } from '@/store/theme/hook'
 import { statisticsAPI, type SongStats as APISongStats } from '@/services/api/statistics'
@@ -160,22 +161,6 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
   )
 
   const renderDailyChart = () => {
-    if (dailyStats.length === 0) {
-      return (
-        <View style={styles.section}>
-          <Text style={[styles.sectionTitle, { color: theme['c-font'] }]}>
-            播放趋势
-          </Text>
-          {renderPeriodSelector()}
-          <View style={styles.emptyChart}>
-            <Text style={[styles.emptyText, { color: theme['c-350'] }]}>
-              暂无播放数据
-            </Text>
-          </View>
-        </View>
-      )
-    }
-
     // 填充缺失的日期，确保连续性，以今天为结束日期
     const days = selectedPeriod === '7' ? 7 : 30
     const endDate = new Date()
@@ -200,6 +185,8 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
       })
     }
 
+    console.log('[PlayStatistics] 趋势数据:', filledData.map(d => `${d.date}: ${d.total_plays}`).join(', '))
+
     const maxPlays = Math.max(...filledData.map(s => s.total_plays), 1)
     const chartHeight = 150
     const pointWidth = 45
@@ -211,6 +198,8 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
     const todayStr = endDate.toISOString().split('T')[0]
     const todayIndex = filledData.findIndex(d => d.date === todayStr)
     const scrollToX = todayIndex > 0 ? Math.max(0, todayIndex * pointWidth - 150) : 0
+    
+    console.log('[PlayStatistics] 图表参数:', { days, maxPlays, chartWidth, todayIndex, scrollToX })
 
     return (
       <View style={styles.section}>
@@ -402,9 +391,14 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
 
         {artistStats.map((artist, index) => (
           <View key={index} style={styles.artistItem}>
-            <View style={[styles.rankContainer, { backgroundColor: theme['c-primary-font'] + '20' }]}>
-              <Text style={[styles.rank, { color: theme['c-primary-font'] }]}>
+            <View style={styles.rankBadge}>
+              <Text style={[styles.rankNumber, { color: theme['c-primary-font'] }]}>
                 {index + 1}
+              </Text>
+            </View>
+            <View style={styles.artistAvatar}>
+              <Text style={styles.avatarText}>
+                {artist.artist.charAt(0)}
               </Text>
             </View>
             <View style={styles.artistInfo}>
@@ -445,16 +439,23 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
 
         {songStats.map((song, index) => (
           <View key={index} style={styles.artistItem}>
-            <View style={[styles.rankContainer, { backgroundColor: theme['c-primary-font'] + '20' }]}>
-              <Text style={[styles.rank, { color: theme['c-primary-font'] }]}>
+            <View style={styles.rankBadge}>
+              <Text style={[styles.rankNumber, { color: theme['c-primary-font'] }]}>
                 {index + 1}
               </Text>
             </View>
+            {song.cover_url ? (
+              <Image source={{ uri: song.cover_url }} style={styles.songCover} />
+            ) : (
+              <View style={styles.songCoverPlaceholder}>
+                <Text style={styles.coverText}>♪</Text>
+              </View>
+            )}
             <View style={styles.artistInfo}>
-              <Text style={[styles.artistName, { color: theme['c-font'] }]}>
+              <Text style={[styles.artistName, { color: theme['c-font'] }]} numberOfLines={1}>
                 {song.song_name}
               </Text>
-              <Text style={[styles.artistStats, { color: theme['c-350'] }]}>
+              <Text style={[styles.artistStats, { color: theme['c-350'] }]} numberOfLines={1}>
                 {song.artist} · 播放{song.play_count}次
               </Text>
             </View>
@@ -575,18 +576,51 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
+    paddingVertical: 4,
   },
-  rankContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+  rankBadge: {
+    width: 24,
+    height: 24,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
-  rank: {
+  rankNumber: {
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  artistAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#4A90E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  songCover: {
+    width: 48,
+    height: 48,
+    borderRadius: 6,
+    marginRight: 12,
+  },
+  songCoverPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 6,
+    backgroundColor: '#E0E0E0',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  coverText: {
+    fontSize: 24,
+    color: '#999',
   },
   artistInfo: {
     flex: 1,
