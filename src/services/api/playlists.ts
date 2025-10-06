@@ -106,10 +106,14 @@ export const playlistsAPI = {
    * 创建歌单
    */
   createPlaylist: async (playlist: Playlist) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('未登录')
+
     const { data, error } = await supabase
       .from('playlists')
       .insert({
         ...playlist,
+        user_id: user.id,
         is_public: playlist.is_public || false,
       })
       .select()

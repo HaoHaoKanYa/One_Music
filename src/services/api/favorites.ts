@@ -28,6 +28,9 @@ export const favoritesAPI = {
     sortBy?: 'created_at' | 'song_name' | 'artist'
     sortOrder?: 'asc' | 'desc'
   }) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('未登录')
+
     const {
       limit = 50,
       offset = 0,
@@ -36,7 +39,7 @@ export const favoritesAPI = {
       sortOrder = 'desc',
     } = params || {}
 
-    let query = supabase.from('favorite_songs').select('*')
+    let query = supabase.from('favorite_songs').select('*').eq('user_id', user.id)
 
     if (search) {
       query = query.or(`song_name.ilike.%${search}%,artist.ilike.%${search}%`)
@@ -45,7 +48,7 @@ export const favoritesAPI = {
     query = query.order(sortBy, { ascending: sortOrder === 'asc' })
     query = query.range(offset, offset + limit - 1)
 
-    const { data, error } = await query
+    const { data, error} = await query
 
     if (error) throw error
     return data || []
@@ -55,9 +58,13 @@ export const favoritesAPI = {
    * 获取收藏总数
    */
   getFavoritesCount: async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return 0
+
     const { count, error } = await supabase
       .from('favorite_songs')
       .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
 
     if (error) throw error
     return count || 0
@@ -67,9 +74,13 @@ export const favoritesAPI = {
    * 检查歌曲是否已收藏
    */
   isFavorited: async (songId: string, source: string) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return false
+
     const { data, error } = await supabase
       .from('favorite_songs')
       .select('id')
+      .eq('user_id', user.id)
       .eq('song_id', songId)
       .eq('source', source)
       .maybeSingle()
@@ -82,9 +93,15 @@ export const favoritesAPI = {
    * 添加收藏
    */
   addFavorite: async (song: FavoriteSong) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('未登录')
+
     const { data, error } = await supabase
       .from('favorite_songs')
-      .insert(song)
+      .insert({
+        ...song,
+        user_id: user.id,
+      })
       .select()
       .single()
 
@@ -96,9 +113,17 @@ export const favoritesAPI = {
    * 批量添加收藏
    */
   addFavorites: async (songs: FavoriteSong[]) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('未登录')
+
+    const songsWithUserId = songs.map(song => ({
+      ...song,
+      user_id: user.id,
+    }))
+
     const { data, error } = await supabase
       .from('favorite_songs')
-      .insert(songs)
+      .insert(songsWithUserId)
       .select()
 
     if (error) throw error
@@ -109,9 +134,13 @@ export const favoritesAPI = {
    * 移除收藏
    */
   removeFavorite: async (songId: string, source: string) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('未登录')
+
     const { error } = await supabase
       .from('favorite_songs')
       .delete()
+      .eq('user_id', user.id)
       .eq('song_id', songId)
       .eq('source', source)
 
