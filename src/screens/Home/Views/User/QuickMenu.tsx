@@ -115,9 +115,9 @@ const styles = StyleSheet.create({
   menuGrid: {
     borderRadius: 12,
     overflow: 'hidden',
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'rgba(248, 249, 250, 0.7)',
     borderWidth: 1,
-    borderColor: '#E8E8E8',
+    borderColor: 'rgba(232, 232, 232, 0.5)',
   },
   menuItem: {
     flexDirection: 'row',

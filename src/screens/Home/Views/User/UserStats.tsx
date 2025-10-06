@@ -66,9 +66,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 12,
     marginHorizontal: 12,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: 'rgba(248, 249, 250, 0.7)',
     borderWidth: 1,
-    borderColor: '#E8E8E8',
+    borderColor: 'rgba(232, 232, 232, 0.5)',
   },
   title: {
     fontSize: 16,
