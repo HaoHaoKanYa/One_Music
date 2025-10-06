@@ -166,17 +166,21 @@ export const playHistoryAPI = {
 
     const { data, error } = await supabase
       .from('play_history')
-      .select('play_duration')
+      .select('song_id, artist, play_duration')
       .eq('user_id', user.id)
 
     if (error) throw error
 
-    const totalPlayTime = data?.reduce((sum, record) => sum + record.play_duration, 0) || 0
-    const totalPlayCount = data?.length || 0
+    const total_duration = data?.reduce((sum, record) => sum + (record.play_duration || 0), 0) || 0
+    const total_plays = data?.length || 0
+    const unique_songs = new Set(data?.map(r => r.song_id) || []).size
+    const unique_artists = new Set(data?.map(r => r.artist) || []).size
 
     return {
-      totalPlayTime,
-      totalPlayCount,
+      total_plays,
+      total_duration,
+      unique_songs,
+      unique_artists,
     }
   },
 }

@@ -21,7 +21,7 @@ export default () => {
     checkAuth()
     
     // 监听Supabase认证状态变化
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         checkAuth()
       } else if (event === 'SIGNED_OUT') {
@@ -30,6 +30,13 @@ export default () => {
       }
     })
 
+    // 监听播放历史更新
+    const handlePlayHistoryUpdate = () => {
+      if (user) {
+        checkAuth()
+      }
+    }
+
     // 监听页面焦点，返回时刷新数据
     const navigationEventListener = Navigation.events().registerComponentDidAppearListener(() => {
       if (user) {
@@ -37,9 +44,12 @@ export default () => {
       }
     })
 
+    global.app_event.on('playHistoryUpdated', handlePlayHistoryUpdate)
+
     return () => {
       authListener?.subscription?.unsubscribe()
       navigationEventListener.remove()
+      global.app_event.off('playHistoryUpdated', handlePlayHistoryUpdate)
     }
   }, [user])
 
@@ -49,7 +59,19 @@ export default () => {
       if (currentUser) {
         setUser(currentUser)
         const userProfile = await profileAPI.getCurrentProfile()
-        setProfile(userProfile)
+        
+        // 获取实时播放时长
+        const { data: playData } = await supabase
+          .from('play_history')
+          .select('play_duration')
+          .eq('user_id', currentUser.id)
+        
+        const totalPlayTime = playData?.reduce((sum, record) => sum + (record.play_duration || 0), 0) || 0
+        
+        setProfile({
+          ...userProfile,
+          total_play_time: totalPlayTime,
+        })
       }
     } catch (error) {
       console.log('未登录')
@@ -137,7 +159,9 @@ export default () => {
           )}
         </View>
         <Text style={styles.subtitle} color={theme['c-350']}>
-          {user ? '累计听歌 0 小时' : '登录后可同步收藏和歌单'}
+          {user 
+            ? `累计听歌 ${profile?.total_play_time ? Math.floor(profile.total_play_time / 3600) : 0} 小时` 
+            : '登录后可同步收藏和歌单'}
         </Text>
       </View>
 

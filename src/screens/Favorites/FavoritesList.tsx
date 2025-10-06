@@ -59,6 +59,8 @@ export const FavoritesListScreen: React.FC<FavoritesListProps> = ({
             try {
               await favoritesAPI.removeFavorite(songId)
               setFavorites(prev => prev.filter(s => s.song_id !== songId))
+              // 触发收藏更新事件
+              global.app_event.favoritesUpdated()
             } catch (error: any) {
               Alert.alert('错误', error.message || '取消收藏失败')
             }

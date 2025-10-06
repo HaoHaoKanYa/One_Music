@@ -5,6 +5,7 @@ import { useTheme } from '@/store/theme/hook'
 import { favoritesAPI } from '@/services/api/favorites'
 import { playHistoryAPI } from '@/services/api/playHistory'
 import { playlistsAPI } from '@/services/api/playlists'
+import { supabase } from '@/lib/supabase'
 
 export default () => {
   const theme = useTheme()
@@ -27,12 +28,22 @@ export default () => {
       loadStats()
     }
     
+    // 监听认证状态变化
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        setStats({ favorites: 0, playlists: 0, history: 0 })
+      } else if (event === 'SIGNED_IN') {
+        loadStats()
+      }
+    })
+    
     global.app_event.on('favoritesUpdated', handleFavoritesUpdate)
     global.app_event.on('playHistoryUpdated', handlePlayHistoryUpdate)
     
     return () => {
       global.app_event.off('favoritesUpdated', handleFavoritesUpdate)
       global.app_event.off('playHistoryUpdated', handlePlayHistoryUpdate)
+      authListener?.subscription?.unsubscribe()
     }
   }, [])
 
