@@ -258,7 +258,8 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
               {/* Y轴参考线和标签 */}
               {[0, 1, 2, 3, 4, 5, 6, 7].map((value) => {
                 if (value > maxPlays) return null
-                const y = (value / maxPlays) * chartHeight
+                // 从顶部计算：value越大，top越小（越靠上）
+                const top = chartHeight - (value / maxPlays) * chartHeight
                 
                 return (
                   <View key={`grid-${value}`}>
@@ -268,7 +269,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
                         position: 'absolute',
                         left: 0,
                         right: 0,
-                        bottom: paddingBottom + y,
+                        top: top,
                         height: value === 0 ? 2 : 1,
                         backgroundColor: value === 0 ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.08)',
                       }}
@@ -278,7 +279,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
                       style={{
                         position: 'absolute',
                         left: -28,
-                        bottom: paddingBottom + y - 8,
+                        top: top - 8,
                         fontSize: 11,
                         color: theme['c-350'],
                         fontWeight: value === 0 || value === maxPlays ? 'bold' : 'normal',
@@ -297,17 +298,17 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
                 if (index === filledData.length - 1) return null
 
                 const x1 = index * pointWidth + pointWidth / 2
-                const y1 = (stat.total_plays / maxPlays) * chartHeight
+                const top1 = chartHeight - (stat.total_plays / maxPlays) * chartHeight
                 const nextStat = filledData[index + 1]
                 const x2 = (index + 1) * pointWidth + pointWidth / 2
-                const y2 = (nextStat.total_plays / maxPlays) * chartHeight
+                const top2 = chartHeight - (nextStat.total_plays / maxPlays) * chartHeight
 
                 const dx = x2 - x1
-                const dy = y2 - y1
+                const dy = top2 - top1
                 const length = Math.sqrt(dx * dx + dy * dy)
                 const angle = Math.atan2(dy, dx) * (180 / Math.PI)
 
-                console.log(`[Line ${index}] from (${x1}, ${y1}) to (${x2}, ${y2}), length: ${length}, angle: ${angle}`)
+                console.log(`[Line ${index}] from (${x1}, ${top1}) to (${x2}, ${top2}), length: ${length}, angle: ${angle}`)
 
                 return (
                   <View
@@ -315,7 +316,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
                     style={{
                       position: 'absolute',
                       left: x1,
-                      bottom: paddingBottom + y1,
+                      top: top1,
                       width: length,
                       height: 3,
                       backgroundColor: '#FF8C42',
@@ -329,12 +330,12 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
               {/* 数据点和标签 */}
               {filledData.map((stat, index) => {
                 const x = index * pointWidth + pointWidth / 2
-                const y = (stat.total_plays / maxPlays) * chartHeight
+                const top = chartHeight - (stat.total_plays / maxPlays) * chartHeight
                 const date = new Date(stat.date)
                 const isToday = stat.date === todayStr
                 const dayOfMonth = date.getDate()
 
-                console.log(`[Point ${index}] ${dayOfMonth}: plays=${stat.total_plays}, x=${x}, y=${y}, bottom=${paddingBottom + y}`)
+                console.log(`[Point ${index}] ${dayOfMonth}: plays=${stat.total_plays}, x=${x}, top=${top}`)
 
                 return (
                   <View key={`point-${index}`}>
@@ -343,46 +344,42 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
                       style={{
                         position: 'absolute',
                         left: x - 6,
-                        bottom: paddingBottom + y - 6,
+                        top: top - 6,
                         width: 12,
                         height: 12,
                         borderRadius: 6,
                         backgroundColor: '#FF8C42',
                         borderWidth: 3,
                         borderColor: '#FFF',
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.1,
-                        shadowRadius: 3,
                         elevation: 3,
                       }}
                     />
 
                     {/* 数据标注（在点上方） */}
-                    <Text
-                      style={{
-                        position: 'absolute',
-                        left: x - 20,
-                        bottom: paddingBottom + y + 12,
-                        width: 40,
-                        textAlign: 'center',
-                        fontSize: 12,
-                        fontWeight: 'bold',
-                        color: '#FF8C42',
-                      }}
-                    >
-                      {stat.total_plays}
-                    </Text>
+                    {stat.total_plays > 0 && (
+                      <Text
+                        style={{
+                          position: 'absolute',
+                          left: x + 10,
+                          top: top - 8,
+                          fontSize: 12,
+                          fontWeight: 'bold',
+                          color: '#FF8C42',
+                        }}
+                      >
+                        {stat.total_plays}
+                      </Text>
+                    )}
 
                     {/* X轴日期标签 */}
                     <Text
                       style={{
                         position: 'absolute',
-                        left: x - 20,
-                        bottom: 5,
-                        width: 40,
+                        left: x - 15,
+                        top: chartHeight + 10,
+                        width: 30,
                         textAlign: 'center',
-                        fontSize: 11,
+                        fontSize: 12,
                         color: isToday ? '#FF8C42' : theme['c-350'],
                         fontWeight: isToday ? 'bold' : 'normal',
                       }}
@@ -392,25 +389,20 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
 
                     {/* 今天标记 */}
                     {isToday && (
-                      <View
+                      <Text
                         style={{
                           position: 'absolute',
-                          left: x - 20,
-                          bottom: -15,
-                          width: 40,
-                          alignItems: 'center',
+                          left: x - 15,
+                          top: chartHeight + 28,
+                          width: 30,
+                          textAlign: 'center',
+                          fontSize: 9,
+                          color: '#FF8C42',
+                          fontWeight: 'bold',
                         }}
                       >
-                        <Text
-                          style={{
-                            fontSize: 10,
-                            color: '#FF8C42',
-                            fontWeight: 'bold',
-                          }}
-                        >
-                          今天
-                        </Text>
-                      </View>
+                        今天
+                      </Text>
                     )}
                   </View>
                 )
