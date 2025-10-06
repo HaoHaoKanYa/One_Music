@@ -119,6 +119,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
   },
   menuItem: {
     flexDirection: 'row',

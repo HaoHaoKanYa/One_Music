@@ -93,7 +93,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
     if (!overallStats) return null
 
     return (
-      <View style={[styles.section, { backgroundColor: theme['c-primary-light-100'] + '33' }]}>
+      <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: theme['c-font'] }]}>总体统计</Text>
         
         <View style={styles.statsGrid}>
@@ -177,7 +177,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
   const renderDailyChart = () => {
     if (dailyStats.length === 0) {
       return (
-        <View style={[styles.section, { backgroundColor: theme['c-primary-light-100'] + '33' }]}>
+        <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme['c-font'] }]}>
             播放趋势
           </Text>
@@ -196,7 +196,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
     const displayData = selectedPeriod === '7' ? dailyStats.slice(-7) : dailyStats
 
     return (
-      <View style={[styles.section, { backgroundColor: theme['c-primary-light-100'] + '33' }]}>
+      <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: theme['c-font'] }]}>
           播放趋势
         </Text>
@@ -235,7 +235,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
   const renderArtistRanking = () => {
     if (artistStats.length === 0) {
       return (
-        <View style={[styles.section, { backgroundColor: theme['c-primary-light-100'] + '33' }]}>
+        <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme['c-font'] }]}>
             最常听的歌手 Top 10
           </Text>
@@ -249,7 +249,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
     }
 
     return (
-      <View style={[styles.section, { backgroundColor: theme['c-primary-light-100'] + '33' }]}>
+      <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: theme['c-font'] }]}>
           最常听的歌手 Top 10
         </Text>
@@ -278,7 +278,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
   const renderSongRanking = () => {
     if (songStats.length === 0) {
       return (
-        <View style={[styles.section, { backgroundColor: theme['c-primary-light-100'] + '33' }]}>
+        <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme['c-font'] }]}>
             最常听的歌曲 Top 10
           </Text>
@@ -292,7 +292,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
     }
 
     return (
-      <View style={[styles.section, { backgroundColor: theme['c-primary-light-100'] + '33' }]}>
+      <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: theme['c-font'] }]}>
           最常听的歌曲 Top 10
         </Text>
@@ -354,6 +354,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
   },
   sectionTitle: {
     fontSize: 18,

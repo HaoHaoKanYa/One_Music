@@ -138,6 +138,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginHorizontal: 12,
     backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
   },
   avatarContainer: {
     marginRight: 16,

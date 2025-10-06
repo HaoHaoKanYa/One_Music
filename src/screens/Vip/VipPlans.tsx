@@ -110,14 +110,7 @@ export const VipPlansScreen: React.FC<VipPlansScreenProps> = ({ componentId }) =
     return (
       <View
         key={plan.id}
-        style={[
-          styles.planCard,
-          {
-            backgroundColor: isVip
-              ? theme['c-primary-light-100'] + '33'
-              : '#FFD700' + '33',
-          },
-        ]}
+        style={styles.planCard}
       >
         <View style={styles.planHeader}>
           <Text style={[styles.planName, { color: theme['c-font'] }]}>{plan.name}</Text>
@@ -258,6 +251,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 20,
     marginBottom: 16,
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E8E8E8',
   },
   planHeader: {
     flexDirection: 'row',
