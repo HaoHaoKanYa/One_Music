@@ -185,11 +185,14 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
       })
     }
 
+    console.log('[PlayStatistics] ========== 开始渲染图表 ==========')
     console.log('[PlayStatistics] 原始数据长度:', dailyStats.length)
+    console.log('[PlayStatistics] 原始数据:', JSON.stringify(dailyStats))
     console.log('[PlayStatistics] 填充后数据:', filledData.map(d => `${d.date}: ${d.total_plays}`).join(', '))
 
     // 如果最大值太小，设置一个最小刻度以便更好地显示
     const maxPlays = Math.max(...filledData.map(s => s.total_plays), 5)
+    console.log('[PlayStatistics] maxPlays:', maxPlays)
     const chartHeight = 150
     const pointWidth = 50
     const chartWidth = filledData.length * pointWidth
