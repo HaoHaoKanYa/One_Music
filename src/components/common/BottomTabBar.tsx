@@ -50,6 +50,8 @@ export default memo(() => {
   const activeId = useNavActiveId()
 
   const handleTabPress = (id: TabId) => {
+    // 关闭侧边栏
+    global.app_event.changeMenuVisible(false)
     setNavActiveId(id)
   }
 
