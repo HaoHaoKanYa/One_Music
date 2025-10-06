@@ -163,10 +163,10 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
   const renderDailyChart = () => {
     // 填充缺失的日期，确保连续性，以今天为结束日期
     const days = selectedPeriod === '7' ? 7 : 30
-    const endDate = new Date()
-    endDate.setHours(0, 0, 0, 0)
+    const today = new Date()
+    const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
     const startDate = new Date(endDate)
-    startDate.setDate(startDate.getDate() - days + 1)
+    startDate.setDate(endDate.getDate() - days + 1)
 
     const filledData: DailyStats[] = []
     const statsMap = new Map(dailyStats.map(s => [s.date, s]))
