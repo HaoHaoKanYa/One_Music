@@ -23,19 +23,19 @@ const TabItem = memo(({ id, label, isActive, onPress }: {
   onPress: (id: TabId) => void
 }) => {
   const theme = useTheme()
-  
+
   const handlePress = () => {
     onPress(id)
   }
 
   return (
-    <TouchableOpacity 
-      style={styles.tabItem} 
+    <TouchableOpacity
+      style={styles.tabItem}
       onPress={handlePress}
       activeOpacity={0.7}
     >
-      <Text 
-        size={15} 
+      <Text
+        size={15}
         color={isActive ? theme['c-primary-font'] : theme['c-font-label']}
         style={isActive ? styles.tabLabelActive : styles.tabLabel}
       >

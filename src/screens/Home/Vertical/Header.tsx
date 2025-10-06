@@ -14,6 +14,7 @@ import { scaleSizeH } from '@/utils/pixelRatio'
 import { HEADER_HEIGHT } from '@/config/constant'
 import { type InitState as CommonState } from '@/store/common/state'
 import SearchTypeSelector from '@/screens/Home/Views/Search/SearchTypeSelector'
+import { setNavActiveId } from '@/core/common'
 
 const headerComponents: Partial<Record<CommonState['navActiveId'], React.ReactNode>> = {
   nav_search: <SearchTypeSelector />,
@@ -33,7 +34,8 @@ const LeftHeader = () => {
   const statusBarHeight = useStatusbarHeight()
 
   const openMenu = () => {
-    global.app_event.changeMenuVisible(true)
+    // 直接跳转到设置页面，不打开侧边栏
+    setNavActiveId('nav_setting')
   }
 
   return (
@@ -47,7 +49,7 @@ const LeftHeader = () => {
           <Icon color={theme['c-font']} name="menu" size={18} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.titleBtn} onPress={openMenu}>
-          <Text style={styles.leftTitle} size={18}>{t(id)}</Text>
+          <Text style={styles.leftTitle} size={18}>{t(id as any)}</Text>
         </TouchableOpacity>
       </View>
       {headerComponents[id] ?? null}
@@ -73,7 +75,8 @@ const RightHeader = () => {
   const statusBarHeight = useStatusbarHeight()
 
   const openMenu = () => {
-    global.app_event.changeMenuVisible(true)
+    // 直接跳转到设置页面，不打开侧边栏
+    setNavActiveId('nav_setting')
   }
   return (
     <View style={{
@@ -83,7 +86,7 @@ const RightHeader = () => {
     }}>
       <View style={styles.left}>
         <TouchableOpacity style={styles.titleBtn} onPress={openMenu}>
-          <Text style={styles.rightTitle} size={18}>{t(id)}</Text>
+          <Text style={styles.rightTitle} size={18}>{t(id as any)}</Text>
         </TouchableOpacity>
       </View>
       {headerComponents[id] ?? null}
