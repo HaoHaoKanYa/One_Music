@@ -52,7 +52,23 @@ export default memo(() => {
   const handleTabPress = (id: TabId) => {
     // 关闭侧边栏
     global.app_event.changeMenuVisible(false)
-    setNavActiveId(id)
+    
+    // 如果点击的是"我的歌单"
+    if (id === 'nav_love') {
+      if (activeId === 'nav_love') {
+        // 已经在该页面，切换侧边栏显示/隐藏
+        global.app_event.toggleLoveListVisible()
+      } else {
+        // 不在该页面，先切换到该页面，然后打开侧边栏
+        setNavActiveId(id)
+        // 延迟打开侧边栏，确保页面已切换
+        setTimeout(() => {
+          global.app_event.changeLoveListVisible(true)
+        }, 100)
+      }
+    } else {
+      setNavActiveId(id)
+    }
   }
 
   return (

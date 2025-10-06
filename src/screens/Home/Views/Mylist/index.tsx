@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import settingState from '@/store/setting/state'
 import MusicList from './MusicList'
 import MyList from './MyList'
@@ -13,6 +13,7 @@ const MAX_WIDTH = scaleSizeW(400)
 export default () => {
   const drawer = useRef<DrawerLayoutFixedType>(null)
   const theme = useTheme()
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   // const [width, setWidth] = useState(0)
 
   useEffect(() => {
@@ -23,16 +24,31 @@ export default () => {
       if (visible) {
         requestAnimationFrame(() => {
           drawer.current?.openDrawer()
+          setIsDrawerOpen(true)
         })
       } else {
         drawer.current?.closeDrawer()
+        setIsDrawerOpen(false)
       }
+    }
+    
+    const toggleVisible = () => {
+      requestAnimationFrame(() => {
+        if (isDrawerOpen) {
+          drawer.current?.closeDrawer()
+          setIsDrawerOpen(false)
+        } else {
+          drawer.current?.openDrawer()
+          setIsDrawerOpen(true)
+        }
+      })
     }
 
     // setWidth(getWindowSise().width * 0.82)
 
     global.state_event.on('navActiveIdUpdated', handleFixDrawer)
     global.app_event.on('changeLoveListVisible', changeVisible)
+    global.app_event.on('toggleLoveListVisible', toggleVisible)
 
     // 就放旋转屏幕后的宽度没有更新的问题
     // const changeEvent = onDimensionChange(({ window }) => {
@@ -45,12 +61,21 @@ export default () => {
     return () => {
       global.state_event.off('navActiveIdUpdated', handleFixDrawer)
       global.app_event.off('changeLoveListVisible', changeVisible)
+      global.app_event.off('toggleLoveListVisible', toggleVisible)
       // changeEvent.remove()
     }
   }, [])
 
   const navigationView = () => <MyList />
   // console.log('render drawer content')
+
+  const handleDrawerOpen = () => {
+    setIsDrawerOpen(true)
+  }
+
+  const handleDrawerClose = () => {
+    setIsDrawerOpen(false)
+  }
 
   return (
     <DrawerLayoutFixed
@@ -63,6 +88,8 @@ export default () => {
       renderNavigationView={navigationView}
       drawerBackgroundColor={theme['c-content-background']}
       style={{ elevation: 1 }}
+      onDrawerOpen={handleDrawerOpen}
+      onDrawerClose={handleDrawerClose}
     >
       <MusicList />
     </DrawerLayoutFixed>

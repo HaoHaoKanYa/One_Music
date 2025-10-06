@@ -59,11 +59,14 @@ export const PlaylistsListScreen: React.FC<PlaylistsListProps> = ({
       // 使用同步服务创建歌单
       const { createPlaylistWithSync } = await import('@/services/playlistSync')
       const localList = await createPlaylistWithSync(newPlaylistName.trim(), newPlaylistDesc.trim() || undefined)
-      
+
       // 更新UI列表
       const playlist = await playlistsAPI.getPlaylist(localList.sourceListId!)
       setPlaylists(prev => [playlist, ...prev])
-      
+
+      // 触发全局事件，通知"我的歌单"页面刷新
+      global.app_event.myListMusicUpdate([])
+
       setCreateModalVisible(false)
       setNewPlaylistName('')
       setNewPlaylistDesc('')
@@ -87,8 +90,11 @@ export const PlaylistsListScreen: React.FC<PlaylistsListProps> = ({
               // 使用同步服务删除歌单
               const { deletePlaylistWithSync } = await import('@/services/playlistSync')
               await deletePlaylistWithSync(`cloud_${playlist.id}`)
-              
+
               setPlaylists(prev => prev.filter(p => p.id !== playlist.id))
+
+              // 触发全局事件，通知"我的歌单"页面刷新
+              global.app_event.myListMusicUpdate([])
             } catch (error: any) {
               Alert.alert('错误', error.message || '删除歌单失败')
             }
@@ -170,7 +176,7 @@ export const PlaylistsListScreen: React.FC<PlaylistsListProps> = ({
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>创建新歌单</Text>
-            
+
             <TextInput
               style={styles.input}
               placeholder="歌单名称"
@@ -178,7 +184,7 @@ export const PlaylistsListScreen: React.FC<PlaylistsListProps> = ({
               value={newPlaylistName}
               onChangeText={setNewPlaylistName}
             />
-            
+
             <TextInput
               style={[styles.input, styles.textArea]}
               placeholder="歌单描述（可选）"
@@ -200,7 +206,7 @@ export const PlaylistsListScreen: React.FC<PlaylistsListProps> = ({
               >
                 <Text style={styles.cancelButtonText}>取消</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={[styles.modalButton, styles.confirmButton]}
                 onPress={handleCreatePlaylist}
