@@ -42,6 +42,9 @@ export const syncAddFavorites = async (musicInfos: LX.Music.MusicInfo[]) => {
 
         await favoritesAPI.addFavorites(favorites)
         console.log('[收藏同步] ✅ 成功同步', musicInfos.length, '首到数据库')
+        
+        // 触发数据更新事件，通知UI刷新
+        global.app_event.favoritesUpdated()
     } catch (error: any) {
         if (error?.message?.includes('Auth session missing')) {
             console.log('[收藏同步] ❌ 登录会话已过期，请重新登录')
@@ -86,6 +89,9 @@ export const syncRemoveFavorites = async (musicIds: string[]) => {
                         await favoritesAPI.removeFavorite(musicId, fav.source)
                     }
                     console.log('已从数据库移除收藏:', musicId, favorites.length, '条记录')
+                    
+                    // 触发数据更新事件
+                    global.app_event.favoritesUpdated()
                 }
             } catch (err) {
                 console.log('移除单个收藏失败:', musicId, err)

@@ -201,6 +201,13 @@ export class AppEvent extends Event {
   selectSyncMode(mode: LX.Sync.ModeType) {
     this.emit('selectSyncMode', mode)
   }
+
+  /**
+   * 收藏数据更新
+   */
+  favoritesUpdated() {
+    this.emit('favoritesUpdated')
+  }
 }
 
 

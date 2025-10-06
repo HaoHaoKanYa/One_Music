@@ -49,6 +49,17 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
 
   useEffect(() => {
     loadProfile()
+    
+    // 监听收藏更新事件
+    const handleFavoritesUpdate = () => {
+      loadProfile()
+    }
+    
+    global.app_event.on('favoritesUpdated', handleFavoritesUpdate)
+    
+    return () => {
+      global.app_event.off('favoritesUpdated', handleFavoritesUpdate)
+    }
   }, [])
 
   const checkFollowStatus = async (targetUserId: string) => {
@@ -92,7 +103,28 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
         .single()
 
       if (error) throw error
-      setProfile(data)
+      
+      // 获取实时统计数据
+      const [favCount, playlistCount] = await Promise.all([
+        supabase
+          .from('favorite_songs')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', targetUserId)
+          .then(res => res.count || 0),
+        supabase
+          .from('playlists')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', targetUserId)
+          .eq('is_deleted', false)
+          .then(res => res.count || 0),
+      ])
+      
+      // 合并实时统计数据
+      setProfile({
+        ...data,
+        total_songs: favCount,
+        total_playlists: playlistCount,
+      })
       
       // 检查是否是当前用户
       const isCurrent = data.user_id === user.id

@@ -16,6 +16,17 @@ export default () => {
 
   useEffect(() => {
     loadStats()
+    
+    // 监听收藏更新事件
+    const handleFavoritesUpdate = () => {
+      loadStats()
+    }
+    
+    global.app_event.on('favoritesUpdated', handleFavoritesUpdate)
+    
+    return () => {
+      global.app_event.off('favoritesUpdated', handleFavoritesUpdate)
+    }
   }, [])
 
   const loadStats = async () => {
