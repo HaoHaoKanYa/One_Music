@@ -51,7 +51,7 @@ export const VipPlansScreen: React.FC<VipPlansScreenProps> = ({ componentId }) =
             try {
               // 创建订单
               const order = await vipAPI.createOrder(plan.id)
-              
+
               // 模拟支付
               Alert.alert(
                 '选择支付方式',
@@ -106,13 +106,13 @@ export const VipPlansScreen: React.FC<VipPlansScreenProps> = ({ componentId }) =
   const renderPlanCard = (plan: VipPlan) => {
     const isSvip = plan.type === 'svip'
     const features = plan.features as any
-    
-    // 根据duration计算显示单位
-    const getPeriodText = (duration: number) => {
-      if (duration === 30) return '月'
-      if (duration === 90) return '季'
-      if (duration === 365) return '年'
-      return `${duration}天`
+
+    // 根据duration_days计算显示单位
+    const getPeriodText = (days: number) => {
+      if (days === 30) return '月'
+      if (days === 90) return '季'
+      if (days === 365) return '年'
+      return `${days}天`
     }
 
     return (
@@ -124,10 +124,15 @@ export const VipPlansScreen: React.FC<VipPlansScreenProps> = ({ componentId }) =
         ]}
       >
         {/* 装饰性背景元素 */}
-        {isSvip && (
+        {isSvip ? (
           <>
             <View style={styles.decorCircle1} />
             <View style={styles.decorCircle2} />
+          </>
+        ) : (
+          <>
+            <View style={styles.vipDecorCircle1} />
+            <View style={styles.vipDecorCircle2} />
           </>
         )}
 
@@ -141,7 +146,7 @@ export const VipPlansScreen: React.FC<VipPlansScreenProps> = ({ componentId }) =
               <Text style={styles.crownEmoji}>👑</Text>
             )}
           </View>
-          
+
           {isSvip && (
             <View style={styles.recommendBadge}>
               <Text style={styles.badgeText}>✨ 推荐</Text>
@@ -155,7 +160,7 @@ export const VipPlansScreen: React.FC<VipPlansScreenProps> = ({ componentId }) =
                 {plan.price}
               </Text>
               <Text style={[styles.pricePeriod, isSvip && styles.svipText]}>
-                /{getPeriodText(plan.duration)}
+                /{getPeriodText(plan.duration_days)}
               </Text>
             </View>
             {plan.original_price && (
@@ -293,14 +298,34 @@ const styles = StyleSheet.create({
     elevation: 8,
   },
   vipCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F0F8FF',
     borderWidth: 2,
     borderColor: '#4A90E2',
   },
   svipCard: {
-    backgroundColor: 'linear-gradient(135deg, #1A1A2E 0%, #2D2D44 100%)',
+    backgroundColor: '#1A1A2E',
     borderWidth: 2,
     borderColor: '#FFD700',
+  },
+  vipDecorCircle1: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#4A90E2',
+    opacity: 0.08,
+    top: -30,
+    right: -30,
+  },
+  vipDecorCircle2: {
+    position: 'absolute',
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#5BA3F5',
+    opacity: 0.06,
+    bottom: -15,
+    left: 80,
   },
   decorCircle1: {
     position: 'absolute',
