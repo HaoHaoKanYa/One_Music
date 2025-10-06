@@ -37,7 +37,7 @@ export default () => {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: theme['c-primary-light-100'] + '05' }]}>
+    <View style={styles.container}>
       <Text style={styles.title} color={theme['c-font']}>📊 我的数据</Text>
 
       <View style={styles.statsGrid}>
@@ -66,6 +66,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 12,
     marginHorizontal: 12,
+    backgroundColor: '#F8F9FA',
   },
   title: {
     fontSize: 16,

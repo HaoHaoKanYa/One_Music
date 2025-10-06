@@ -96,7 +96,7 @@ export default () => {
 
   return (
     <TouchableOpacity
-      style={[styles.container, { backgroundColor: theme['c-primary-light-100'] + '05' }]}
+      style={styles.container}
       onPress={handlePress}
       activeOpacity={0.8}
     >
@@ -137,6 +137,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     borderRadius: 12,
     marginHorizontal: 12,
+    backgroundColor: '#F8F9FA',
   },
   avatarContainer: {
     marginRight: 16,

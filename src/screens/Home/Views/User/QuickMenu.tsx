@@ -78,7 +78,7 @@ export default () => {
             {section.title}
           </Text>
           
-          <View style={[styles.menuGrid, { backgroundColor: theme['c-primary-light-100'] + '05' }]}>
+          <View style={styles.menuGrid}>
             {section.items.map((item, index) => (
               <TouchableOpacity
                 key={index}
@@ -118,6 +118,7 @@ const styles = StyleSheet.create({
   menuGrid: {
     borderRadius: 12,
     overflow: 'hidden',
+    backgroundColor: '#F8F9FA',
   },
   menuItem: {
     flexDirection: 'row',
