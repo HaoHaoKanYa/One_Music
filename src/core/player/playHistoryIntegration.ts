@@ -43,6 +43,55 @@ export const recordPlayStart = async (musicInfo: LX.Music.MusicInfo | LX.Downloa
 }
 
 /**
+ * 使用指定的信息记录播放结束
+ */
+const recordPlayEndWithInfo = async (musicId: string, startTime: number) => {
+  try {
+    const user = await authAPI.getCurrentUser()
+    if (!user) {
+      console.log('[播放历史] 未登录，跳过记录')
+      return
+    }
+
+    const playDuration = Math.floor((Date.now() - startTime) / 1000)
+    
+    // 只记录播放时长超过5秒的
+    if (playDuration < 5) {
+      console.log('[播放历史] ⏩ 播放时长太短(' + playDuration + '秒)，不记录')
+      return
+    }
+
+    // 从播放历史或当前播放信息获取歌曲详情
+    const musicInfo = playerState.playMusicInfo.musicInfo
+    
+    // 如果当前歌曲不是要记录的歌曲，尝试从其他地方获取
+    // 这里简化处理，使用当前信息（因为已经切歌了，只能尽力而为）
+    const name = musicInfo ? getMusicProperty(musicInfo, 'name') : '未知歌曲'
+    const singer = musicInfo ? getMusicProperty(musicInfo, 'singer') : '未知歌手'
+    const albumName = musicInfo ? getMusicProperty(musicInfo, 'albumName') : undefined
+    const source = musicInfo ? getMusicProperty(musicInfo, 'source') : 'kw'
+    const interval = musicInfo ? getMusicProperty(musicInfo, 'interval') || 0 : 0
+
+    console.log('[播放历史] 📝 准备记录(切歌):', name, '播放时长:', playDuration, '秒')
+
+    await playHistoryAPI.addPlayRecord({
+      song_id: musicId,
+      song_name: name,
+      artist: singer,
+      album: albumName,
+      source: source,
+      play_duration: playDuration,
+      total_duration: interval,
+      completed: playDuration >= interval * 0.8,
+    })
+
+    console.log('[播放历史] ✅ 成功记录(切歌):', name, playDuration, '秒')
+  } catch (error: any) {
+    console.log('[播放历史] ❌ 记录失败:', error?.message || error)
+  }
+}
+
+/**
  * 记录播放结束
  */
 export const recordPlayEnd = async () => {
@@ -108,8 +157,19 @@ export const initPlayHistoryIntegration = () => {
   // 监听音乐切换事件
   global.app_event.on('musicToggled', () => {
     console.log('[播放历史] 🎵 musicToggled事件触发')
-    // 先记录上一首歌的播放结束
-    void recordPlayEnd()
+    
+    // 保存旧歌曲信息用于记录
+    const oldStartTime = currentPlayStartTime
+    const oldMusicId = currentPlayMusicId
+    
+    // 立即重置，避免被新歌曲覆盖
+    currentPlayStartTime = null
+    currentPlayMusicId = null
+    
+    // 记录上一首歌（使用保存的信息）
+    if (oldStartTime && oldMusicId) {
+      void recordPlayEndWithInfo(oldMusicId, oldStartTime)
+    }
     
     // 然后开始记录新歌曲
     const musicInfo = playerState.playMusicInfo.musicInfo
