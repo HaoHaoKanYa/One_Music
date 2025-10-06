@@ -168,14 +168,7 @@ export const VipPlansScreen: React.FC<VipPlansScreenProps> = ({ componentId }) =
         </View>
 
         <TouchableOpacity
-          style={[
-            styles.purchaseButton,
-            {
-              backgroundColor: isVip
-                ? theme['c-primary-font']
-                : '#FFD700',
-            },
-          ]}
+          style={styles.purchaseButton}
           onPress={() => handlePurchase(plan)}
           disabled={purchasing}
         >
@@ -306,6 +299,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#4A90E2',
   },
   purchaseButtonText: {
     fontSize: 16,

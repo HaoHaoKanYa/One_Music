@@ -57,11 +57,8 @@ export default () => {
             name: item.screen,
             options: {
               topBar: {
-                title: { text: item.title },
-                leftButtons: [{
-                  id: 'close',
-                  text: '关闭',
-                }],
+                visible: false,
+                height: 0,
               },
             },
           },

@@ -59,11 +59,8 @@ export default () => {
               name: USER_PROFILE_SCREEN,
               options: {
                 topBar: {
-                  title: { text: '个人资料' },
-                  leftButtons: [{
-                    id: 'close',
-                    text: '关闭',
-                  }],
+                  visible: false,
+                  height: 0,
                 },
               },
             },
@@ -78,11 +75,8 @@ export default () => {
               name: SIGN_IN_SCREEN,
               options: {
                 topBar: {
-                  title: { text: '登录' },
-                  leftButtons: [{
-                    id: 'close',
-                    text: '关闭',
-                  }],
+                  visible: false,
+                  height: 0,
                 },
               },
             },

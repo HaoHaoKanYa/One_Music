@@ -134,7 +134,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
       <TouchableOpacity
         style={[
           styles.periodButton,
-          selectedPeriod === '7' && { backgroundColor: theme['c-primary-font'] },
+          selectedPeriod === '7' && styles.periodButtonActive,
         ]}
         onPress={() => {
           setSelectedPeriod('7')
@@ -145,7 +145,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
         <Text
           style={[
             styles.periodButtonText,
-            { color: selectedPeriod === '7' ? '#fff' : theme['c-font'] },
+            selectedPeriod === '7' && styles.periodButtonTextActive,
           ]}
         >
           最近7天
@@ -154,7 +154,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
       <TouchableOpacity
         style={[
           styles.periodButton,
-          selectedPeriod === '30' && { backgroundColor: theme['c-primary-font'] },
+          selectedPeriod === '30' && styles.periodButtonActive,
         ]}
         onPress={() => {
           setSelectedPeriod('30')
@@ -165,7 +165,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
         <Text
           style={[
             styles.periodButtonText,
-            { color: selectedPeriod === '30' ? '#fff' : theme['c-font'] },
+            selectedPeriod === '30' && styles.periodButtonTextActive,
           ]}
         >
           最近30天
@@ -446,10 +446,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 6,
     alignItems: 'center',
+    backgroundColor: 'transparent',
+  },
+  periodButtonActive: {
+    backgroundColor: '#4A90E2',
   },
   periodButtonText: {
     fontSize: 14,
     fontWeight: '600',
+    color: '#666',
+  },
+  periodButtonTextActive: {
+    color: '#fff',
   },
   emptyChart: {
     height: 150,
