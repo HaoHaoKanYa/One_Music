@@ -176,10 +176,11 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
       )
     }
 
-    // 填充缺失的日期，确保连续性
+    // 填充缺失的日期，确保连续性，以今天为结束日期
     const days = selectedPeriod === '7' ? 7 : 30
     const endDate = new Date()
-    const startDate = new Date()
+    endDate.setHours(0, 0, 0, 0)
+    const startDate = new Date(endDate)
     startDate.setDate(startDate.getDate() - days + 1)
     
     const filledData: DailyStats[] = []
@@ -200,9 +201,16 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
     }
 
     const maxPlays = Math.max(...filledData.map(s => s.total_plays), 1)
-    const chartHeight = 140
-    const pointWidth = 50 // 每个点的宽度
-    const chartWidth = Math.max(filledData.length * pointWidth, 300)
+    const chartHeight = 150
+    const pointWidth = 45
+    const chartWidth = filledData.length * pointWidth
+    const paddingLeft = 30
+    const paddingBottom = 35
+
+    // 计算今天的索引，用于初始滚动位置
+    const todayStr = endDate.toISOString().split('T')[0]
+    const todayIndex = filledData.findIndex(d => d.date === todayStr)
+    const scrollToX = todayIndex > 0 ? Math.max(0, todayIndex * pointWidth - 150) : 0
 
     return (
       <View style={styles.section}>
@@ -215,92 +223,155 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
           horizontal 
           showsHorizontalScrollIndicator={false}
           style={styles.chartScrollView}
-          contentContainerStyle={{ paddingHorizontal: 16 }}
+          contentContainerStyle={{ paddingLeft: paddingLeft, paddingRight: 20 }}
+          contentOffset={{ x: scrollToX, y: 0 }}
         >
-          <View style={[styles.lineChartContainer, { width: chartWidth, height: chartHeight + 40 }]}>
+          <View style={{ width: chartWidth, height: chartHeight + paddingBottom }}>
             {/* Y轴参考线 */}
             {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
               <View
-                key={`line-${i}`}
-                style={[
-                  styles.gridLine,
-                  {
-                    bottom: ratio * chartHeight + 30,
-                    width: chartWidth,
-                  },
-                ]}
+                key={`grid-${i}`}
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  right: 0,
+                  bottom: ratio * chartHeight + paddingBottom,
+                  height: 1,
+                  backgroundColor: 'rgba(0,0,0,0.05)',
+                }}
               />
             ))}
 
-            {/* 折线图路径 */}
-            <View style={styles.linePathContainer}>
-              {filledData.map((stat, index) => {
-                if (index === 0) return null
-                
-                const prevStat = filledData[index - 1]
-                const x1 = (index - 1) * pointWidth + pointWidth / 2
-                const y1 = chartHeight - (prevStat.total_plays / maxPlays) * chartHeight
-                const x2 = index * pointWidth + pointWidth / 2
-                const y2 = chartHeight - (stat.total_plays / maxPlays) * chartHeight
-                
-                const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))
-                const angle = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI)
-                
-                return (
-                  <View
-                    key={`line-${index}`}
-                    style={[
-                      styles.linePath,
-                      {
-                        width: length,
-                        left: x1,
-                        bottom: y1 + 30,
-                        transform: [{ rotate: `${angle}deg` }],
-                        backgroundColor: theme['c-primary-font'],
-                      },
-                    ]}
-                  />
-                )
-              })}
-            </View>
-
-            {/* 数据点和标签 */}
+            {/* 折线和数据点 */}
             {filledData.map((stat, index) => {
-              const x = index * pointWidth
-              const y = chartHeight - (stat.total_plays / maxPlays) * chartHeight
+              const x = index * pointWidth + pointWidth / 2
+              const y = (stat.total_plays / maxPlays) * chartHeight
               const date = new Date(stat.date)
+              const isToday = stat.date === todayStr
               const label = `${date.getMonth() + 1}/${date.getDate()}`
 
               return (
-                <View
-                  key={index}
-                  style={[
-                    styles.dataPoint,
-                    {
-                      left: x + pointWidth / 2 - 4,
-                      bottom: y + 30 - 4,
-                    },
-                  ]}
-                >
+                <View key={index}>
+                  {/* 连线到下一个点 */}
+                  {index < filledData.length - 1 && (() => {
+                    const nextStat = filledData[index + 1]
+                    const nextX = (index + 1) * pointWidth + pointWidth / 2
+                    const nextY = (nextStat.total_plays / maxPlays) * chartHeight
+                    
+                    const dx = nextX - x
+                    const dy = nextY - y
+                    const length = Math.sqrt(dx * dx + dy * dy)
+                    const angle = Math.atan2(dy, dx) * (180 / Math.PI)
+                    
+                    return (
+                      <View
+                        style={{
+                          position: 'absolute',
+                          left: x,
+                          bottom: paddingBottom + y,
+                          width: length,
+                          height: 2,
+                          backgroundColor: theme['c-primary-font'],
+                          transformOrigin: 'left center',
+                          transform: [{ rotate: `${angle}deg` }],
+                        }}
+                      />
+                    )
+                  })()}
+
+                  {/* 数据点 */}
                   <View
-                    style={[
-                      styles.dot,
-                      {
-                        backgroundColor: stat.total_plays > 0 ? theme['c-primary-font'] : '#CCC',
-                      },
-                    ]}
+                    style={{
+                      position: 'absolute',
+                      left: x - 5,
+                      bottom: paddingBottom + y - 5,
+                      width: 10,
+                      height: 10,
+                      borderRadius: 5,
+                      backgroundColor: stat.total_plays > 0 ? theme['c-primary-font'] : '#DDD',
+                      borderWidth: 2,
+                      borderColor: '#FFF',
+                    }}
                   />
-                  <Text style={[styles.pointLabel, { color: theme['c-350'] }]}>
+
+                  {/* 数据标注（在点上方） */}
+                  {stat.total_plays > 0 && (
+                    <Text
+                      style={{
+                        position: 'absolute',
+                        left: x - 15,
+                        bottom: paddingBottom + y + 8,
+                        width: 30,
+                        textAlign: 'center',
+                        fontSize: 11,
+                        fontWeight: 'bold',
+                        color: theme['c-primary-font'],
+                      }}
+                    >
+                      {stat.total_plays}
+                    </Text>
+                  )}
+
+                  {/* X轴日期标签 */}
+                  <Text
+                    style={{
+                      position: 'absolute',
+                      left: x - 20,
+                      bottom: 15,
+                      width: 40,
+                      textAlign: 'center',
+                      fontSize: 10,
+                      color: isToday ? theme['c-primary-font'] : theme['c-350'],
+                      fontWeight: isToday ? 'bold' : 'normal',
+                    }}
+                  >
                     {label}
                   </Text>
-                  {stat.total_plays > 0 && (
-                    <Text style={[styles.pointValue, { color: theme['c-primary-font'] }]}>
-                      {stat.total_plays}
+
+                  {/* 今天标记 */}
+                  {isToday && (
+                    <Text
+                      style={{
+                        position: 'absolute',
+                        left: x - 15,
+                        bottom: 0,
+                        width: 30,
+                        textAlign: 'center',
+                        fontSize: 9,
+                        color: theme['c-primary-font'],
+                        fontWeight: 'bold',
+                      }}
+                    >
+                      今天
                     </Text>
                   )}
                 </View>
               )
             })}
+
+            {/* Y轴标签 */}
+            <Text
+              style={{
+                position: 'absolute',
+                left: -25,
+                bottom: chartHeight + paddingBottom - 10,
+                fontSize: 10,
+                color: theme['c-350'],
+              }}
+            >
+              {maxPlays}
+            </Text>
+            <Text
+              style={{
+                position: 'absolute',
+                left: -15,
+                bottom: paddingBottom - 10,
+                fontSize: 10,
+                color: theme['c-350'],
+              }}
+            >
+              0
+            </Text>
           </View>
         </ScrollView>
       </View>

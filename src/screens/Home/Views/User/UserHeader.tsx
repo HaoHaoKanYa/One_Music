@@ -71,7 +71,9 @@ export default () => {
         }
         
         const totalPlayTime = playData?.reduce((sum, record) => sum + (record.play_duration || 0), 0) || 0
-        console.log('[UserHeader] 播放时长:', totalPlayTime, '秒 =', Math.floor(totalPlayTime / 3600), '小时')
+        const hours = Math.floor(totalPlayTime / 3600)
+        const minutes = Math.floor((totalPlayTime % 3600) / 60)
+        console.log('[UserHeader] 播放时长:', totalPlayTime, '秒 =', hours, '小时', minutes, '分钟')
         
         setProfile({
           ...userProfile,
@@ -165,7 +167,15 @@ export default () => {
         </View>
         <Text style={styles.subtitle} color={theme['c-350']}>
           {user 
-            ? `累计听歌 ${profile?.total_play_time ? Math.floor(profile.total_play_time / 3600) : 0} 小时` 
+            ? (() => {
+                const totalSeconds = profile?.total_play_time || 0
+                const hours = Math.floor(totalSeconds / 3600)
+                const minutes = Math.floor((totalSeconds % 3600) / 60)
+                if (hours > 0) {
+                  return `累计听歌 ${hours} 小时 ${minutes} 分钟`
+                }
+                return `累计听歌 ${minutes} 分钟`
+              })()
             : '登录后可同步收藏和歌单'}
         </Text>
       </View>

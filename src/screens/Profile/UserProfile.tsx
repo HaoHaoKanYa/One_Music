@@ -130,7 +130,9 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
           .eq('user_id', targetUserId)
           .then(res => {
             const total = res.data?.reduce((sum, record) => sum + (record.play_duration || 0), 0) || 0
-            console.log('[UserProfile] 播放时长:', total, '秒 =', Math.floor(total / 3600), '小时')
+            const hours = Math.floor(total / 3600)
+            const minutes = Math.floor((total % 3600) / 60)
+            console.log('[UserProfile] 播放时长:', total, '秒 =', hours, '小时', minutes, '分钟')
             return total // 保持秒数
           }),
       ])
@@ -204,7 +206,11 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
 
   const formatPlayTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600)
-    return `${hours} 小时`
+    const minutes = Math.floor((seconds % 3600) / 60)
+    if (hours > 0) {
+      return `${hours} 小时 ${minutes} 分钟`
+    }
+    return `${minutes} 分钟`
   }
 
   if (loading) {
