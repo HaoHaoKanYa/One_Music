@@ -194,7 +194,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
     const pointWidth = 50
     const chartWidth = filledData.length * pointWidth
     const paddingLeft = 35
-    const paddingBottom = 40
+    const paddingBottom = 50
 
     // 计算今天的索引，用于初始滚动位置
     const todayStr = endDate.toISOString().split('T')[0]
@@ -294,10 +294,10 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
                 if (index === filledData.length - 1) return null
 
                 const x1 = index * pointWidth + pointWidth / 2
-                const y1 = (stat.total_plays / maxPlays) * chartHeight
+                const y1 = chartHeight - (stat.total_plays / maxPlays) * chartHeight
                 const nextStat = filledData[index + 1]
                 const x2 = (index + 1) * pointWidth + pointWidth / 2
-                const y2 = (nextStat.total_plays / maxPlays) * chartHeight
+                const y2 = chartHeight - (nextStat.total_plays / maxPlays) * chartHeight
 
                 const dx = x2 - x1
                 const dy = y2 - y1
@@ -326,7 +326,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
               {/* 数据点和标签 */}
               {filledData.map((stat, index) => {
                 const x = index * pointWidth + pointWidth / 2
-                const y = (stat.total_plays / maxPlays) * chartHeight
+                const y = chartHeight - (stat.total_plays / maxPlays) * chartHeight
                 const date = new Date(stat.date)
                 const isToday = stat.date === todayStr
                 const label = `${date.getMonth() + 1}/${date.getDate()}`
@@ -376,10 +376,10 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
                       style={{
                         position: 'absolute',
                         left: x - 20,
-                        bottom: 15,
+                        bottom: 5,
                         width: 40,
                         textAlign: 'center',
-                        fontSize: 10,
+                        fontSize: 11,
                         color: isToday ? '#FF8C42' : theme['c-350'],
                         fontWeight: isToday ? 'bold' : 'normal',
                       }}
@@ -389,20 +389,25 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
 
                     {/* 今天标记 */}
                     {isToday && (
-                      <Text
+                      <View
                         style={{
                           position: 'absolute',
-                          left: x - 15,
-                          bottom: 0,
-                          width: 30,
-                          textAlign: 'center',
-                          fontSize: 9,
-                          color: '#FF8C42',
-                          fontWeight: 'bold',
+                          left: x - 20,
+                          bottom: -15,
+                          width: 40,
+                          alignItems: 'center',
                         }}
                       >
-                        今天
-                      </Text>
+                        <Text
+                          style={{
+                            fontSize: 10,
+                            color: '#FF8C42',
+                            fontWeight: 'bold',
+                          }}
+                        >
+                          今天
+                        </Text>
+                      </View>
                     )}
                   </View>
                 )
