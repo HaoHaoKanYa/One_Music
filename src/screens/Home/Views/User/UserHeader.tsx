@@ -96,7 +96,7 @@ export default () => {
 
   return (
     <TouchableOpacity
-      style={[styles.container, { backgroundColor: theme['c-primary-light-100'] + '33' }]}
+      style={[styles.container, { backgroundColor: 'transparent' }]}
       onPress={handlePress}
       activeOpacity={0.8}
     >
