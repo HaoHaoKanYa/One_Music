@@ -30,10 +30,18 @@ export default () => {
       }
     })
 
+    // 监听页面焦点，返回时刷新数据
+    const navigationEventListener = Navigation.events().registerComponentDidAppearListener(() => {
+      if (user) {
+        checkAuth()
+      }
+    })
+
     return () => {
       authListener?.subscription?.unsubscribe()
+      navigationEventListener.remove()
     }
-  }, [])
+  }, [user])
 
   const checkAuth = async () => {
     try {
@@ -107,9 +115,24 @@ export default () => {
           <Text style={styles.name} color={theme['c-font']}>
             {user ? (profile?.display_name || profile?.username || '用户') : '点击登录'}
           </Text>
-          {user && (
-            <View style={[styles.vipBadge, { backgroundColor: theme['c-primary-font'] }]}>
-              <Text style={styles.vipText} color="#FFFFFF">普通会员</Text>
+          {user && profile && (
+            <View style={[
+              styles.vipBadge,
+              {
+                backgroundColor: profile.vip_status === 'svip' 
+                  ? '#FFD700' 
+                  : profile.vip_status === 'vip'
+                  ? '#4A90E2'
+                  : '#999'
+              }
+            ]}>
+              <Text style={styles.vipText} color="#FFFFFF">
+                {profile.vip_status === 'svip' 
+                  ? 'SVIP会员' 
+                  : profile.vip_status === 'vip'
+                  ? 'VIP会员'
+                  : '普通会员'}
+              </Text>
             </View>
           )}
         </View>
