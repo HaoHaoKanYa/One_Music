@@ -33,9 +33,11 @@ export const statisticsAPI = {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('未登录')
 
-    const startDate = new Date()
-    startDate.setDate(startDate.getDate() - days + 1)
-    startDate.setHours(0, 0, 0, 0)
+    // 使用本地时间计算日期范围
+    const today = new Date()
+    const startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate() - days + 1)
+    
+    // 转换为UTC时间字符串用于查询
     const startDateStr = startDate.toISOString()
 
     console.log(`[getDailyStats] 查询范围: ${startDateStr} 到现在，共 ${days} 天`)
@@ -60,11 +62,17 @@ export const statisticsAPI = {
       return []
     }
 
-    // 按日期分组统计
+    // 按本地日期分组统计（转换UTC时间到本地日期）
     const dailyMap = new Map<string, DailyStats>()
 
     data.forEach(record => {
-      const date = record.played_at.split('T')[0]
+      // 将UTC时间转换为本地日期
+      const utcDate = new Date(record.played_at)
+      const localDate = new Date(utcDate.getTime() + utcDate.getTimezoneOffset() * 60000 + 8 * 3600000) // UTC+8
+      const year = localDate.getFullYear()
+      const month = String(localDate.getMonth() + 1).padStart(2, '0')
+      const day = String(localDate.getDate()).padStart(2, '0')
+      const date = `${year}-${month}-${day}`
 
       if (dailyMap.has(date)) {
         const stats = dailyMap.get(date)!
@@ -83,7 +91,14 @@ export const statisticsAPI = {
 
     // 计算每天的唯一歌曲和歌手数
     dailyMap.forEach((stats, date) => {
-      const dayRecords = data.filter(r => r.played_at.split('T')[0] === date)
+      const dayRecords = data.filter(r => {
+        const utcDate = new Date(r.played_at)
+        const localDate = new Date(utcDate.getTime() + utcDate.getTimezoneOffset() * 60000 + 8 * 3600000)
+        const year = localDate.getFullYear()
+        const month = String(localDate.getMonth() + 1).padStart(2, '0')
+        const day = String(localDate.getDate()).padStart(2, '0')
+        return `${year}-${month}-${day}` === date
+      })
       stats.unique_songs = new Set(dayRecords.map(r => r.song_id)).size
       stats.unique_artists = new Set(dayRecords.map(r => r.artist)).size
     })

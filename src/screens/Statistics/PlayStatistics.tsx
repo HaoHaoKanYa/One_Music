@@ -164,6 +164,15 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
     // 填充缺失的日期，确保连续性，以今天为结束日期
     const days = selectedPeriod === '7' ? 7 : 30
     const today = new Date()
+    
+    // 使用本地日期字符串，避免时区问题
+    const formatDate = (date: Date) => {
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      return `${year}-${month}-${day}`
+    }
+    
     const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
     const startDate = new Date(endDate)
     startDate.setDate(endDate.getDate() - days + 1)
@@ -174,7 +183,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
     for (let i = 0; i < days; i++) {
       const currentDate = new Date(startDate)
       currentDate.setDate(startDate.getDate() + i)
-      const dateStr = currentDate.toISOString().split('T')[0]
+      const dateStr = formatDate(currentDate)
 
       filledData.push(statsMap.get(dateStr) || {
         date: dateStr,
@@ -200,7 +209,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
     const paddingBottom = 50
 
     // 计算今天的索引，用于初始滚动位置
-    const todayStr = endDate.toISOString().split('T')[0]
+    const todayStr = formatDate(endDate)
     const todayIndex = filledData.findIndex(d => d.date === todayStr)
     
     console.log('[PlayStatistics] 图表参数:', { 
