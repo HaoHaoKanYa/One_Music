@@ -104,76 +104,110 @@ export const VipPlansScreen: React.FC<VipPlansScreenProps> = ({ componentId }) =
   }
 
   const renderPlanCard = (plan: VipPlan) => {
-    const isVip = plan.type === 'vip'
+    const isSvip = plan.type === 'svip'
     const features = plan.features as any
 
     return (
       <View
         key={plan.id}
-        style={styles.planCard}
+        style={[
+          styles.planCard,
+          isSvip ? styles.svipCard : styles.vipCard,
+        ]}
       >
+        {/* 装饰性背景元素 */}
+        {isSvip && (
+          <View style={styles.decorCircle1} />
+        )}
+        {isSvip && (
+          <View style={styles.decorCircle2} />
+        )}
+
         <View style={styles.planHeader}>
-          <Text style={[styles.planName, { color: theme['c-font'] }]}>{plan.name}</Text>
-          {plan.type === 'svip' && (
-            <View style={[styles.badge, { backgroundColor: '#FFD700' }]}>
-              <Text style={styles.badgeText}>推荐</Text>
+          <View style={styles.planTitleRow}>
+            <Text style={[styles.planName, isSvip && styles.svipPlanName]}>
+              {plan.name}
+            </Text>
+            {isSvip && (
+              <View style={styles.crownIcon}>
+                <Text style={styles.crownEmoji}>👑</Text>
+              </View>
+            )}
+          </View>
+          {isSvip && (
+            <View style={styles.recommendBadge}>
+              <Text style={styles.badgeText}>✨ 推荐</Text>
             </View>
           )}
         </View>
 
         <View style={styles.priceContainer}>
-          <Text style={[styles.price, { color: theme['c-primary-font'] }]}>
-            ¥{plan.price}
-          </Text>
-          {plan.original_price && (
-            <Text style={[styles.originalPrice, { color: theme['c-350'] }]}>
-              ¥{plan.original_price}
+          <View style={styles.priceRow}>
+            <Text style={styles.priceSymbol}>¥</Text>
+            <Text style={[styles.price, isSvip && styles.svipPrice]}>
+              {plan.price}
             </Text>
+            <Text style={styles.pricePeriod}>/{plan.duration}天</Text>
+          </View>
+          {plan.original_price && (
+            <View style={styles.discountTag}>
+              <Text style={styles.originalPrice}>
+                原价¥{plan.original_price}
+              </Text>
+            </View>
           )}
         </View>
 
         <View style={styles.featuresContainer}>
           {features.quality && (
             <View style={styles.featureItem}>
-              <Icon name="music_time" size={16} color={theme['c-primary-font']} />
-              <Text style={[styles.featureText, { color: theme['c-font'] }]}>
-                {features.quality === 'lossless' ? '无损音质' : '高品质音质'}
+              <View style={[styles.featureIcon, isSvip && styles.svipFeatureIcon]}>
+                <Icon name="music_time" size={18} color={isSvip ? '#FFD700' : '#4A90E2'} />
+              </View>
+              <Text style={[styles.featureText, isSvip && styles.svipFeatureText]}>
+                {features.quality === 'lossless' ? '🎵 无损音质' : '高品质音质'}
               </Text>
             </View>
           )}
           {features.download && (
             <View style={styles.featureItem}>
-              <Icon name="download-2" size={16} color={theme['c-primary-font']} />
-              <Text style={[styles.featureText, { color: theme['c-font'] }]}>
-                下载歌曲
+              <View style={[styles.featureIcon, isSvip && styles.svipFeatureIcon]}>
+                <Icon name="download-2" size={18} color={isSvip ? '#FFD700' : '#4A90E2'} />
+              </View>
+              <Text style={[styles.featureText, isSvip && styles.svipFeatureText]}>
+                ⬇️ 无限下载
               </Text>
             </View>
           )}
           {features.ad_free && (
             <View style={styles.featureItem}>
-              <Icon name="remove" size={16} color={theme['c-primary-font']} />
-              <Text style={[styles.featureText, { color: theme['c-font'] }]}>
-                无广告
+              <View style={[styles.featureIcon, isSvip && styles.svipFeatureIcon]}>
+                <Icon name="remove" size={18} color={isSvip ? '#FFD700' : '#4A90E2'} />
+              </View>
+              <Text style={[styles.featureText, isSvip && styles.svipFeatureText]}>
+                🚫 无广告体验
               </Text>
             </View>
           )}
           {features.exclusive && (
             <View style={styles.featureItem}>
-              <Icon name="love" size={16} color={theme['c-primary-font']} />
-              <Text style={[styles.featureText, { color: theme['c-font'] }]}>
-                专属内容
+              <View style={[styles.featureIcon, isSvip && styles.svipFeatureIcon]}>
+                <Icon name="love" size={18} color={isSvip ? '#FFD700' : '#4A90E2'} />
+              </View>
+              <Text style={[styles.featureText, isSvip && styles.svipFeatureText]}>
+                ⭐ 专属内容
               </Text>
             </View>
           )}
         </View>
 
         <TouchableOpacity
-          style={styles.purchaseButton}
+          style={[styles.purchaseButton, isSvip && styles.svipPurchaseButton]}
           onPress={() => handlePurchase(plan)}
           disabled={purchasing}
         >
           <Text style={styles.purchaseButtonText}>
-            {purchasing ? '处理中...' : '立即购买'}
+            {purchasing ? '处理中...' : isSvip ? '立即开通尊享会员' : '立即购买'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -241,70 +275,170 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   planCard: {
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
-    backgroundColor: '#F8F9FA',
-    borderWidth: 1,
-    borderColor: '#E8E8E8',
+    borderRadius: 20,
+    padding: 24,
+    marginBottom: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  vipCard: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#E3F2FD',
+  },
+  svipCard: {
+    backgroundColor: '#1A1A2E',
+    borderWidth: 2,
+    borderColor: '#FFD700',
+  },
+  decorCircle1: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: '#FFD700',
+    opacity: 0.1,
+    top: -50,
+    right: -50,
+  },
+  decorCircle2: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#FFA500',
+    opacity: 0.08,
+    bottom: -30,
+    left: -30,
   },
   planHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
   },
-  planName: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  badge: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  badgeText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  priceContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 16,
-  },
-  price: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginRight: 8,
-  },
-  originalPrice: {
-    fontSize: 16,
-    textDecorationLine: 'line-through',
-  },
-  featuresContainer: {
-    marginBottom: 16,
-  },
-  featureItem: {
+  planTitleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 8,
   },
-  featureText: {
-    fontSize: 14,
+  planName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1A1A2E',
+  },
+  svipPlanName: {
+    color: '#FFD700',
+    fontSize: 26,
+  },
+  crownIcon: {
     marginLeft: 8,
   },
+  crownEmoji: {
+    fontSize: 24,
+  },
+  recommendBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#FFD700',
+  },
+  badgeText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#1A1A2E',
+  },
+  priceContainer: {
+    marginBottom: 24,
+  },
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginBottom: 8,
+  },
+  priceSymbol: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#666',
+    marginRight: 4,
+  },
+  price: {
+    fontSize: 42,
+    fontWeight: 'bold',
+    color: '#1A1A2E',
+    letterSpacing: -1,
+  },
+  svipPrice: {
+    color: '#FFD700',
+  },
+  pricePeriod: {
+    fontSize: 16,
+    color: '#999',
+    marginLeft: 4,
+  },
+  discountTag: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    backgroundColor: '#FFE5E5',
+  },
+  originalPrice: {
+    fontSize: 14,
+    color: '#FF6B6B',
+    textDecorationLine: 'line-through',
+  },
+  featuresContainer: {
+    marginBottom: 24,
+  },
+  featureItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  featureIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#E3F2FD',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  svipFeatureIcon: {
+    backgroundColor: 'rgba(255, 215, 0, 0.2)',
+  },
+  featureText: {
+    fontSize: 15,
+    color: '#333',
+    fontWeight: '500',
+  },
+  svipFeatureText: {
+    color: '#E8E8E8',
+  },
   purchaseButton: {
-    height: 48,
-    borderRadius: 24,
+    height: 52,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#4A90E2',
+    shadowColor: '#4A90E2',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  svipPurchaseButton: {
+    backgroundColor: '#FFD700',
+    shadowColor: '#FFD700',
   },
   purchaseButtonText: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: 'bold',
     color: '#fff',
+    letterSpacing: 0.5,
   },
   tipsContainer: {
     marginTop: 24,
