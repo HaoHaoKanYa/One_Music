@@ -1,8 +1,10 @@
-import { View } from 'react-native'
+import { View, TouchableOpacity } from 'react-native'
+import { useState } from 'react'
 
 import { createStyle } from '@/utils/tools'
 import { useTheme } from '@/store/theme/hook'
 import Text from '@/components/common/Text'
+import { Icon } from '@/components/common/Icon'
 
 
 interface Props {
@@ -12,13 +14,31 @@ interface Props {
 
 export default ({ title, children }: Props) => {
   const theme = useTheme()
+  const [isExpanded, setIsExpanded] = useState(false)
+
+  const toggleExpand = () => {
+    setIsExpanded(!isExpanded)
+  }
 
   return (
     <View style={styles.container}>
-      <Text style={{ ...styles.title, borderLeftColor: theme['c-primary'] }} size={16} >{title}</Text>
-      <View>
-        {children}
-      </View>
+      <TouchableOpacity 
+        style={styles.titleContainer} 
+        onPress={toggleExpand}
+        activeOpacity={0.7}
+      >
+        <Text style={{ ...styles.title, borderLeftColor: theme['c-primary'] }} size={16}>{title}</Text>
+        <Icon 
+          name={isExpanded ? 'chevron-up' : 'chevron-down'} 
+          size={20} 
+          color={theme['c-font']} 
+        />
+      </TouchableOpacity>
+      {isExpanded && (
+        <View style={styles.content}>
+          {children}
+        </View>
+      )}
     </View>
   )
 }
@@ -26,13 +46,21 @@ export default ({ title, children }: Props) => {
 
 const styles = createStyle({
   container: {
-    // paddingLeft: 10,
-    // backgroundColor: 'rgba(0,0,0,0.2)',
+    marginBottom: 10,
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingRight: 10,
   },
   title: {
     borderLeftWidth: 5,
     paddingLeft: 12,
-    marginBottom: 10,
-    // lineHeight: 16,
+    flex: 1,
+  },
+  content: {
+    paddingTop: 5,
   },
 })
