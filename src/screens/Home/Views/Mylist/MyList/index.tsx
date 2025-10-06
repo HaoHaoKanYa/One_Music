@@ -8,8 +8,8 @@ import ListImportExport, { type ListImportExportType } from './ListImportExport'
 import { handleRemove, handleSync } from './listAction'
 import ListMusicSort, { type ListMusicSortType } from './ListMusicSort'
 import DuplicateMusic, { type DuplicateMusicType } from './DuplicateMusic'
-import UserHeader from './UserHeader'
-import QuickMenu from './QuickMenu'
+import UserHeader from '../../User/UserHeader'
+import QuickMenu from '../../User/QuickMenu'
 
 
 export default () => {
