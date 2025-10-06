@@ -6,13 +6,10 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
-  Dimensions,
   TouchableOpacity,
 } from 'react-native'
 import { useTheme } from '@/store/theme/hook'
-import { statisticsAPI } from '@/services/api/statistics'
-
-const { width } = Dimensions.get('window')
+import { statisticsAPI, type SongStats as APISongStats } from '@/services/api/statistics'
 
 interface DailyStats {
   date: string
@@ -29,14 +26,7 @@ interface ArtistStats {
   last_played_at: string
 }
 
-interface SongStats {
-  song_id: string
-  title: string
-  artist: string
-  play_count: number
-  total_duration: number
-  last_played_at: string
-}
+// 使用API中的SongStats类型
 
 interface PlayStatisticsScreenProps {
   componentId: string
@@ -47,7 +37,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
   const [loading, setLoading] = useState(true)
   const [dailyStats, setDailyStats] = useState<DailyStats[]>([])
   const [artistStats, setArtistStats] = useState<ArtistStats[]>([])
-  const [songStats, setSongStats] = useState<SongStats[]>([])
+  const [songStats, setSongStats] = useState<APISongStats[]>([])
   const [overallStats, setOverallStats] = useState<any>(null)
   const [selectedPeriod, setSelectedPeriod] = useState<'7' | '30'>('7')
 
@@ -58,21 +48,16 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
   const loadStatistics = async () => {
     try {
       const days = selectedPeriod === '7' ? 7 : 30
-      const [daily, artists, overall] = await Promise.all([
+      const [daily, artists, songs, overall] = await Promise.all([
         statisticsAPI.getDailyStats(days),
         statisticsAPI.getArtistStats(10),
+        statisticsAPI.getSongStats(10),
         statisticsAPI.getOverallStats(),
       ])
       setDailyStats(daily)
       setArtistStats(artists)
+      setSongStats(songs)
       setOverallStats(overall)
-
-      // 模拟歌曲统计数据（实际项目中需要从API获取）
-      setSongStats([
-        { song_id: '1', title: '示例歌曲1', artist: '示例歌手1', play_count: 25, total_duration: 750, last_played_at: new Date().toISOString() },
-        { song_id: '2', title: '示例歌曲2', artist: '示例歌手2', play_count: 20, total_duration: 600, last_played_at: new Date().toISOString() },
-        { song_id: '3', title: '示例歌曲3', artist: '示例歌手3', play_count: 18, total_duration: 540, last_played_at: new Date().toISOString() },
-      ])
     } catch (error: any) {
       Alert.alert('错误', error.message)
     } finally {
@@ -306,7 +291,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
             </View>
             <View style={styles.artistInfo}>
               <Text style={[styles.artistName, { color: theme['c-font'] }]}>
-                {song.title}
+                {song.song_name}
               </Text>
               <Text style={[styles.artistStats, { color: theme['c-350'] }]}>
                 {song.artist} · 播放{song.play_count}次

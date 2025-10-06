@@ -15,6 +15,18 @@ export interface ArtistStats {
   last_played_at: string
 }
 
+export interface SongStats {
+  song_id: string
+  song_name: string
+  artist: string
+  album?: string
+  source: string
+  play_count: number
+  total_duration: number
+  last_played_at: string
+  cover_url?: string
+}
+
 export const statisticsAPI = {
   // 获取每日播放统计
   async getDailyStats(days = 30): Promise<DailyStats[]> {
@@ -49,6 +61,57 @@ export const statisticsAPI = {
 
     if (error) throw error
     return data || []
+  },
+
+  // 获取歌曲播放统计
+  async getSongStats(limit = 50): Promise<SongStats[]> {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('未登录')
+
+    // 从播放历史表聚合统计数据
+    const { data, error } = await supabase
+      .from('play_history')
+      .select('song_id, song_name, artist, album, source, play_duration, played_at')
+      .eq('user_id', user.id)
+      .order('played_at', { ascending: false })
+
+    if (error) throw error
+    if (!data || data.length === 0) return []
+
+    // 按歌曲ID和来源分组统计
+    const songMap = new Map<string, SongStats>()
+
+    data.forEach(record => {
+      const key = `${record.song_id}_${record.source}`
+
+      if (songMap.has(key)) {
+        const stats = songMap.get(key)!
+        stats.play_count += 1
+        stats.total_duration += record.play_duration || 0
+        // 更新最后播放时间（取最新的）
+        if (new Date(record.played_at) > new Date(stats.last_played_at)) {
+          stats.last_played_at = record.played_at
+        }
+      } else {
+        songMap.set(key, {
+          song_id: record.song_id,
+          song_name: record.song_name,
+          artist: record.artist || '未知歌手',
+          album: record.album,
+          source: record.source,
+          play_count: 1,
+          total_duration: record.play_duration || 0,
+          last_played_at: record.played_at,
+        })
+      }
+    })
+
+    // 转换为数组并按播放次数排序
+    const songStats = Array.from(songMap.values())
+      .sort((a, b) => b.play_count - a.play_count)
+      .slice(0, limit)
+
+    return songStats
   },
 
   // 更新每日统计（从播放历史计算）
