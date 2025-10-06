@@ -45,7 +45,7 @@ export default () => {
     return () => {
       global.state_event.off('navActiveIdUpdated', handleFixDrawer)
       global.app_event.off('changeLoveListVisible', changeVisible)
-    // changeEvent.remove()
+      // changeEvent.remove()
     }
   }, [])
 

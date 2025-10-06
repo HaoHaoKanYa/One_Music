@@ -8,6 +8,7 @@ import { bootLog } from '@/utils/bootLog'
 import { getDislikeInfo, setDislikeInfo } from '@/core/dislikeList'
 import { unlink } from '@/utils/fs'
 import { TEMP_FILE_PATH } from '@/utils/tools'
+import { syncPlaylistsFromServer } from '@/services/playlistSync'
 // import { play, playList } from '../player/player'
 
 // const initPrevPlayInfo = async(appSetting: LX.AppSetting) => {
@@ -29,6 +30,17 @@ export default async(appSetting: LX.AppSetting) => {
   void musicSdkInit() // 初始化音乐sdk
   bootLog('User list init...')
   setUserList(await getUserLists()) // 获取用户列表
+  
+  // 同步云端歌单
+  bootLog('Syncing playlists from server...')
+  try {
+    await syncPlaylistsFromServer()
+    bootLog('Playlists synced.')
+  } catch (error) {
+    console.error('Failed to sync playlists:', error)
+    bootLog('Playlists sync failed, using local data.')
+  }
+  
   setDislikeInfo(await getDislikeInfo()) // 获取不喜欢列表
   bootLog('User list inited.')
   setNavActiveId((await getViewPrevState()).id)

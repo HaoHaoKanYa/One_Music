@@ -29,13 +29,34 @@ export const handleRemove = (listId: SelectInfo['listId'], musicInfo: SelectInfo
     void confirmDialog({
       message: global.i18n.t('list_remove_music_multi_tip', { num: selectedList.length }),
       confirmButtonText: global.i18n.t('list_remove_tip_button'),
-    }).then(isRemove => {
+    }).then(async isRemove => {
       if (!isRemove) return
-      void removeListMusics(listId, selectedList.map(s => s.id))
-      onCancelSelect()
+      
+      try {
+        if (listId.startsWith('cloud_')) {
+          const { removeSongsFromPlaylistWithSync } = await import('@/services/playlistSync')
+          await removeSongsFromPlaylistWithSync(listId, selectedList.map(s => s.id))
+        } else {
+          await removeListMusics(listId, selectedList.map(s => s.id))
+        }
+        onCancelSelect()
+      } catch (error: any) {
+        toast(error.message || '删除失败')
+      }
     })
   } else {
-    void removeListMusics(listId, [musicInfo.id])
+    void (async () => {
+      try {
+        if (listId.startsWith('cloud_')) {
+          const { removeSongsFromPlaylistWithSync } = await import('@/services/playlistSync')
+          await removeSongsFromPlaylistWithSync(listId, [musicInfo.id])
+        } else {
+          await removeListMusics(listId, [musicInfo.id])
+        }
+      } catch (error: any) {
+        toast(error.message || '删除失败')
+      }
+    })()
   }
 }
 

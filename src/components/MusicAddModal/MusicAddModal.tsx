@@ -48,28 +48,50 @@ export default forwardRef<MusicAddModalType, MusicAddModalProps>(({ onAdded }, r
     })
   }
 
-  const handleSelect = (listInfo: LX.List.MyListInfo) => {
+  const handleSelect = async (listInfo: LX.List.MyListInfo) => {
     dialogRef.current?.setVisible(false)
-    if (selectInfo.isMove) {
-      void moveListMusics(selectInfo.listId, listInfo.id,
-        [selectInfo.musicInfo!],
-        settingState.setting['list.addMusicLocationType'],
-      ).then(() => {
+    
+    try {
+      if (selectInfo.isMove) {
+        // 移动到云端歌单
+        if (listInfo.id.startsWith('cloud_')) {
+          const { addSongsToPlaylistWithSync, removeSongsFromPlaylistWithSync } = await import('@/services/playlistSync')
+          
+          // 先添加到目标歌单
+          await addSongsToPlaylistWithSync(listInfo.id, [selectInfo.musicInfo!])
+          
+          // 再从源歌单删除
+          if (selectInfo.listId.startsWith('cloud_')) {
+            await removeSongsFromPlaylistWithSync(selectInfo.listId, [selectInfo.musicInfo!.id])
+          } else {
+            const { removeListMusics } = await import('@/core/list')
+            await removeListMusics(selectInfo.listId, [selectInfo.musicInfo!.id])
+          }
+        } else {
+          // 移动到本地歌单
+          await moveListMusics(selectInfo.listId, listInfo.id,
+            [selectInfo.musicInfo!],
+            settingState.setting['list.addMusicLocationType'],
+          )
+        }
         onAdded?.()
         toast(t('list_edit_action_tip_move_success'))
-      }).catch(() => {
-        toast(t('list_edit_action_tip_move_failed'))
-      })
-    } else {
-      void addListMusics(listInfo.id,
-        [selectInfo.musicInfo!],
-        settingState.setting['list.addMusicLocationType'],
-      ).then(() => {
+      } else {
+        // 检查是否是云端歌单
+        if (listInfo.id.startsWith('cloud_')) {
+          const { addSongsToPlaylistWithSync } = await import('@/services/playlistSync')
+          await addSongsToPlaylistWithSync(listInfo.id, [selectInfo.musicInfo!])
+        } else {
+          await addListMusics(listInfo.id,
+            [selectInfo.musicInfo!],
+            settingState.setting['list.addMusicLocationType'],
+          )
+        }
         onAdded?.()
         toast(t('list_edit_action_tip_add_success'))
-      }).catch(() => {
-        toast(t('list_edit_action_tip_add_failed'))
-      })
+      }
+    } catch (error: any) {
+      toast(error.message || (selectInfo.isMove ? t('list_edit_action_tip_move_failed') : t('list_edit_action_tip_add_failed')))
     }
   }
 

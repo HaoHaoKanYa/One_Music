@@ -8,8 +8,6 @@ import ListImportExport, { type ListImportExportType } from './ListImportExport'
 import { handleRemove, handleSync } from './listAction'
 import ListMusicSort, { type ListMusicSortType } from './ListMusicSort'
 import DuplicateMusic, { type DuplicateMusicType } from './DuplicateMusic'
-import UserHeader from '../../User/UserHeader'
-import QuickMenu from '../../User/QuickMenu'
 
 
 export default () => {
@@ -40,8 +38,6 @@ export default () => {
   return (
     visible
       ? <>
-          <UserHeader />
-          <QuickMenu />
           <List onShowMenu={(info, position) => listMenuRef.current?.show(info, position)} />
           <ListNameEdit ref={listNameEditRef} />
           <ListMusicSort ref={listMusicSortRef} />
@@ -59,7 +55,6 @@ export default () => {
             onSync={info => { handleSync(info) }}
             onSelectLocalFile={(info, position) => listImportExportRef.current?.selectFile(info, position)}
           />
-          {/* <ImportExport actionType={actionType} visible={isShowChoosePath} hide={() => setShowChoosePath(false)} selectedListRef={selectedListRef} /> */}
         </>
       : null
   )

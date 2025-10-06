@@ -8,7 +8,7 @@ import { setNavActiveId } from '@/core/common'
 
 const TAB_ITEMS = [
   { id: 'nav_songlist', icon: 'home', label: '首页' },
-  { id: 'nav_love', icon: 'love', label: '我的列表' },
+  { id: 'nav_love', icon: 'love', label: '我的歌单' },
   { id: 'nav_search', icon: 'search-2', label: '搜索' },
   { id: 'nav_top', icon: 'leaderboard', label: '排行榜' },
   { id: 'nav_user', icon: 'user', label: '我的' },

@@ -4,9 +4,10 @@ import Text from '@/components/common/Text'
 import { View } from 'react-native'
 import Input, { type InputType } from '@/components/common/Input'
 import { createUserList, updateUserList } from '@/core/list'
-import { confirmDialog, createStyle } from '@/utils/tools'
+import { confirmDialog, createStyle, toast } from '@/utils/tools'
 import { useTheme } from '@/store/theme/hook'
 import listState from '@/store/list/state'
+import { createPlaylistWithSync, updatePlaylistWithSync } from '@/services/playlistSync'
 
 interface NameInputType {
   setName: (text: string) => void
@@ -92,22 +93,35 @@ export default forwardRef<ListNameEditType, {}>((props, ref) => {
     },
   }))
 
-  const handleRename = () => {
+  const handleRename = async () => {
     let name = nameInputRef.current?.getText() ?? ''
     if (!name.length) return
     if (name.length > 100) name = name.substring(0, 100)
-    if (position == -1) {
-      void updateUserList([{ ...selectedListInfo.current, name }])
-    } else {
-      void (listState.userList.some(l => l.name == name) ? confirmDialog({
-        message: global.i18n.t('list_duplicate_tip'),
-      }) : Promise.resolve(true)).then(confirmed => {
+    
+    try {
+      if (position == -1) {
+        // 更新歌单
+        const listId = selectedListInfo.current.id
+        if (listId.startsWith('cloud_')) {
+          await updatePlaylistWithSync(listId, { name })
+        } else {
+          await updateUserList([{ ...selectedListInfo.current, name }])
+        }
+      } else {
+        // 创建歌单
+        const confirmed = listState.userList.some(l => l.name == name) 
+          ? await confirmDialog({ message: global.i18n.t('list_duplicate_tip') })
+          : true
+        
         if (!confirmed) return
-        const now = Date.now()
-        void createUserList(position, [{ id: `userlist_${now}`, name, locationUpdateTime: now }])
-      })
+        
+        // 创建云端歌单
+        await createPlaylistWithSync(name)
+      }
+      alertRef.current?.setVisible(false)
+    } catch (error: any) {
+      toast(error.message || '操作失败')
     }
-    alertRef.current?.setVisible(false)
   }
 
   return (

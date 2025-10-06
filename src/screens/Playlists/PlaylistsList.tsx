@@ -56,11 +56,14 @@ export const PlaylistsListScreen: React.FC<PlaylistsListProps> = ({
     }
 
     try {
-      const playlist = await playlistsAPI.createPlaylist({
-        name: newPlaylistName.trim(),
-        description: newPlaylistDesc.trim() || undefined,
-      })
+      // 使用同步服务创建歌单
+      const { createPlaylistWithSync } = await import('@/services/playlistSync')
+      const localList = await createPlaylistWithSync(newPlaylistName.trim(), newPlaylistDesc.trim() || undefined)
+      
+      // 更新UI列表
+      const playlist = await playlistsAPI.getPlaylist(localList.sourceListId!)
       setPlaylists(prev => [playlist, ...prev])
+      
       setCreateModalVisible(false)
       setNewPlaylistName('')
       setNewPlaylistDesc('')
@@ -81,7 +84,10 @@ export const PlaylistsListScreen: React.FC<PlaylistsListProps> = ({
           style: 'destructive',
           onPress: async () => {
             try {
-              await playlistsAPI.deletePlaylist(playlist.id)
+              // 使用同步服务删除歌单
+              const { deletePlaylistWithSync } = await import('@/services/playlistSync')
+              await deletePlaylistWithSync(`cloud_${playlist.id}`)
+              
               setPlaylists(prev => prev.filter(p => p.id !== playlist.id))
             } catch (error: any) {
               Alert.alert('错误', error.message || '删除歌单失败')

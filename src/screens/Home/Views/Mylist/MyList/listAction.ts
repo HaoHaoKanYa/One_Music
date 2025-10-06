@@ -13,9 +13,19 @@ export const handleRemove = (listInfo: LX.List.UserListInfo) => {
   void confirmDialog({
     message: global.i18n.t('list_remove_tip', { name: listInfo.name }),
     confirmButtonText: global.i18n.t('list_remove_tip_button'),
-  }).then(isRemove => {
+  }).then(async isRemove => {
     if (!isRemove) return
-    void removeUserList([listInfo.id])
+    
+    try {
+      if (listInfo.id.startsWith('cloud_')) {
+        const { deletePlaylistWithSync } = await import('@/services/playlistSync')
+        await deletePlaylistWithSync(listInfo.id)
+      } else {
+        await removeUserList([listInfo.id])
+      }
+    } catch (error: any) {
+      toast(error.message || '删除失败')
+    }
   })
 }
 

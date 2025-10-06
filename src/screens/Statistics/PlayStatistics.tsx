@@ -199,9 +199,30 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
     console.log('[PlayStatistics] 原始数据:', JSON.stringify(dailyStats))
     console.log('[PlayStatistics] 填充后数据:', filledData.map(d => `${d.date}: ${d.total_plays}`).join(', '))
 
-    // 如果最大值太小，设置一个最小刻度以便更好地显示
-    const maxPlays = Math.max(...filledData.map(s => s.total_plays), 5)
-    console.log('[PlayStatistics] maxPlays:', maxPlays)
+    // 计算Y轴刻度：根据数据自适应
+    const maxPlays = Math.max(...filledData.map(s => s.total_plays), 1)
+
+    // 计算合适的Y轴最大值和刻度间隔
+    const calculateYAxisScale = (maxValue: number) => {
+      if (maxValue <= 5) return { max: 5, step: 1 }
+      if (maxValue <= 10) return { max: 10, step: 2 }
+      if (maxValue <= 20) return { max: 20, step: 5 }
+      if (maxValue <= 50) return { max: 50, step: 10 }
+      if (maxValue <= 100) return { max: 100, step: 20 }
+      if (maxValue <= 200) return { max: 200, step: 50 }
+      if (maxValue <= 500) return { max: 500, step: 100 }
+      // 对于更大的值，向上取整到最近的100
+      const roundedMax = Math.ceil(maxValue / 100) * 100
+      return { max: roundedMax, step: roundedMax / 5 }
+    }
+
+    const yAxisScale = calculateYAxisScale(maxPlays)
+    const yAxisMax = yAxisScale.max
+    const yAxisStep = yAxisScale.step
+    const yAxisTicks = Array.from({ length: Math.floor(yAxisMax / yAxisStep) + 1 }, (_, i) => i * yAxisStep)
+
+    console.log('[PlayStatistics] maxPlays:', maxPlays, 'yAxisMax:', yAxisMax, 'yAxisStep:', yAxisStep)
+
     const chartHeight = 150
     const pointWidth = 50
     const chartWidth = filledData.length * pointWidth
@@ -228,9 +249,6 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
       '7次播放': `y=${(7 / maxPlays) * chartHeight}, bottom=${paddingBottom + (7 / maxPlays) * chartHeight}`
     })
 
-    // 计算有数据的天数
-    const daysWithData = filledData.filter(d => d.total_plays > 0).length
-
     return (
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: theme['c-font'] }]}>
@@ -238,13 +256,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
         </Text>
         {renderPeriodSelector()}
 
-        {daysWithData < 3 && (
-          <Text style={{ fontSize: 12, color: theme['c-350'], marginBottom: 8, fontStyle: 'italic' }}>
-            💡 继续使用应用，积累更多播放数据后，趋势图会更加丰富
-          </Text>
-        )}
-
-        <View style={{ marginTop: 10, marginHorizontal: -16, overflow: 'hidden' }}>
+        <View style={{ marginTop: 16, marginHorizontal: -16, overflow: 'hidden' }}>
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -252,15 +264,14 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
           >
             <View style={{
               width: chartWidth,
-              height: chartHeight + paddingBottom + 20,
+              height: chartHeight + paddingBottom + 40,
               backgroundColor: 'transparent'
             }}>
               {/* Y轴参考线和标签 */}
-              {[0, 1, 2, 3, 4, 5, 6, 7].map((value) => {
-                if (value > maxPlays) return null
-                // 从顶部计算：value越大，top越小（越靠上）
-                const top = chartHeight - (value / maxPlays) * chartHeight
-                
+              {yAxisTicks.map((value) => {
+                // 从顶部计算：value越大，top越小（越靠上），加20px顶部边距
+                const top = 20 + chartHeight - (value / yAxisMax) * chartHeight
+
                 return (
                   <View key={`grid-${value}`}>
                     {/* 网格线 */}
@@ -282,7 +293,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
                         top: top - 8,
                         fontSize: 11,
                         color: theme['c-350'],
-                        fontWeight: value === 0 || value === maxPlays ? 'bold' : 'normal',
+                        fontWeight: value === 0 || value === yAxisMax ? 'bold' : 'normal',
                       }}
                     >
                       {value}
@@ -298,10 +309,10 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
                 if (index === filledData.length - 1) return null
 
                 const x1 = index * pointWidth + pointWidth / 2
-                const top1 = chartHeight - (stat.total_plays / maxPlays) * chartHeight
+                const top1 = 20 + chartHeight - (stat.total_plays / yAxisMax) * chartHeight
                 const nextStat = filledData[index + 1]
                 const x2 = (index + 1) * pointWidth + pointWidth / 2
-                const top2 = chartHeight - (nextStat.total_plays / maxPlays) * chartHeight
+                const top2 = 20 + chartHeight - (nextStat.total_plays / yAxisMax) * chartHeight
 
                 const dx = x2 - x1
                 const dy = top2 - top1
@@ -330,7 +341,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
               {/* 数据点和标签 */}
               {filledData.map((stat, index) => {
                 const x = index * pointWidth + pointWidth / 2
-                const top = chartHeight - (stat.total_plays / maxPlays) * chartHeight
+                const top = 20 + chartHeight - (stat.total_plays / yAxisMax) * chartHeight
                 const date = new Date(stat.date)
                 const isToday = stat.date === todayStr
                 const dayOfMonth = date.getDate()
@@ -376,7 +387,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
                       style={{
                         position: 'absolute',
                         left: x - 15,
-                        top: chartHeight + 10,
+                        top: 20 + chartHeight + 10,
                         width: 30,
                         textAlign: 'center',
                         fontSize: 12,
@@ -393,7 +404,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
                         style={{
                           position: 'absolute',
                           left: x - 15,
-                          top: chartHeight + 28,
+                          top: 20 + chartHeight + 28,
                           width: 30,
                           textAlign: 'center',
                           fontSize: 9,

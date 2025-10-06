@@ -148,10 +148,23 @@ export const createList = async({ name, id = `userlist_${Date.now()}`, list = []
  * 设置当前激活的歌曲列表
  * @param id
  */
-export const setActiveList = (id: string) => {
+export const setActiveList = async (id: string) => {
   if (listState.activeListId == id) return
   listAction.setActiveList(id)
   saveListPrevSelectId(id)
+  
+  // 如果是云端歌单且歌曲未加载，则加载歌曲
+  if (id.startsWith('cloud_')) {
+    const songs = listState.allMusicList.get(id)
+    if (!songs || songs.length === 0) {
+      try {
+        const { loadPlaylistSongs } = await import('@/services/playlistSync')
+        await loadPlaylistSongs(id)
+      } catch (error) {
+        console.error('加载歌单歌曲失败:', error)
+      }
+    }
+  }
 }
 
 /**
