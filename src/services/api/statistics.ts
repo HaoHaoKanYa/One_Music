@@ -34,8 +34,11 @@ export const statisticsAPI = {
     if (!user) throw new Error('未登录')
 
     const startDate = new Date()
-    startDate.setDate(startDate.getDate() - days)
+    startDate.setDate(startDate.getDate() - days + 1)
+    startDate.setHours(0, 0, 0, 0)
     const startDateStr = startDate.toISOString()
+
+    console.log(`[getDailyStats] 查询范围: ${startDateStr} 到现在，共 ${days} 天`)
 
     // 从播放历史表实时计算
     const { data, error } = await supabase
@@ -45,8 +48,17 @@ export const statisticsAPI = {
       .gte('played_at', startDateStr)
       .order('played_at', { ascending: true })
 
-    if (error) throw error
-    if (!data || data.length === 0) return []
+    if (error) {
+      console.error('[getDailyStats] 查询错误:', error)
+      throw error
+    }
+    
+    console.log(`[getDailyStats] 查询到 ${data?.length || 0} 条播放记录`)
+    
+    if (!data || data.length === 0) {
+      console.log('[getDailyStats] 没有数据，返回空数组')
+      return []
+    }
 
     // 按日期分组统计
     const dailyMap = new Map<string, DailyStats>()
@@ -70,20 +82,16 @@ export const statisticsAPI = {
     })
 
     // 计算每天的唯一歌曲和歌手数
-    data.forEach(record => {
-      const date = record.played_at.split('T')[0]
-      const stats = dailyMap.get(date)!
-      
-      // 这里简化处理，实际应该用Set统计
-      stats.unique_songs = new Set(
-        data.filter(r => r.played_at.split('T')[0] === date).map(r => r.song_id)
-      ).size
-      stats.unique_artists = new Set(
-        data.filter(r => r.played_at.split('T')[0] === date).map(r => r.artist)
-      ).size
+    dailyMap.forEach((stats, date) => {
+      const dayRecords = data.filter(r => r.played_at.split('T')[0] === date)
+      stats.unique_songs = new Set(dayRecords.map(r => r.song_id)).size
+      stats.unique_artists = new Set(dayRecords.map(r => r.artist)).size
     })
 
-    return Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date))
+    const result = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date))
+    console.log('[getDailyStats] 统计结果:', result.map(d => `${d.date}: ${d.total_plays}次`).join(', '))
+    
+    return result
   },
 
   // 获取歌手播放统计

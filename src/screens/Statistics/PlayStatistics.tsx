@@ -167,15 +167,15 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
     endDate.setHours(0, 0, 0, 0)
     const startDate = new Date(endDate)
     startDate.setDate(startDate.getDate() - days + 1)
-    
+
     const filledData: DailyStats[] = []
     const statsMap = new Map(dailyStats.map(s => [s.date, s]))
-    
+
     for (let i = 0; i < days; i++) {
       const currentDate = new Date(startDate)
       currentDate.setDate(startDate.getDate() + i)
       const dateStr = currentDate.toISOString().split('T')[0]
-      
+
       filledData.push(statsMap.get(dateStr) || {
         date: dateStr,
         total_plays: 0,
@@ -185,21 +185,29 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
       })
     }
 
-    console.log('[PlayStatistics] 趋势数据:', filledData.map(d => `${d.date}: ${d.total_plays}`).join(', '))
+    console.log('[PlayStatistics] 原始数据长度:', dailyStats.length)
+    console.log('[PlayStatistics] 填充后数据:', filledData.map(d => `${d.date}: ${d.total_plays}`).join(', '))
 
     const maxPlays = Math.max(...filledData.map(s => s.total_plays), 1)
     const chartHeight = 150
-    const pointWidth = 45
+    const pointWidth = 50
     const chartWidth = filledData.length * pointWidth
-    const paddingLeft = 30
-    const paddingBottom = 35
+    const paddingLeft = 35
+    const paddingBottom = 40
 
     // 计算今天的索引，用于初始滚动位置
     const todayStr = endDate.toISOString().split('T')[0]
     const todayIndex = filledData.findIndex(d => d.date === todayStr)
-    const scrollToX = todayIndex > 0 ? Math.max(0, todayIndex * pointWidth - 150) : 0
     
-    console.log('[PlayStatistics] 图表参数:', { days, maxPlays, chartWidth, todayIndex, scrollToX })
+    console.log('[PlayStatistics] 图表参数:', { 
+      days, 
+      maxPlays, 
+      chartWidth, 
+      chartHeight,
+      todayIndex, 
+      todayStr,
+      dataCount: filledData.length 
+    })
 
     return (
       <View style={styles.section}>
@@ -208,24 +216,28 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
         </Text>
         {renderPeriodSelector()}
 
-        <View style={{ overflow: 'hidden', marginHorizontal: -16 }}>
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false}
+        <View style={{ marginTop: 10, marginHorizontal: -16, overflow: 'hidden' }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={true}
             contentContainerStyle={{ paddingLeft: paddingLeft, paddingRight: 20 }}
           >
-            <View style={{ width: chartWidth, height: chartHeight + paddingBottom + 20 }}>
+            <View style={{ 
+              width: chartWidth, 
+              height: chartHeight + paddingBottom + 20,
+              backgroundColor: 'transparent'
+            }}>
               {/* Y轴参考线 */}
-              {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
+              {[1, 0.75, 0.5, 0.25, 0].map((ratio, i) => (
                 <View
                   key={`grid-${i}`}
                   style={{
                     position: 'absolute',
                     left: 0,
-                    right: 0,
+                    width: chartWidth,
                     bottom: ratio * chartHeight + paddingBottom,
                     height: 1,
-                    backgroundColor: 'rgba(0,0,0,0.08)',
+                    backgroundColor: i === 4 ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.05)',
                   }}
                 />
               ))}
@@ -234,9 +246,10 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
               <Text
                 style={{
                   position: 'absolute',
-                  left: -25,
+                  left: -30,
                   bottom: chartHeight + paddingBottom - 8,
-                  fontSize: 10,
+                  fontSize: 11,
+                  fontWeight: 'bold',
                   color: theme['c-350'],
                 }}
               >
@@ -245,9 +258,10 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
               <Text
                 style={{
                   position: 'absolute',
-                  left: -15,
+                  left: -18,
                   bottom: paddingBottom - 8,
-                  fontSize: 10,
+                  fontSize: 11,
+                  fontWeight: 'bold',
                   color: theme['c-350'],
                 }}
               >
@@ -257,18 +271,20 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
               {/* 绘制折线路径 */}
               {filledData.map((stat, index) => {
                 if (index === filledData.length - 1) return null
-                
+
                 const x1 = index * pointWidth + pointWidth / 2
                 const y1 = (stat.total_plays / maxPlays) * chartHeight
                 const nextStat = filledData[index + 1]
                 const x2 = (index + 1) * pointWidth + pointWidth / 2
                 const y2 = (nextStat.total_plays / maxPlays) * chartHeight
-                
+
                 const dx = x2 - x1
                 const dy = y2 - y1
                 const length = Math.sqrt(dx * dx + dy * dy)
                 const angle = Math.atan2(dy, dx) * (180 / Math.PI)
-                
+
+                console.log(`[Line ${index}] from (${x1}, ${y1}) to (${x2}, ${y2}), length: ${length}, angle: ${angle}`)
+
                 return (
                   <View
                     key={`line-${index}`}
@@ -293,6 +309,8 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
                 const date = new Date(stat.date)
                 const isToday = stat.date === todayStr
                 const label = `${date.getMonth() + 1}/${date.getDate()}`
+
+                console.log(`[Point ${index}] ${label}: plays=${stat.total_plays}, x=${x}, y=${y}`)
 
                 return (
                   <View key={`point-${index}`}>
