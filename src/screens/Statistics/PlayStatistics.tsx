@@ -217,9 +217,15 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
       maxPlays, 
       chartWidth, 
       chartHeight,
+      paddingBottom,
       todayIndex, 
       todayStr,
       dataCount: filledData.length 
+    })
+    
+    console.log('[PlayStatistics] Y轴计算示例:', {
+      '0次播放': `y=${(0 / maxPlays) * chartHeight}, bottom=${paddingBottom + (0 / maxPlays) * chartHeight}`,
+      '7次播放': `y=${(7 / maxPlays) * chartHeight}, bottom=${paddingBottom + (7 / maxPlays) * chartHeight}`
     })
 
     // 计算有数据的天数
@@ -343,7 +349,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
                 const isToday = stat.date === todayStr
                 const dayOfMonth = date.getDate()
 
-                console.log(`[Point ${index}] ${dayOfMonth}: plays=${stat.total_plays}, x=${x}, y=${y}`)
+                console.log(`[Point ${index}] ${dayOfMonth}: plays=${stat.total_plays}, x=${x}, y=${y}, bottom=${paddingBottom + y}`)
 
                 return (
                   <View key={`point-${index}`}>
