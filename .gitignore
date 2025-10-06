@@ -119,3 +119,10 @@ ONEMUSIC
 # 用户系统文档（不进行版本控制）
 doc/user-system-spec/
 doc/user-system/
+check-files.bat
+check-files.sh
+COMMIT_SUMMARY.md
+commit-user-system.bat
+commit-user-system.sh
+FILES_TO_COMMIT.md
+GIT_COMMIT_GUIDE.md

@@ -50,12 +50,6 @@ export default memo(() => {
   const activeId = useNavActiveId()
 
   const handleTabPress = (id: TabId) => {
-    // 如果是"我的"标签，暂时不做任何操作（占位符）
-    if (id === 'nav_user') {
-      // TODO: 后续添加用户功能
-      return
-    }
-    
     setNavActiveId(id)
   }
 

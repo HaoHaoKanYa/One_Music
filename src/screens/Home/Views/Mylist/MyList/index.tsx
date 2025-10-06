@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { View } from 'react-native'
 
 import ListMenu, { type ListMenuType } from './ListMenu'
 import ListNameEdit, { type ListNameEditType } from './ListNameEdit'
@@ -7,6 +8,8 @@ import ListImportExport, { type ListImportExportType } from './ListImportExport'
 import { handleRemove, handleSync } from './listAction'
 import ListMusicSort, { type ListMusicSortType } from './ListMusicSort'
 import DuplicateMusic, { type DuplicateMusicType } from './DuplicateMusic'
+import UserHeader from './UserHeader'
+import QuickMenu from './QuickMenu'
 
 
 export default () => {
@@ -37,6 +40,8 @@ export default () => {
   return (
     visible
       ? <>
+          <UserHeader />
+          <QuickMenu />
           <List onShowMenu={(info, position) => listMenuRef.current?.show(info, position)} />
           <ListNameEdit ref={listNameEditRef} />
           <ListMusicSort ref={listMusicSortRef} />
