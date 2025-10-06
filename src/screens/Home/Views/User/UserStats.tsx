@@ -37,7 +37,7 @@ export default () => {
   }
 
   return (
-    <View style={[styles.container, { backgroundColor: 'transparent' }]}>
+    <View style={[styles.container, { backgroundColor: theme['c-primary-light-100'] + '05' }]}>
       <Text style={styles.title} color={theme['c-font']}>📊 我的数据</Text>
 
       <View style={styles.statsGrid}>

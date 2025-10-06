@@ -78,7 +78,7 @@ export default () => {
             {section.title}
           </Text>
           
-          <View style={[styles.menuGrid, { backgroundColor: 'transparent' }]}>
+          <View style={[styles.menuGrid, { backgroundColor: theme['c-primary-light-100'] + '05' }]}>
             {section.items.map((item, index) => (
               <TouchableOpacity
                 key={index}
