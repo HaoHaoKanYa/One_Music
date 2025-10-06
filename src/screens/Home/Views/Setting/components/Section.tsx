@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { createStyle } from '@/utils/tools'
 import { useTheme } from '@/store/theme/hook'
 import Text from '@/components/common/Text'
-import { Icon } from '@/components/common/Icon'
 
 
 interface Props {
@@ -22,17 +21,15 @@ export default ({ title, children }: Props) => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity 
-        style={styles.titleContainer} 
+      <TouchableOpacity
+        style={styles.titleContainer}
         onPress={toggleExpand}
         activeOpacity={0.7}
       >
         <Text style={{ ...styles.title, borderLeftColor: theme['c-primary'] }} size={16}>{title}</Text>
-        <Icon 
-          name={isExpanded ? 'chevron-up' : 'chevron-down'} 
-          size={20} 
-          color={theme['c-font']} 
-        />
+        <Text size={18} color={theme['c-font']}>
+          {isExpanded ? '▲' : '▼'}
+        </Text>
       </TouchableOpacity>
       {isExpanded && (
         <View style={styles.content}>
