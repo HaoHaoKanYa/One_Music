@@ -208,161 +208,169 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
         </Text>
         {renderPeriodSelector()}
 
-        <ScrollView 
-          horizontal 
-          showsHorizontalScrollIndicator={false}
-          style={styles.chartScrollView}
-          contentContainerStyle={{ paddingLeft: paddingLeft, paddingRight: 20 }}
-          contentOffset={{ x: scrollToX, y: 0 }}
-        >
-          <View style={{ width: chartWidth, height: chartHeight + paddingBottom }}>
-            {/* Y轴参考线 */}
-            {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
-              <View
-                key={`grid-${i}`}
+        <View style={{ overflow: 'hidden', marginHorizontal: -16 }}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingLeft: paddingLeft, paddingRight: 20 }}
+          >
+            <View style={{ width: chartWidth, height: chartHeight + paddingBottom + 20 }}>
+              {/* Y轴参考线 */}
+              {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
+                <View
+                  key={`grid-${i}`}
+                  style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    bottom: ratio * chartHeight + paddingBottom,
+                    height: 1,
+                    backgroundColor: 'rgba(0,0,0,0.08)',
+                  }}
+                />
+              ))}
+
+              {/* Y轴标签 */}
+              <Text
                 style={{
                   position: 'absolute',
-                  left: 0,
-                  right: 0,
-                  bottom: ratio * chartHeight + paddingBottom,
-                  height: 1,
-                  backgroundColor: 'rgba(0,0,0,0.05)',
+                  left: -25,
+                  bottom: chartHeight + paddingBottom - 8,
+                  fontSize: 10,
+                  color: theme['c-350'],
                 }}
-              />
-            ))}
+              >
+                {maxPlays}
+              </Text>
+              <Text
+                style={{
+                  position: 'absolute',
+                  left: -15,
+                  bottom: paddingBottom - 8,
+                  fontSize: 10,
+                  color: theme['c-350'],
+                }}
+              >
+                0
+              </Text>
 
-            {/* 折线和数据点 */}
-            {filledData.map((stat, index) => {
-              const x = index * pointWidth + pointWidth / 2
-              const y = (stat.total_plays / maxPlays) * chartHeight
-              const date = new Date(stat.date)
-              const isToday = stat.date === todayStr
-              const label = `${date.getMonth() + 1}/${date.getDate()}`
-
-              return (
-                <View key={index}>
-                  {/* 连线到下一个点 */}
-                  {index < filledData.length - 1 && (() => {
-                    const nextStat = filledData[index + 1]
-                    const nextX = (index + 1) * pointWidth + pointWidth / 2
-                    const nextY = (nextStat.total_plays / maxPlays) * chartHeight
-                    
-                    const dx = nextX - x
-                    const dy = nextY - y
-                    const length = Math.sqrt(dx * dx + dy * dy)
-                    const angle = Math.atan2(dy, dx) * (180 / Math.PI)
-                    
-                    return (
-                      <View
-                        style={{
-                          position: 'absolute',
-                          left: x,
-                          bottom: paddingBottom + y,
-                          width: length,
-                          height: 2,
-                          backgroundColor: theme['c-primary-font'],
-                          transformOrigin: 'left center',
-                          transform: [{ rotate: `${angle}deg` }],
-                        }}
-                      />
-                    )
-                  })()}
-
-                  {/* 数据点 */}
+              {/* 绘制折线路径 */}
+              {filledData.map((stat, index) => {
+                if (index === filledData.length - 1) return null
+                
+                const x1 = index * pointWidth + pointWidth / 2
+                const y1 = (stat.total_plays / maxPlays) * chartHeight
+                const nextStat = filledData[index + 1]
+                const x2 = (index + 1) * pointWidth + pointWidth / 2
+                const y2 = (nextStat.total_plays / maxPlays) * chartHeight
+                
+                const dx = x2 - x1
+                const dy = y2 - y1
+                const length = Math.sqrt(dx * dx + dy * dy)
+                const angle = Math.atan2(dy, dx) * (180 / Math.PI)
+                
+                return (
                   <View
+                    key={`line-${index}`}
                     style={{
                       position: 'absolute',
-                      left: x - 5,
-                      bottom: paddingBottom + y - 5,
-                      width: 10,
-                      height: 10,
-                      borderRadius: 5,
-                      backgroundColor: stat.total_plays > 0 ? theme['c-primary-font'] : '#DDD',
-                      borderWidth: 2,
-                      borderColor: '#FFF',
+                      left: x1,
+                      bottom: paddingBottom + y1,
+                      width: length,
+                      height: 3,
+                      backgroundColor: '#FF8C42',
+                      transformOrigin: 'left center',
+                      transform: [{ rotate: `${angle}deg` }],
                     }}
                   />
+                )
+              })}
 
-                  {/* 数据标注（在点上方） */}
-                  {stat.total_plays > 0 && (
+              {/* 数据点和标签 */}
+              {filledData.map((stat, index) => {
+                const x = index * pointWidth + pointWidth / 2
+                const y = (stat.total_plays / maxPlays) * chartHeight
+                const date = new Date(stat.date)
+                const isToday = stat.date === todayStr
+                const label = `${date.getMonth() + 1}/${date.getDate()}`
+
+                return (
+                  <View key={`point-${index}`}>
+                    {/* 数据点 */}
+                    <View
+                      style={{
+                        position: 'absolute',
+                        left: x - 6,
+                        bottom: paddingBottom + y - 6,
+                        width: 12,
+                        height: 12,
+                        borderRadius: 6,
+                        backgroundColor: '#FF8C42',
+                        borderWidth: 3,
+                        borderColor: '#FFF',
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.1,
+                        shadowRadius: 3,
+                        elevation: 3,
+                      }}
+                    />
+
+                    {/* 数据标注（在点上方） */}
                     <Text
                       style={{
                         position: 'absolute',
-                        left: x - 15,
-                        bottom: paddingBottom + y + 8,
-                        width: 30,
+                        left: x - 20,
+                        bottom: paddingBottom + y + 12,
+                        width: 40,
                         textAlign: 'center',
-                        fontSize: 11,
+                        fontSize: 12,
                         fontWeight: 'bold',
-                        color: theme['c-primary-font'],
+                        color: '#FF8C42',
                       }}
                     >
                       {stat.total_plays}
                     </Text>
-                  )}
 
-                  {/* X轴日期标签 */}
-                  <Text
-                    style={{
-                      position: 'absolute',
-                      left: x - 20,
-                      bottom: 15,
-                      width: 40,
-                      textAlign: 'center',
-                      fontSize: 10,
-                      color: isToday ? theme['c-primary-font'] : theme['c-350'],
-                      fontWeight: isToday ? 'bold' : 'normal',
-                    }}
-                  >
-                    {label}
-                  </Text>
-
-                  {/* 今天标记 */}
-                  {isToday && (
+                    {/* X轴日期标签 */}
                     <Text
                       style={{
                         position: 'absolute',
-                        left: x - 15,
-                        bottom: 0,
-                        width: 30,
+                        left: x - 20,
+                        bottom: 15,
+                        width: 40,
                         textAlign: 'center',
-                        fontSize: 9,
-                        color: theme['c-primary-font'],
-                        fontWeight: 'bold',
+                        fontSize: 10,
+                        color: isToday ? '#FF8C42' : theme['c-350'],
+                        fontWeight: isToday ? 'bold' : 'normal',
                       }}
                     >
-                      今天
+                      {label}
                     </Text>
-                  )}
-                </View>
-              )
-            })}
 
-            {/* Y轴标签 */}
-            <Text
-              style={{
-                position: 'absolute',
-                left: -25,
-                bottom: chartHeight + paddingBottom - 10,
-                fontSize: 10,
-                color: theme['c-350'],
-              }}
-            >
-              {maxPlays}
-            </Text>
-            <Text
-              style={{
-                position: 'absolute',
-                left: -15,
-                bottom: paddingBottom - 10,
-                fontSize: 10,
-                color: theme['c-350'],
-              }}
-            >
-              0
-            </Text>
-          </View>
-        </ScrollView>
+                    {/* 今天标记 */}
+                    {isToday && (
+                      <Text
+                        style={{
+                          position: 'absolute',
+                          left: x - 15,
+                          bottom: 0,
+                          width: 30,
+                          textAlign: 'center',
+                          fontSize: 9,
+                          color: '#FF8C42',
+                          fontWeight: 'bold',
+                        }}
+                      >
+                        今天
+                      </Text>
+                    )}
+                  </View>
+                )
+              })}
+            </View>
+          </ScrollView>
+        </View>
       </View>
     )
   }
