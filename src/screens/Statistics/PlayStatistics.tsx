@@ -164,7 +164,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
     // 填充缺失的日期，确保连续性，以今天为结束日期
     const days = selectedPeriod === '7' ? 7 : 30
     const today = new Date()
-    
+
     // 使用本地日期字符串，避免时区问题
     const formatDate = (date: Date) => {
       const year = date.getFullYear()
@@ -172,7 +172,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
       const day = String(date.getDate()).padStart(2, '0')
       return `${year}-${month}-${day}`
     }
-    
+
     const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
     const startDate = new Date(endDate)
     startDate.setDate(endDate.getDate() - days + 1)
@@ -211,18 +211,18 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
     // 计算今天的索引，用于初始滚动位置
     const todayStr = formatDate(endDate)
     const todayIndex = filledData.findIndex(d => d.date === todayStr)
-    
-    console.log('[PlayStatistics] 图表参数:', { 
-      days, 
-      maxPlays, 
-      chartWidth, 
+
+    console.log('[PlayStatistics] 图表参数:', {
+      days,
+      maxPlays,
+      chartWidth,
       chartHeight,
       paddingBottom,
-      todayIndex, 
+      todayIndex,
       todayStr,
-      dataCount: filledData.length 
+      dataCount: filledData.length
     })
-    
+
     console.log('[PlayStatistics] Y轴计算示例:', {
       '0次播放': `y=${(0 / maxPlays) * chartHeight}, bottom=${paddingBottom + (0 / maxPlays) * chartHeight}`,
       '7次播放': `y=${(7 / maxPlays) * chartHeight}, bottom=${paddingBottom + (7 / maxPlays) * chartHeight}`
@@ -230,14 +230,14 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
 
     // 计算有数据的天数
     const daysWithData = filledData.filter(d => d.total_plays > 0).length
-    
+
     return (
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: theme['c-font'] }]}>
           播放趋势
         </Text>
         {renderPeriodSelector()}
-        
+
         {daysWithData < 3 && (
           <Text style={{ fontSize: 12, color: theme['c-350'], marginBottom: 8, fontStyle: 'italic' }}>
             💡 继续使用应用，积累更多播放数据后，趋势图会更加丰富
@@ -250,62 +250,47 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingLeft: paddingLeft, paddingRight: 20 }}
           >
-            <View style={{ 
-              width: chartWidth, 
+            <View style={{
+              width: chartWidth,
               height: chartHeight + paddingBottom + 20,
               backgroundColor: 'transparent'
             }}>
-              {/* Y轴参考线 */}
-              {[1, 0.75, 0.5, 0.25, 0].map((ratio, i) => (
-                <View
-                  key={`grid-${i}`}
-                  style={{
-                    position: 'absolute',
-                    left: 0,
-                    width: chartWidth,
-                    bottom: ratio * chartHeight + paddingBottom,
-                    height: 1,
-                    backgroundColor: i === 4 ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.05)',
-                  }}
-                />
-              ))}
+              {/* Y轴参考线和标签 */}
+              {[0, 1, 2, 3, 4, 5, 6, 7].map((value) => {
+                if (value > maxPlays) return null
+                const y = (value / maxPlays) * chartHeight
+                
+                return (
+                  <View key={`grid-${value}`}>
+                    {/* 网格线 */}
+                    <View
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        right: 0,
+                        bottom: paddingBottom + y,
+                        height: value === 0 ? 2 : 1,
+                        backgroundColor: value === 0 ? 'rgba(0,0,0,0.3)' : 'rgba(0,0,0,0.08)',
+                      }}
+                    />
+                    {/* Y轴标签 */}
+                    <Text
+                      style={{
+                        position: 'absolute',
+                        left: -28,
+                        bottom: paddingBottom + y - 8,
+                        fontSize: 11,
+                        color: theme['c-350'],
+                        fontWeight: value === 0 || value === maxPlays ? 'bold' : 'normal',
+                      }}
+                    >
+                      {value}
+                    </Text>
+                  </View>
+                )
+              })}
 
-              {/* Y轴标签 */}
-              <Text
-                style={{
-                  position: 'absolute',
-                  left: -30,
-                  bottom: chartHeight + paddingBottom - 8,
-                  fontSize: 11,
-                  fontWeight: 'bold',
-                  color: theme['c-350'],
-                }}
-              >
-                {maxPlays}
-              </Text>
-              <Text
-                style={{
-                  position: 'absolute',
-                  left: -30,
-                  bottom: chartHeight * 0.5 + paddingBottom - 8,
-                  fontSize: 10,
-                  color: theme['c-350'],
-                }}
-              >
-                {Math.floor(maxPlays / 2)}
-              </Text>
-              <Text
-                style={{
-                  position: 'absolute',
-                  left: -18,
-                  bottom: paddingBottom - 8,
-                  fontSize: 11,
-                  fontWeight: 'bold',
-                  color: theme['c-350'],
-                }}
-              >
-                0
-              </Text>
+
 
               {/* 绘制折线路径 */}
               {filledData.map((stat, index) => {
