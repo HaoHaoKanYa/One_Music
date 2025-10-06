@@ -60,6 +60,11 @@ export default () => {
   const hancelScrollToTop = useCallback(() => {
     listRef.current?.scrollToTop()
   }, [])
+  
+  const handlePlayAll = useCallback(() => {
+    // 播放当前歌单的所有歌曲
+    handlePlay(listState.activeListId, 0)
+  }, [])
 
   const showMenu = useCallback((musicInfo: LX.Music.MusicInfo, index: number, position: Position) => {
     listMenuRef.current?.show({
@@ -122,7 +127,7 @@ export default () => {
   return (
     <View style={styles.container}>
       <View style={{ zIndex: 2 }}>
-        <ActiveList ref={activeListRef} onShowSearchBar={handleShowSearch} onScrollToTop={hancelScrollToTop} />
+        <ActiveList ref={activeListRef} onShowSearchBar={handleShowSearch} onScrollToTop={hancelScrollToTop} onPlayAll={handlePlayAll} />
         <MultipleModeBar
           ref={multipleModeBarRef}
           onSwitchMode={hancelSwitchSelectMode}
