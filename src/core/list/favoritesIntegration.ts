@@ -20,25 +20,34 @@ export const syncAddFavorites = async (musicInfos: LX.Music.MusicInfo[]) => {
     try {
         const user = await authAPI.getCurrentUser()
         if (!user) {
-            console.log('未登录，跳过收藏同步')
+            console.log('[收藏同步] 未登录，跳过同步。请先登录账号。')
             return
         }
 
-        const favorites = musicInfos.map(music => ({
-            song_id: music.id,
-            song_name: music.name,
-            artist: music.singer,
-            album: getMusicProperty(music, 'albumName') || getMusicProperty(music, 'album'),
-            duration: music.interval ? parseInt(String(music.interval)) : undefined,
-            source: music.source,
-            cover_url: getMusicProperty(music, 'img') || getMusicProperty(music, 'pic'),
-            quality: getMusicProperty(music.meta, '_qualitys')?.join(','),
-        }))
+        console.log('[收藏同步] 准备同步', musicInfos.length, '首歌曲')
+
+        const favorites = musicInfos.map(music => {
+            const qualitys = getMusicProperty(music.meta, '_qualitys')
+            return {
+                song_id: music.id,
+                song_name: music.name,
+                artist: music.singer,
+                album: getMusicProperty(music, 'albumName') || getMusicProperty(music, 'album'),
+                duration: music.interval ? parseInt(String(music.interval)) : undefined,
+                source: music.source,
+                cover_url: getMusicProperty(music, 'img') || getMusicProperty(music, 'pic'),
+                quality: Array.isArray(qualitys) ? qualitys.join(',') : undefined,
+            }
+        })
 
         await favoritesAPI.addFavorites(favorites)
-        console.log('已同步添加收藏到数据库:', musicInfos.length, '首')
-    } catch (error) {
-        console.log('同步收藏失败:', error)
+        console.log('[收藏同步] ✅ 成功同步', musicInfos.length, '首到数据库')
+    } catch (error: any) {
+        if (error?.message?.includes('Auth session missing')) {
+            console.log('[收藏同步] ❌ 登录会话已过期，请重新登录')
+        } else {
+            console.log('[收藏同步] ❌ 同步失败:', error?.message || error)
+        }
     }
 }
 
@@ -56,7 +65,7 @@ export const syncRemoveFavorites = async (musicIds: string[]) => {
         // 由于list_music_remove事件只提供musicIds，没有source信息
         // 我们需要查询数据库找到对应的收藏记录并删除
         const { supabase } = await import('@/lib/supabase')
-        
+
         for (const musicId of musicIds) {
             try {
                 // 查询该用户的该歌曲的所有收藏记录（可能有多个source）
