@@ -229,7 +229,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
         <View style={{ marginTop: 10, marginHorizontal: -16, overflow: 'hidden' }}>
           <ScrollView
             horizontal
-            showsHorizontalScrollIndicator={true}
+            showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingLeft: paddingLeft, paddingRight: 20 }}
           >
             <View style={{ 
@@ -294,10 +294,10 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
                 if (index === filledData.length - 1) return null
 
                 const x1 = index * pointWidth + pointWidth / 2
-                const y1 = chartHeight - (stat.total_plays / maxPlays) * chartHeight
+                const y1 = (stat.total_plays / maxPlays) * chartHeight
                 const nextStat = filledData[index + 1]
                 const x2 = (index + 1) * pointWidth + pointWidth / 2
-                const y2 = chartHeight - (nextStat.total_plays / maxPlays) * chartHeight
+                const y2 = (nextStat.total_plays / maxPlays) * chartHeight
 
                 const dx = x2 - x1
                 const dy = y2 - y1
@@ -326,12 +326,12 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
               {/* 数据点和标签 */}
               {filledData.map((stat, index) => {
                 const x = index * pointWidth + pointWidth / 2
-                const y = chartHeight - (stat.total_plays / maxPlays) * chartHeight
+                const y = (stat.total_plays / maxPlays) * chartHeight
                 const date = new Date(stat.date)
                 const isToday = stat.date === todayStr
-                const label = `${date.getMonth() + 1}/${date.getDate()}`
+                const dayOfMonth = date.getDate()
 
-                console.log(`[Point ${index}] ${label}: plays=${stat.total_plays}, x=${x}, y=${y}`)
+                console.log(`[Point ${index}] ${dayOfMonth}: plays=${stat.total_plays}, x=${x}, y=${y}`)
 
                 return (
                   <View key={`point-${index}`}>
@@ -384,7 +384,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
                         fontWeight: isToday ? 'bold' : 'normal',
                       }}
                     >
-                      {label}
+                      {dayOfMonth}
                     </Text>
 
                     {/* 今天标记 */}
