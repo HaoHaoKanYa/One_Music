@@ -51,6 +51,7 @@ keystore.properties
 .idea/vcs.xml
 .idea/modules.xml
 .idea/*.iml
+.idea/gradle.xml
 # Keep only gradle.xml for Android project recognition
 
 # node.js
@@ -119,6 +120,20 @@ ONEMUSIC
 # 用户系统文档（不进行版本控制）
 doc/user-system-spec/
 doc/user-system/
+
+# 测试文件
+test-supabase.js
+src/test/
+src/screens/Auth/TestConnection.tsx
+
+# 提交指南文档（本地使用）
+GIT_COMMIT_GUIDE.md
+FILES_TO_COMMIT.md
+COMMIT_SUMMARY.md
+commit-user-system.sh
+commit-user-system.bat
+check-files.sh
+check-files.bat
 check-files.bat
 check-files.sh
 COMMIT_SUMMARY.md
