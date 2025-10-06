@@ -176,9 +176,33 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
       )
     }
 
-    const maxPlays = Math.max(...dailyStats.map(s => s.total_plays), 1)
-    const chartHeight = 120
-    const displayData = selectedPeriod === '7' ? dailyStats.slice(-7) : dailyStats
+    // 填充缺失的日期，确保连续性
+    const days = selectedPeriod === '7' ? 7 : 30
+    const endDate = new Date()
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - days + 1)
+    
+    const filledData: DailyStats[] = []
+    const statsMap = new Map(dailyStats.map(s => [s.date, s]))
+    
+    for (let i = 0; i < days; i++) {
+      const currentDate = new Date(startDate)
+      currentDate.setDate(startDate.getDate() + i)
+      const dateStr = currentDate.toISOString().split('T')[0]
+      
+      filledData.push(statsMap.get(dateStr) || {
+        date: dateStr,
+        total_plays: 0,
+        total_duration: 0,
+        unique_songs: 0,
+        unique_artists: 0,
+      })
+    }
+
+    const maxPlays = Math.max(...filledData.map(s => s.total_plays), 1)
+    const chartHeight = 140
+    const pointWidth = 50 // 每个点的宽度
+    const chartWidth = Math.max(filledData.length * pointWidth, 300)
 
     return (
       <View style={styles.section}>
@@ -187,35 +211,98 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
         </Text>
         {renderPeriodSelector()}
 
-        <View style={styles.chartContainer}>
-          {displayData.map((stat, index) => {
-            const barHeight = Math.max((stat.total_plays / maxPlays) * chartHeight, 4)
-            const date = new Date(stat.date)
-            const label = `${date.getMonth() + 1}/${date.getDate()}`
+        <ScrollView 
+          horizontal 
+          showsHorizontalScrollIndicator={false}
+          style={styles.chartScrollView}
+          contentContainerStyle={{ paddingHorizontal: 16 }}
+        >
+          <View style={[styles.lineChartContainer, { width: chartWidth, height: chartHeight + 40 }]}>
+            {/* Y轴参考线 */}
+            {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
+              <View
+                key={`line-${i}`}
+                style={[
+                  styles.gridLine,
+                  {
+                    bottom: ratio * chartHeight + 30,
+                    width: chartWidth,
+                  },
+                ]}
+              />
+            ))}
 
-            return (
-              <View key={index} style={styles.barContainer}>
-                <View style={styles.barWrapper}>
+            {/* 折线图路径 */}
+            <View style={styles.linePathContainer}>
+              {filledData.map((stat, index) => {
+                if (index === 0) return null
+                
+                const prevStat = filledData[index - 1]
+                const x1 = (index - 1) * pointWidth + pointWidth / 2
+                const y1 = chartHeight - (prevStat.total_plays / maxPlays) * chartHeight
+                const x2 = index * pointWidth + pointWidth / 2
+                const y2 = chartHeight - (stat.total_plays / maxPlays) * chartHeight
+                
+                const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2))
+                const angle = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI)
+                
+                return (
                   <View
+                    key={`line-${index}`}
                     style={[
-                      styles.bar,
+                      styles.linePath,
                       {
-                        height: barHeight,
+                        width: length,
+                        left: x1,
+                        bottom: y1 + 30,
+                        transform: [{ rotate: `${angle}deg` }],
                         backgroundColor: theme['c-primary-font'],
                       },
                     ]}
                   />
+                )
+              })}
+            </View>
+
+            {/* 数据点和标签 */}
+            {filledData.map((stat, index) => {
+              const x = index * pointWidth
+              const y = chartHeight - (stat.total_plays / maxPlays) * chartHeight
+              const date = new Date(stat.date)
+              const label = `${date.getMonth() + 1}/${date.getDate()}`
+
+              return (
+                <View
+                  key={index}
+                  style={[
+                    styles.dataPoint,
+                    {
+                      left: x + pointWidth / 2 - 4,
+                      bottom: y + 30 - 4,
+                    },
+                  ]}
+                >
+                  <View
+                    style={[
+                      styles.dot,
+                      {
+                        backgroundColor: stat.total_plays > 0 ? theme['c-primary-font'] : '#CCC',
+                      },
+                    ]}
+                  />
+                  <Text style={[styles.pointLabel, { color: theme['c-350'] }]}>
+                    {label}
+                  </Text>
+                  {stat.total_plays > 0 && (
+                    <Text style={[styles.pointValue, { color: theme['c-primary-font'] }]}>
+                      {stat.total_plays}
+                    </Text>
+                  )}
                 </View>
-                <Text style={[styles.barLabel, { color: theme['c-350'] }]}>
-                  {label}
-                </Text>
-                <Text style={[styles.barValue, { color: theme['c-350'] }]}>
-                  {stat.total_plays}
-                </Text>
-              </View>
-            )
-          })}
-        </View>
+              )
+            })}
+          </View>
+        </ScrollView>
       </View>
     )
   }
@@ -369,36 +456,48 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 12,
   },
-  chartContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'flex-end',
-    height: 160,
-    paddingHorizontal: 8,
+  chartScrollView: {
+    marginHorizontal: -16,
   },
-  barContainer: {
-    flex: 1,
+  lineChartContainer: {
+    position: 'relative',
+    marginVertical: 8,
+  },
+  gridLine: {
+    position: 'absolute',
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.05)',
+  },
+  linePathContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  linePath: {
+    position: 'absolute',
+    height: 2,
+    transformOrigin: 'left center',
+  },
+  dataPoint: {
+    position: 'absolute',
     alignItems: 'center',
-    justifyContent: 'flex-end',
-    marginHorizontal: 2,
   },
-  barWrapper: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#FFF',
   },
-  bar: {
-    width: '80%',
-    minHeight: 4,
-    borderTopLeftRadius: 4,
-    borderTopRightRadius: 4,
+  pointLabel: {
+    fontSize: 10,
+    marginTop: 8,
   },
-  barLabel: {
+  pointValue: {
     fontSize: 9,
-    marginTop: 4,
-  },
-  barValue: {
-    fontSize: 8,
+    fontWeight: 'bold',
     marginTop: 2,
   },
   artistItem: {

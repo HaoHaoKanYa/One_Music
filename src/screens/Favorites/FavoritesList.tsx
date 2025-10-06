@@ -46,7 +46,7 @@ export const FavoritesListScreen: React.FC<FavoritesListProps> = ({
     loadFavorites()
   }
 
-  const handleRemoveFavorite = async (songId: string) => {
+  const handleRemoveFavorite = async (song: FavoriteSong) => {
     Alert.alert(
       '确认',
       '确定要取消收藏这首歌吗？',
@@ -57,8 +57,8 @@ export const FavoritesListScreen: React.FC<FavoritesListProps> = ({
           style: 'destructive',
           onPress: async () => {
             try {
-              await favoritesAPI.removeFavorite(songId)
-              setFavorites(prev => prev.filter(s => s.song_id !== songId))
+              await favoritesAPI.removeFavorite(song.song_id, song.source)
+              setFavorites(prev => prev.filter(s => s.id !== song.id))
               // 触发收藏更新事件
               global.app_event.favoritesUpdated()
             } catch (error: any) {
@@ -93,7 +93,7 @@ export const FavoritesListScreen: React.FC<FavoritesListProps> = ({
       </View>
       <TouchableOpacity
         style={styles.removeButton}
-        onPress={() => handleRemoveFavorite(item.song_id)}
+        onPress={() => handleRemoveFavorite(item)}
       >
         <Text style={styles.removeButtonText}>取消收藏</Text>
       </TouchableOpacity>

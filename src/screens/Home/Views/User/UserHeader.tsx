@@ -61,12 +61,17 @@ export default () => {
         const userProfile = await profileAPI.getCurrentProfile()
         
         // 获取实时播放时长
-        const { data: playData } = await supabase
+        const { data: playData, error: playError } = await supabase
           .from('play_history')
           .select('play_duration')
           .eq('user_id', currentUser.id)
         
+        if (playError) {
+          console.error('[UserHeader] 获取播放历史失败:', playError)
+        }
+        
         const totalPlayTime = playData?.reduce((sum, record) => sum + (record.play_duration || 0), 0) || 0
+        console.log('[UserHeader] 播放时长:', totalPlayTime, '秒 =', Math.floor(totalPlayTime / 3600), '小时')
         
         setProfile({
           ...userProfile,
@@ -74,7 +79,7 @@ export default () => {
         })
       }
     } catch (error) {
-      console.log('未登录')
+      console.log('[UserHeader] 未登录或加载失败:', error)
     } finally {
       setLoading(false)
     }

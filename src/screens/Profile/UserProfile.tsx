@@ -130,9 +130,12 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
           .eq('user_id', targetUserId)
           .then(res => {
             const total = res.data?.reduce((sum, record) => sum + (record.play_duration || 0), 0) || 0
+            console.log('[UserProfile] 播放时长:', total, '秒 =', Math.floor(total / 3600), '小时')
             return total // 保持秒数
           }),
       ])
+      
+      console.log('[UserProfile] 统计数据:', { favCount, playlistCount, totalPlayTime })
       
       // 合并实时统计数据
       setProfile({
