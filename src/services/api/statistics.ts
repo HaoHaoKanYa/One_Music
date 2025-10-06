@@ -35,16 +35,55 @@ export const statisticsAPI = {
 
     const startDate = new Date()
     startDate.setDate(startDate.getDate() - days)
+    const startDateStr = startDate.toISOString()
 
+    // 从播放历史表实时计算
     const { data, error } = await supabase
-      .from('daily_play_stats')
-      .select('*')
+      .from('play_history')
+      .select('played_at, song_id, artist, play_duration')
       .eq('user_id', user.id)
-      .gte('date', startDate.toISOString().split('T')[0])
-      .order('date', { ascending: true })
+      .gte('played_at', startDateStr)
+      .order('played_at', { ascending: true })
 
     if (error) throw error
-    return data || []
+    if (!data || data.length === 0) return []
+
+    // 按日期分组统计
+    const dailyMap = new Map<string, DailyStats>()
+
+    data.forEach(record => {
+      const date = record.played_at.split('T')[0]
+
+      if (dailyMap.has(date)) {
+        const stats = dailyMap.get(date)!
+        stats.total_plays += 1
+        stats.total_duration += record.play_duration || 0
+      } else {
+        dailyMap.set(date, {
+          date,
+          total_plays: 1,
+          total_duration: record.play_duration || 0,
+          unique_songs: 0,
+          unique_artists: 0,
+        })
+      }
+    })
+
+    // 计算每天的唯一歌曲和歌手数
+    data.forEach(record => {
+      const date = record.played_at.split('T')[0]
+      const stats = dailyMap.get(date)!
+      
+      // 这里简化处理，实际应该用Set统计
+      stats.unique_songs = new Set(
+        data.filter(r => r.played_at.split('T')[0] === date).map(r => r.song_id)
+      ).size
+      stats.unique_artists = new Set(
+        data.filter(r => r.played_at.split('T')[0] === date).map(r => r.artist)
+      ).size
+    })
+
+    return Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date))
   },
 
   // 获取歌手播放统计
@@ -52,15 +91,44 @@ export const statisticsAPI = {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('未登录')
 
+    // 从播放历史表实时计算
     const { data, error } = await supabase
-      .from('artist_play_stats')
-      .select('*')
+      .from('play_history')
+      .select('artist, play_duration, played_at')
       .eq('user_id', user.id)
-      .order('play_count', { ascending: false })
-      .limit(limit)
+      .order('played_at', { ascending: false })
 
     if (error) throw error
-    return data || []
+    if (!data || data.length === 0) return []
+
+    // 按歌手分组统计
+    const artistMap = new Map<string, ArtistStats>()
+
+    data.forEach(record => {
+      const artist = record.artist || '未知歌手'
+
+      if (artistMap.has(artist)) {
+        const stats = artistMap.get(artist)!
+        stats.play_count += 1
+        stats.total_duration += record.play_duration || 0
+        // 更新最后播放时间（取最新的）
+        if (new Date(record.played_at) > new Date(stats.last_played_at)) {
+          stats.last_played_at = record.played_at
+        }
+      } else {
+        artistMap.set(artist, {
+          artist,
+          play_count: 1,
+          total_duration: record.play_duration || 0,
+          last_played_at: record.played_at,
+        })
+      }
+    })
+
+    // 转换为数组并按播放次数排序
+    return Array.from(artistMap.values())
+      .sort((a, b) => b.play_count - a.play_count)
+      .slice(0, limit)
   },
 
   // 获取歌曲播放统计

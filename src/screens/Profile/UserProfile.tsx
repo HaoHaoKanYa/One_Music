@@ -55,10 +55,17 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
       loadProfile()
     }
     
+    // 监听播放历史更新事件
+    const handlePlayHistoryUpdate = () => {
+      loadProfile()
+    }
+    
     global.app_event.on('favoritesUpdated', handleFavoritesUpdate)
+    global.app_event.on('playHistoryUpdated', handlePlayHistoryUpdate)
     
     return () => {
       global.app_event.off('favoritesUpdated', handleFavoritesUpdate)
+      global.app_event.off('playHistoryUpdated', handlePlayHistoryUpdate)
     }
   }, [])
 
@@ -105,7 +112,7 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
       if (error) throw error
       
       // 获取实时统计数据
-      const [favCount, playlistCount] = await Promise.all([
+      const [favCount, playlistCount, totalPlayTime] = await Promise.all([
         supabase
           .from('favorite_songs')
           .select('*', { count: 'exact', head: true })
@@ -117,6 +124,14 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
           .eq('user_id', targetUserId)
           .eq('is_deleted', false)
           .then(res => res.count || 0),
+        supabase
+          .from('play_history')
+          .select('play_duration')
+          .eq('user_id', targetUserId)
+          .then(res => {
+            const total = res.data?.reduce((sum, record) => sum + (record.play_duration || 0), 0) || 0
+            return total // 保持秒数
+          }),
       ])
       
       // 合并实时统计数据
@@ -124,6 +139,7 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
         ...data,
         total_songs: favCount,
         total_playlists: playlistCount,
+        total_play_time: totalPlayTime,
       })
       
       // 检查是否是当前用户

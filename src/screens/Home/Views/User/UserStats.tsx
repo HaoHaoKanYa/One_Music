@@ -22,10 +22,17 @@ export default () => {
       loadStats()
     }
     
+    // 监听播放历史更新事件
+    const handlePlayHistoryUpdate = () => {
+      loadStats()
+    }
+    
     global.app_event.on('favoritesUpdated', handleFavoritesUpdate)
+    global.app_event.on('playHistoryUpdated', handlePlayHistoryUpdate)
     
     return () => {
       global.app_event.off('favoritesUpdated', handleFavoritesUpdate)
+      global.app_event.off('playHistoryUpdated', handlePlayHistoryUpdate)
     }
   }, [])
 

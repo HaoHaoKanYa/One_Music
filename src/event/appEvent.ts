@@ -208,6 +208,13 @@ export class AppEvent extends Event {
   favoritesUpdated() {
     this.emit('favoritesUpdated')
   }
+
+  /**
+   * 播放历史更新
+   */
+  playHistoryUpdated() {
+    this.emit('playHistoryUpdated')
+  }
 }
 
 
