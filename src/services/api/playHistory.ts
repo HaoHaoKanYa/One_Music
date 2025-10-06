@@ -24,10 +24,14 @@ export const playHistoryAPI = {
    * 添加播放记录
    */
   addPlayRecord: async (record: PlayRecord) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('未登录')
+
     const { data, error } = await supabase
       .from('play_history')
       .insert({
         ...record,
+        user_id: user.id,
         completed: record.completed || false,
       })
       .select()
@@ -41,9 +45,17 @@ export const playHistoryAPI = {
    * 批量添加播放记录
    */
   addPlayRecords: async (records: PlayRecord[]) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('未登录')
+
+    const recordsWithUserId = records.map(record => ({
+      ...record,
+      user_id: user.id,
+    }))
+
     const { data, error } = await supabase
       .from('play_history')
-      .insert(records)
+      .insert(recordsWithUserId)
       .select()
 
     if (error) throw error
@@ -60,11 +72,15 @@ export const playHistoryAPI = {
     dateTo?: string
     search?: string
   }) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('未登录')
+
     const { limit = 50, offset = 0, dateFrom, dateTo, search } = params || {}
 
     let query = supabase
       .from('play_history')
       .select('*')
+      .eq('user_id', user.id)
       .order('played_at', { ascending: false })
 
     if (dateFrom) {
