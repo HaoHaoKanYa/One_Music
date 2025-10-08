@@ -337,3 +337,139 @@ Error: Fatal: ReferenceError Property 'componentId' doesn't exist
 - src/screens/Statistics/PlayStatistics.tsx
 
 状态: ✅ 已修复，所有类型错误已解决
+
+===============================================
+问题 11: 本地数据库与UI即时自动更新机制完善
+===============================================
+日期: 2025/10/8
+
+问题描述:
+1. 应用启动默认页面不是首页（已确认：默认就是首页）
+2. 游客登录后，UI没有立即刷新账号数据，需要重启应用
+3. 添加收藏歌曲后，"我的"页面数据没有立即刷新
+4. 添加歌曲到歌单后，"我的"页面数据没有立即刷新
+
+原因分析:
+1. 登录成功后只同步了用户资料，没有同步收藏和歌单数据
+2. 登录成功后没有触发全局事件通知UI刷新
+3. UserStats 和 UserHeader 组件没有监听数据更新事件
+4. withObservables 虽然是响应式的，但需要事件触发来强制刷新
+5. 缺少歌单更新和用户资料更新的全局事件
+
+解决方案:
+✅ 添加全局事件：
+   - playlistsUpdated(): 歌单数据更新事件
+   - userProfileUpdated(): 用户资料更新事件
+   - 已有 favoritesUpdated() 和 playHistoryUpdated()
+
+✅ 修改登录逻辑（SignIn.tsx）：
+   - 添加 syncUserData() 函数同步收藏和歌单
+   - 登录成功后调用 syncUserData()
+   - 登录成功后触发所有数据更新事件：
+     * userProfileUpdated()
+     * favoritesUpdated()
+     * playlistsUpdated()
+     * playHistoryUpdated()
+
+✅ 修改 UserStats 组件：
+   - 添加 refreshKey 状态用于强制刷新
+   - 监听所有数据更新事件
+   - 事件触发时更新 refreshKey 强制重新渲染
+   - 监听认证状态变化并刷新
+
+✅ 修改 UserHeader 组件：
+   - 监听 userProfileUpdated 事件
+   - 事件触发时重新检查认证状态
+   - 确保用户信息即时更新
+
+实现机制:
+1. 数据流：云端 → 本地数据库 → withObservables → UI
+2. 事件流：操作 → 更新数据库 → 触发事件 → UI刷新
+3. 响应式：withObservables 自动监听数据库变化
+4. 强制刷新：通过 refreshKey 触发组件重新渲染
+
+使用说明:
+- 添加收藏后调用：global.app_event.favoritesUpdated()
+- 添加歌单后调用：global.app_event.playlistsUpdated()
+- 播放记录后调用：global.app_event.playHistoryUpdated()
+- 更新资料后调用：global.app_event.userProfileUpdated()
+
+修改文件:
+- src/event/appEvent.ts
+- src/screens/Auth/SignIn.tsx
+- src/screens/Home/Views/User/UserStats.tsx
+- src/screens/Home/Views/User/UserHeader.tsx
+
+状态: ✅ 已完善，实现本地数据库与UI的即时自动更新
+
+===============================================
+问题 12: 本地数据库到云端的自动同步机制
+===============================================
+日期: 2025/10/8
+
+问题描述:
+1. 本地数据库数据没有上传到后端数据库
+2. 需要在应用退出、账号退出、间隔时间、手动触发时同步数据
+3. 需要处理同步冲突
+
+解决方案:
+✅ 同步引擎已实现（src/database/sync/syncEngine.ts）：
+   - 自动定时同步：每5分钟自动同步一次
+   - 应用状态监听：应用进入后台或回到前台时自动同步
+   - 应用启动同步：在 dataInit.ts 中启动同步引擎
+   - 冲突解决：使用 conflictResolver 处理数据冲突
+
+✅ 修改退出登录逻辑（UserProfile.tsx）：
+   - 退出前调用 syncEngine.performSync() 同步数据
+   - 显示"正在同步数据到云端..."提示
+   - 同步完成后再清除本地数据和退出登录
+
+✅ 修改数据迁移页面（DataMigration.tsx）：
+   - 将"数据迁移"改为"数据同步"
+   - 调用 syncEngine.performSync() 执行同步
+   - 统计未同步数据数量
+   - 显示同步结果和失败数量
+   - 同步完成后触发UI刷新事件
+
+同步机制说明:
+1. 自动同步触发时机：
+   - 应用启动时立即同步
+   - 每5分钟定时同步
+   - 应用进入后台时同步
+   - 应用回到前台时同步
+   - 退出登录前同步
+
+2. 手动同步：
+   - 通过"更多功能" → "数据同步"手动触发
+   - 显示同步进度和结果
+
+3. 同步内容：
+   - 收藏的歌曲（favorites）
+   - 创建的歌单（playlists）
+   - 播放历史（play_history）
+   - 播放统计（play_statistics）
+   - 应用设置（app_settings）
+   - 用户资料（user_profiles）
+
+4. 冲突处理：
+   - 启动时：服务器数据优先
+   - 用户操作：本地数据优先
+   - 使用时间戳判断最新数据
+   - 自动合并不冲突的字段
+
+5. 同步状态：
+   - synced 字段标记是否已同步
+   - 只上传 synced=false 的数据
+   - 上传成功后标记为 synced=true
+
+修改文件:
+- src/screens/Profile/UserProfile.tsx
+- src/screens/Migration/DataMigration.tsx
+
+已有实现:
+- src/database/sync/syncEngine.ts (同步引擎)
+- src/database/sync/conflictResolver.ts (冲突解决器)
+- src/database/sync/syncStatus.ts (同步状态管理)
+- src/core/init/dataInit.ts (启动同步引擎)
+
+状态: ✅ 已完成，实现本地数据库到云端的自动同步

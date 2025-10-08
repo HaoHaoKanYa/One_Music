@@ -99,15 +99,21 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ componentId }) => {
 
       if (error) throw error
 
-      // 登录成功后，同步用户资料到本地数据库
+      // 登录成功后，同步用户数据到本地数据库
       if (data.user) {
         await syncUserProfile(data.user.id)
+        await syncUserData(data.user.id)
       }
 
       // 先关闭Modal，再显示成功提示
       Navigation.dismissModal(componentId)
       setTimeout(() => {
         Alert.alert('成功', '登录成功！')
+        // 触发全局事件，刷新UI
+        global.app_event.userProfileUpdated()
+        global.app_event.favoritesUpdated()
+        global.app_event.playlistsUpdated()
+        global.app_event.playHistoryUpdated()
       }, 300)
     } catch (error: any) {
       Alert.alert('登录失败', error.message)
@@ -143,7 +149,7 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ componentId }) => {
         if (existingProfiles.length > 0) {
           // 更新现有资料
           const profile = existingProfiles[0]
-          await profile.update(record => {
+          await profile.update((record: any) => {
             record.userId = profileData.user_id
             record.username = profileData.username
             record.displayName = profileData.display_name
@@ -169,7 +175,7 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ componentId }) => {
           })
         } else {
           // 创建新资料
-          await database.get('user_profiles').create(record => {
+          await database.get('user_profiles').create((record: any) => {
             record.userId = profileData.user_id
             record.username = profileData.username
             record.displayName = profileData.display_name
@@ -200,6 +206,86 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ componentId }) => {
       console.log('[SignIn] 用户资料已同步到本地数据库')
     } catch (error) {
       console.error('[SignIn] 同步用户资料失败:', error)
+    }
+  }
+
+  const syncUserData = async (userId: string) => {
+    try {
+      const { database } = require('@/database')
+
+      // 同步收藏
+      const { data: favoritesData } = await supabase
+        .from('favorites')
+        .select('*')
+        .eq('user_id', userId)
+
+      if (favoritesData && favoritesData.length > 0) {
+        await database.write(async () => {
+          for (const fav of favoritesData) {
+            const existing = await database.get('favorites')
+              .query()
+              .fetch()
+            
+            const found = existing.find((f: any) => f.songId === fav.song_id)
+            
+            if (!found) {
+              await database.get('favorites').create((record: any) => {
+                record.userId = fav.user_id
+                record.songId = fav.song_id
+                record.songName = fav.song_name
+                record.artist = fav.artist
+                record.album = fav.album
+                record.source = fav.source
+                record.createdAt = new Date(fav.created_at)
+                record.synced = true
+              })
+            }
+          }
+        })
+        console.log(`[SignIn] 已同步 ${favoritesData.length} 条收藏`)
+      }
+
+      // 同步歌单
+      const { data: playlistsData } = await supabase
+        .from('playlists')
+        .select('*')
+        .eq('user_id', userId)
+        .eq('is_deleted', false)
+
+      if (playlistsData && playlistsData.length > 0) {
+        await database.write(async () => {
+          for (const playlist of playlistsData) {
+            const existing = await database.get('playlists')
+              .query()
+              .fetch()
+            
+            const found = existing.find((p: any) => p.userId === playlist.user_id && p.name === playlist.name)
+            
+            if (!found) {
+              await database.get('playlists').create((record: any) => {
+                record.userId = playlist.user_id
+                record.name = playlist.name
+                record.description = playlist.description
+                record.coverUrl = playlist.cover_url
+                record.isPublic = playlist.is_public
+                record.songCount = playlist.song_count || 0
+                record.playCount = playlist.play_count || 0
+                record.likeCount = playlist.like_count || 0
+                record.commentCount = playlist.comment_count || 0
+                record.isDeleted = false
+                record.createdAt = new Date(playlist.created_at)
+                record.updatedAt = new Date(playlist.updated_at)
+                record.synced = true
+              })
+            }
+          }
+        })
+        console.log(`[SignIn] 已同步 ${playlistsData.length} 个歌单`)
+      }
+
+      console.log('[SignIn] 用户数据同步完成')
+    } catch (error) {
+      console.error('[SignIn] 同步用户数据失败:', error)
     }
   }
 

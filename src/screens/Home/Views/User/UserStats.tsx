@@ -10,6 +10,7 @@ import { supabase } from '@/lib/supabase'
 const UserStatsComponent = ({ favorites, playlists, playHistory }: any) => {
   const theme = useTheme()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     checkAuth()
@@ -18,13 +19,38 @@ const UserStatsComponent = ({ favorites, playlists, playHistory }: any) => {
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setIsLoggedIn(true)
+        setRefreshKey(prev => prev + 1)
       } else if (event === 'SIGNED_OUT') {
         setIsLoggedIn(false)
+        setRefreshKey(prev => prev + 1)
       }
     })
 
+    // 监听数据更新事件
+    const handleFavoritesUpdate = () => {
+      setRefreshKey(prev => prev + 1)
+    }
+    const handlePlaylistsUpdate = () => {
+      setRefreshKey(prev => prev + 1)
+    }
+    const handlePlayHistoryUpdate = () => {
+      setRefreshKey(prev => prev + 1)
+    }
+    const handleUserProfileUpdate = () => {
+      setRefreshKey(prev => prev + 1)
+    }
+
+    global.app_event.on('favoritesUpdated', handleFavoritesUpdate)
+    global.app_event.on('playlistsUpdated', handlePlaylistsUpdate)
+    global.app_event.on('playHistoryUpdated', handlePlayHistoryUpdate)
+    global.app_event.on('userProfileUpdated', handleUserProfileUpdate)
+
     return () => {
       authListener?.subscription?.unsubscribe()
+      global.app_event.off('favoritesUpdated', handleFavoritesUpdate)
+      global.app_event.off('playlistsUpdated', handlePlaylistsUpdate)
+      global.app_event.off('playHistoryUpdated', handlePlayHistoryUpdate)
+      global.app_event.off('userProfileUpdated', handleUserProfileUpdate)
     }
   }, [])
 

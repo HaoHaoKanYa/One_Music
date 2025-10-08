@@ -32,8 +32,16 @@ const UserHeaderComponent = ({ userProfiles, playHistory }: any) => {
       }
     })
 
+    // 监听用户资料更新事件
+    const handleUserProfileUpdate = () => {
+      checkAuth()
+    }
+
+    global.app_event.on('userProfileUpdated', handleUserProfileUpdate)
+
     return () => {
       authListener?.subscription?.unsubscribe()
+      global.app_event.off('userProfileUpdated', handleUserProfileUpdate)
     }
   }, [])
 

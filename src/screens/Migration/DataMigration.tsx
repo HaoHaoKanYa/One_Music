@@ -28,82 +28,91 @@ const DataMigrationScreenComponent: React.FC<DataMigrationScreenProps & {
 
   const handleMigrate = async () => {
     Alert.alert(
-      '确认迁移',
-      '这将把本地数据迁移到云端。迁移过程可能需要几分钟，请确保网络连接稳定。',
+      '确认同步',
+      '这将把本地数据同步到云端。同步过程可能需要几分钟，请确保网络连接稳定。',
       [
         { text: '取消', style: 'cancel' },
         {
-          text: '开始迁移',
+          text: '开始同步',
           onPress: async () => {
             setMigrating(true)
             setResult(null)
 
             try {
-              // 统计本地数据
+              // 导入同步引擎
+              const { syncEngine } = require('@/database/sync/syncEngine')
+              
+              // 统计本地未同步数据
+              const unsyncedFavorites = await database.get('favorites')
+                .query(Q.where('synced', false))
+                .fetch()
+              const unsyncedPlaylists = await database.get('playlists')
+                .query(Q.where('synced', false))
+                .fetch()
+              const unsyncedHistory = await database.get('play_history')
+                .query(Q.where('synced', false))
+                .fetch()
+
               const stats = {
-                favorites: favorites.length,
-                playlists: playlists.length,
-                playHistory: playHistory.length,
+                favorites: unsyncedFavorites.length,
+                playlists: unsyncedPlaylists.length,
+                playHistory: unsyncedHistory.length,
                 userProfiles: userProfiles.length
               }
 
-              // 模拟迁移过程
+              console.log('[DataMigration] 开始同步，未同步数据:', stats)
+
+              // 执行同步
+              await syncEngine.performSync()
+
+              // 再次统计未同步数据，确认同步结果
+              const remainingFavorites = await database.get('favorites')
+                .query(Q.where('synced', false))
+                .fetch()
+              const remainingPlaylists = await database.get('playlists')
+                .query(Q.where('synced', false))
+                .fetch()
+              const remainingHistory = await database.get('play_history')
+                .query(Q.where('synced', false))
+                .fetch()
+
               const migrationResult = {
-                success: true,
-                message: '数据迁移完成',
+                success: remainingFavorites.length === 0 && 
+                         remainingPlaylists.length === 0 && 
+                         remainingHistory.length === 0,
+                message: '数据同步完成',
                 stats: stats,
                 migrated: {
-                  favorites: stats.favorites,
-                  playlists: stats.playlists,
-                  playHistory: stats.playHistory,
+                  favorites: stats.favorites - remainingFavorites.length,
+                  playlists: stats.playlists - remainingPlaylists.length,
+                  playHistory: stats.playHistory - remainingHistory.length,
                   userProfiles: stats.userProfiles
+                },
+                failed: {
+                  favorites: remainingFavorites.length,
+                  playlists: remainingPlaylists.length,
+                  playHistory: remainingHistory.length
                 }
               }
 
               setResult(migrationResult)
 
               if (migrationResult.success) {
-                Alert.alert(
-                  '迁移成功',
-                  '所有数据已成功迁移到云端！',
-                  [
-                    {
-                      text: '清除本地数据',
-                      onPress: async () => {
-                        await database.write(async () => {
-                          // 清除所有未同步的数据
-                          const unsyncedFavorites = await database.get('favorites')
-                            .query(Q.where('synced', false))
-                            .fetch()
-                          for (const favorite of unsyncedFavorites) {
-                            await favorite.destroyPermanently()
-                          }
-
-                          const unsyncedPlaylists = await database.get('playlists')
-                            .query(Q.where('synced', false))
-                            .fetch()
-                          for (const playlist of unsyncedPlaylists) {
-                            await playlist.destroyPermanently()
-                          }
-
-                          const unsyncedHistory = await database.get('play_history')
-                            .query(Q.where('synced', false))
-                            .fetch()
-                          for (const record of unsyncedHistory) {
-                            await record.destroyPermanently()
-                          }
-                        })
-                        Alert.alert('完成', '本地数据已清除')
-                      },
-                    },
-                    { text: '保留本地数据', style: 'cancel' },
-                  ]
-                )
+                Alert.alert('同步成功', '所有数据已成功同步到云端！')
+                // 触发UI刷新
+                global.app_event.favoritesUpdated()
+                global.app_event.playlistsUpdated()
+                global.app_event.playHistoryUpdated()
               } else {
-                Alert.alert('迁移完成', '部分数据迁移失败，请查看详情')
+                Alert.alert(
+                  '同步完成',
+                  `部分数据同步失败：\n收藏: ${migrationResult.failed.favorites} 条\n歌单: ${migrationResult.failed.playlists} 个\n播放历史: ${migrationResult.failed.playHistory} 条`,
+                  [{ text: '确定' }]
+                )
               }
             } catch (error: any) {
-              Alert.alert('错误', error.message || '迁移失败')
+              console.error('[DataMigration] 同步失败:', error)
+              Alert.alert('错误', error.message || '同步失败')
             } finally {
               setMigrating(false)
             }
@@ -117,25 +126,28 @@ const DataMigrationScreenComponent: React.FC<DataMigrationScreenProps & {
     <RequireAuth componentId={componentId}>
       <ScrollView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>数据迁移</Text>
+        <Text style={styles.title}>数据同步</Text>
         <Text style={styles.description}>
-          将本地存储的收藏、播放历史和歌单迁移到云端，实现多设备同步。
+          将本地存储的收藏、播放历史和歌单同步到云端，实现多设备数据同步。
         </Text>
 
         <View style={styles.infoBox}>
-          <Text style={styles.infoTitle}>迁移内容：</Text>
+          <Text style={styles.infoTitle}>同步内容：</Text>
           <Text style={styles.infoItem}>• 收藏的歌曲</Text>
           <Text style={styles.infoItem}>• 播放历史记录</Text>
           <Text style={styles.infoItem}>• 创建的歌单</Text>
+          <Text style={styles.infoItem}>• 播放统计数据</Text>
+          <Text style={styles.infoItem}>• 应用设置</Text>
         </View>
 
         <View style={styles.warningBox}>
           <Text style={styles.warningTitle}>⚠️ 注意事项</Text>
           <Text style={styles.warningText}>
-            • 迁移过程需要稳定的网络连接{'\n'}
+            • 同步过程需要稳定的网络连接{'\n'}
             • 数据量大时可能需要几分钟{'\n'}
-            • 迁移完成后建议清除本地数据{'\n'}
-            • 已存在的云端数据不会被覆盖
+            • 应用会自动定时同步（每5分钟）{'\n'}
+            • 应用进入后台或退出时会自动同步{'\n'}
+            • 冲突数据会按照时间戳自动合并
           </Text>
         </View>
 
@@ -188,9 +200,12 @@ const DataMigrationScreenComponent: React.FC<DataMigrationScreenProps & {
           disabled={migrating}
         >
           {migrating ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <>
+              <ActivityIndicator color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={styles.migrateButtonText}>同步中...</Text>
+            </>
           ) : (
-            <Text style={styles.migrateButtonText}>开始迁移</Text>
+            <Text style={styles.migrateButtonText}>立即同步</Text>
           )}
         </TouchableOpacity>
       </View>
@@ -305,6 +320,8 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 24,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
   },
   migrateButtonDisabled: {
     backgroundColor: '#404040',

@@ -120,6 +120,13 @@ const UserProfileScreenComponent: React.FC<UserProfileScreenProps & {
           text: '确定',
           onPress: async () => {
             try {
+              // 导入同步引擎
+              const { syncEngine } = require('@/database/sync/syncEngine')
+
+              // 退出前同步数据到云端
+              Alert.alert('提示', '正在同步数据到云端...')
+              await syncEngine.performSync()
+
               // 清除本地用户资料
               await database.write(async () => {
                 const profiles = await database.get('user_profiles').query().fetch()
@@ -130,7 +137,7 @@ const UserProfileScreenComponent: React.FC<UserProfileScreenProps & {
 
               // 退出登录
               await supabase.auth.signOut()
-              
+
               Navigation.dismissModal(componentId)
               setTimeout(() => {
                 Alert.alert('成功', '已退出登录')

@@ -219,6 +219,20 @@ export class AppEvent extends Event {
   playHistoryUpdated() {
     this.emit('playHistoryUpdated')
   }
+
+  /**
+   * 歌单数据更新
+   */
+  playlistsUpdated() {
+    this.emit('playlistsUpdated')
+  }
+
+  /**
+   * 用户资料更新
+   */
+  userProfileUpdated() {
+    this.emit('userProfileUpdated')
+  }
 }
 
 
