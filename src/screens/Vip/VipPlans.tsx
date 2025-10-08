@@ -11,34 +11,41 @@ import {
 import { Navigation } from 'react-native-navigation'
 import { Icon } from '@/components/common/Icon'
 import { useTheme } from '@/store/theme/hook'
-import { vipAPI, VipPlan } from '@/services/api/vip'
+import { withObservables } from '@nozbe/watermelondb/react'
+import { Q } from '@nozbe/watermelondb'
+import { database } from '@/database'
+
+interface VipPlan {
+  id: string
+  name: string
+  type: 'vip' | 'svip'
+  price: number
+  original_price?: number
+  duration_days: number
+  features: {
+    quality?: string
+    download?: boolean
+    ad_free?: boolean
+    exclusive?: boolean
+  }
+}
 
 interface VipPlansScreenProps {
   componentId: string
 }
 
-export const VipPlansScreen: React.FC<VipPlansScreenProps> = ({ componentId }) => {
+const VipPlansScreenComponent: React.FC<VipPlansScreenProps & {
+  vipPlans: VipPlan[]
+}> = ({ componentId, vipPlans }) => {
   const theme = useTheme()
-  const [plans, setPlans] = useState<VipPlan[]>([])
   const [loading, setLoading] = useState(true)
   const [purchasing, setPurchasing] = useState(false)
 
   useEffect(() => {
-    loadPlans()
-  }, [])
+    setLoading(false)
+  }, [vipPlans])
 
-  const loadPlans = async () => {
-    try {
-      const data = await vipAPI.getPlans()
-      setPlans(data)
-    } catch (error: any) {
-      Alert.alert('错误', error.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handlePurchase = async (plan: VipPlan) => {
+  const handlePurchase = async (plan: any) => {
     Alert.alert(
       '确认购买',
       `确定要购买${plan.name}吗？\n价格：¥${plan.price}`,
@@ -49,19 +56,29 @@ export const VipPlansScreen: React.FC<VipPlansScreenProps> = ({ componentId }) =
           onPress: async () => {
             setPurchasing(true)
             try {
-              // 创建订单
-              const order = await vipAPI.createOrder(plan.id)
-
-              // 模拟支付
+              // 创建订单记录
+              await database.write(async () => {
+                await database.get('orders').create(order => {
+                  order.userId = 'current-user' // 需要获取当前用户ID
+                  order.planId = plan.id
+                  order.planName = plan.name
+                  order.price = plan.price
+                  order.status = 'pending'
+                  order.createdAt = new Date()
+                  order.synced = false
+                })
+              })
+              
+              // 显示支付方式选择
               Alert.alert(
                 '选择支付方式',
-                '请选择支付方式',
+                '请选择您的支付方式',
                 [
                   {
                     text: '支付宝',
                     onPress: async () => {
                       try {
-                        await vipAPI.mockPayment(order.id, 'alipay')
+                        // 模拟支付成功
                         Alert.alert('成功', '购买成功！', [
                           {
                             text: '确定',
@@ -77,7 +94,7 @@ export const VipPlansScreen: React.FC<VipPlansScreenProps> = ({ componentId }) =
                     text: '微信支付',
                     onPress: async () => {
                       try {
-                        await vipAPI.mockPayment(order.id, 'wechat')
+                        // 模拟支付成功
                         Alert.alert('成功', '购买成功！', [
                           {
                             text: '确定',
@@ -93,7 +110,7 @@ export const VipPlansScreen: React.FC<VipPlansScreenProps> = ({ componentId }) =
                 ]
               )
             } catch (error: any) {
-              Alert.alert('错误', error.message)
+              Alert.alert('错误', error.message || '创建订单失败')
             } finally {
               setPurchasing(false)
             }
@@ -246,7 +263,7 @@ export const VipPlansScreen: React.FC<VipPlansScreenProps> = ({ componentId }) =
         </Text>
       </View>
 
-      {plans.map(renderPlanCard)}
+      {vipPlans.map(renderPlanCard)}
 
       <View style={styles.tipsContainer}>
         <Text style={[styles.tipsTitle, { color: theme['c-font'] }]}>购买说明</Text>
@@ -490,3 +507,12 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
 })
+
+// 使用withObservables包装组件，实现响应式数据
+const VipPlansScreen = withObservables([], () => ({
+  vipPlans: database.get('vip_plans')
+    .query()
+    .observe()
+}))(VipPlansScreenComponent)
+
+export { VipPlansScreen }

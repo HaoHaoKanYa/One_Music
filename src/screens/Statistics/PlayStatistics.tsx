@@ -10,7 +10,10 @@ import {
   Image,
 } from 'react-native'
 import { useTheme } from '@/store/theme/hook'
-import { statisticsAPI, type SongStats as APISongStats } from '@/services/api/statistics'
+import { withObservables } from '@nozbe/watermelondb/react'
+import { Q } from '@nozbe/watermelondb'
+import { database } from '@/database'
+import { RequireAuth } from '@/components/common/RequireAuth'
 
 interface DailyStats {
   date: string
@@ -33,38 +36,62 @@ interface PlayStatisticsScreenProps {
   componentId: string
 }
 
-export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
+const PlayStatisticsScreenComponent: React.FC<PlayStatisticsScreenProps & {
+  playHistory: any[]
+  playStatistics: any[]
+  artistPlayStats: any[]
+  dailyPlayStats: any[]
+  favorites: any[]
+  playlists: any[]
+}> = ({ componentId, playHistory, playStatistics, artistPlayStats, dailyPlayStats, favorites, playlists }) => {
   const theme = useTheme()
-  const [loading, setLoading] = useState(true)
-  const [dailyStats, setDailyStats] = useState<DailyStats[]>([])
-  const [artistStats, setArtistStats] = useState<ArtistStats[]>([])
-  const [songStats, setSongStats] = useState<APISongStats[]>([])
-  const [overallStats, setOverallStats] = useState<any>(null)
   const [selectedPeriod, setSelectedPeriod] = useState<'7' | '30'>('7')
 
-  useEffect(() => {
-    loadStatistics()
-  }, [])
-
-  const loadStatistics = async () => {
-    try {
-      const days = selectedPeriod === '7' ? 7 : 30
-      const [daily, artists, songs, overall] = await Promise.all([
-        statisticsAPI.getDailyStats(days),
-        statisticsAPI.getArtistStats(10),
-        statisticsAPI.getSongStats(10),
-        statisticsAPI.getOverallStats(),
-      ])
-      setDailyStats(daily)
-      setArtistStats(artists)
-      setSongStats(songs)
-      setOverallStats(overall)
-    } catch (error: any) {
-      Alert.alert('错误', error.message)
-    } finally {
-      setLoading(false)
-    }
+  // 计算统计数据
+  const overallStats = {
+    total_plays: playHistory?.length || 0,
+    total_duration: playHistory?.reduce((sum, record) => sum + (record.playDuration || 0), 0) || 0,
+    unique_songs: new Set(playHistory?.map(record => record.songId)).size || 0,
+    unique_artists: new Set(playHistory?.map(record => record.artist)).size || 0,
+    total_favorites: favorites?.length || 0,
+    total_playlists: playlists?.length || 0
   }
+
+  // 计算每日统计
+  const dailyStats = dailyPlayStats?.map(stat => ({
+    date: stat.date,
+    total_plays: stat.playCount,
+    total_duration: stat.totalDuration,
+    unique_songs: stat.uniqueSongs,
+    unique_artists: stat.uniqueArtists
+  })) || []
+
+  // 计算歌手统计
+  const artistStats = artistPlayStats?.map(stat => ({
+    artist: stat.artist,
+    play_count: stat.playCount,
+    total_duration: stat.totalDuration,
+    last_played_at: stat.lastPlayedAt
+  })) || []
+
+  // 计算歌曲统计
+  const songStats = playHistory?.reduce((acc: any[], record: any) => {
+    const existing = acc.find((song: any) => song.song_id === record.songId)
+    if (existing) {
+      existing.play_count++
+      existing.total_duration += record.playDuration || 0
+    } else {
+      acc.push({
+        song_id: record.songId,
+        song_name: record.songName,
+        artist: record.artist,
+        play_count: 1,
+        total_duration: record.playDuration || 0,
+        last_played_at: record.playedAt
+      })
+    }
+    return acc
+  }, [] as any[]) || []
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600)
@@ -124,8 +151,6 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
         ]}
         onPress={() => {
           setSelectedPeriod('7')
-          setLoading(true)
-          loadStatistics()
         }}
       >
         <Text
@@ -144,8 +169,6 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
         ]}
         onPress={() => {
           setSelectedPeriod('30')
-          setLoading(true)
-          loadStatistics()
         }}
       >
         <Text
@@ -495,7 +518,7 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
           最常听的歌曲 Top 10
         </Text>
 
-        {songStats.map((song, index) => (
+        {songStats.map((song: any, index: number) => (
           <View key={index} style={styles.artistItem}>
             <View style={styles.rankBadge}>
               <Text style={[styles.rankNumber, { color: theme['c-primary-font'] }]}>
@@ -523,24 +546,18 @@ export const PlayStatisticsScreen: React.FC<PlayStatisticsScreenProps> = () => {
     )
   }
 
-  if (loading) {
-    return (
-      <View style={[styles.container, styles.centerContainer]}>
-        <ActivityIndicator size="large" color={theme['c-primary-font']} />
-      </View>
-    )
-  }
-
   return (
-    <ScrollView
-      style={[styles.container, { backgroundColor: theme['c-content-background'] }]}
-      contentContainerStyle={styles.content}
-    >
-      {renderOverallStats()}
-      {renderDailyChart()}
-      {renderArtistRanking()}
-      {renderSongRanking()}
-    </ScrollView>
+    <RequireAuth componentId={componentId}>
+      <ScrollView
+        style={[styles.container, { backgroundColor: theme['c-content-background'] }]}
+        contentContainerStyle={styles.content}
+      >
+        {renderOverallStats()}
+        {renderDailyChart()}
+        {renderArtistRanking()}
+        {renderSongRanking()}
+      </ScrollView>
+    </RequireAuth>
   )
 }
 
@@ -730,3 +747,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
 })
+
+// 使用withObservables包装组件，实现响应式数据
+const PlayStatisticsScreen = withObservables([], () => ({
+  playHistory: database.get('play_history')
+    .query()
+    .observe(),
+  playStatistics: database.get('play_statistics')
+    .query()
+    .observe(),
+  artistPlayStats: database.get('artist_play_stats')
+    .query()
+    .observe(),
+  dailyPlayStats: database.get('daily_play_stats')
+    .query()
+    .observe(),
+  favorites: database.get('favorites')
+    .query()
+    .observe(),
+  playlists: database.get('playlists')
+    .query(Q.where('is_deleted', false))
+    .observe()
+}))(PlayStatisticsScreenComponent)
+
+export { PlayStatisticsScreen }

@@ -9,6 +9,8 @@ import { getDislikeInfo, setDislikeInfo } from '@/core/dislikeList'
 import { unlink } from '@/utils/fs'
 import { TEMP_FILE_PATH } from '@/utils/tools'
 import { syncPlaylistsFromServer } from '@/services/playlistSync'
+import { database } from '@/database'
+import { syncEngine } from '@/database/sync/syncEngine'
 // import { play, playList } from '../player/player'
 
 // const initPrevPlayInfo = async(appSetting: LX.AppSetting) => {
@@ -27,11 +29,32 @@ export default async(appSetting: LX.AppSetting) => {
   // await Promise.all([
   //   initUserApi(), // 自定义API
   // ]).catch(err => log.error(err))
+  
+  // 初始化本地数据库
+  bootLog('Initializing local database...')
+  try {
+    await database.adapter.setUp()
+    bootLog('Local database initialized.')
+  } catch (error) {
+    console.error('Failed to initialize local database:', error)
+    bootLog('Local database initialization failed.')
+  }
+  
+  // 启动同步引擎
+  bootLog('Starting sync engine...')
+  try {
+    syncEngine.start()
+    bootLog('Sync engine started.')
+  } catch (error) {
+    console.error('Failed to start sync engine:', error)
+    bootLog('Sync engine start failed.')
+  }
+  
   void musicSdkInit() // 初始化音乐sdk
   bootLog('User list init...')
   setUserList(await getUserLists()) // 获取用户列表
   
-  // 同步云端歌单
+  // 同步云端歌单（现在由同步引擎处理）
   bootLog('Syncing playlists from server...')
   try {
     await syncPlaylistsFromServer()

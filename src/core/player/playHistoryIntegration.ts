@@ -1,10 +1,11 @@
 /**
  * 播放历史集成模块
- * 将播放器事件与Supabase数据库集成
+ * 将播放器事件与本地数据库集成
  */
-import { playHistoryAPI } from '@/services/api/playHistory'
+import { database } from '@/database'
 import { authAPI } from '@/services/api/auth'
 import playerState from '@/store/player/state'
+import { Q } from '@nozbe/watermelondb'
 
 let currentPlayStartTime: number | null = null
 let currentPlayMusicId: string | null = null
@@ -93,15 +94,21 @@ const recordPlayEndWithInfo = async (musicId: string, startTime: number) => {
 
         console.log('[播放历史] 📝 准备记录(切歌):', name, '播放时长:', playDuration, '秒', '总时长:', interval, '秒')
 
-        await playHistoryAPI.addPlayRecord({
-            song_id: musicId,
-            song_name: name,
-            artist: singer,
-            album: albumName,
-            source: source,
-            play_duration: playDuration,
-            total_duration: interval,
-            completed: playDuration >= interval * 0.8,
+        // 写入本地数据库
+        await database.write(async () => {
+            await database.get('play_history').create(record => {
+                record.userId = user.id
+                record.songId = musicId
+                record.songName = name
+                record.artist = singer
+                record.album = albumName
+                record.source = source
+                record.playDuration = playDuration
+                record.totalDuration = interval
+                record.completed = playDuration >= interval * 0.8
+                record.playedAt = new Date()
+                record.synced = false
+            })
         })
 
         console.log('[播放历史] ✅ 成功记录(切歌):', name, playDuration, '秒')
@@ -148,15 +155,21 @@ export const recordPlayEnd = async () => {
 
         console.log('[播放历史] 📝 准备记录:', name, '播放时长:', playDuration, '秒', '总时长:', interval, '秒')
 
-        await playHistoryAPI.addPlayRecord({
-            song_id: musicInfo.id,
-            song_name: name,
-            artist: singer,
-            album: albumName,
-            source: source,
-            play_duration: playDuration,
-            total_duration: interval,
-            completed: interval > 0 && playDuration >= interval * 0.8, // 播放超过80%算完成
+        // 写入本地数据库
+        await database.write(async () => {
+            await database.get('play_history').create(record => {
+                record.userId = user.id
+                record.songId = musicInfo.id
+                record.songName = name
+                record.artist = singer
+                record.album = albumName
+                record.source = source
+                record.playDuration = playDuration
+                record.totalDuration = interval
+                record.completed = interval > 0 && playDuration >= interval * 0.8 // 播放超过80%算完成
+                record.playedAt = new Date()
+                record.synced = false
+            })
         })
 
         console.log('[播放历史] ✅ 成功记录:', name, playDuration, '秒')

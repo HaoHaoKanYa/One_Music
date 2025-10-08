@@ -12,52 +12,42 @@ import {
 import { Navigation } from 'react-native-navigation'
 import { Icon } from '@/components/common/Icon'
 import { useTheme } from '@/store/theme/hook'
-import { notificationsAPI, Notification } from '@/services/api/notifications'
+import { withObservables } from '@nozbe/watermelondb/react'
+import { Q } from '@nozbe/watermelondb'
+import { database } from '@/database'
 
 interface NotificationsListScreenProps {
   componentId: string
 }
 
-export const NotificationsListScreen: React.FC<NotificationsListScreenProps> = ({ componentId }) => {
+const NotificationsListScreenComponent: React.FC<NotificationsListScreenProps & {
+  notifications: any[]
+}> = ({ componentId, notifications }) => {
   const theme = useTheme()
-  const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
 
   useEffect(() => {
-    loadNotifications()
-    
-    // 订阅实时通知
-    notificationsAPI.subscribeToNotifications((notification) => {
-      setNotifications(prev => [notification, ...prev])
-    })
+    setLoading(false)
+  }, [notifications])
 
-    // 清理函数
-    return () => {
-      // Supabase会自动清理订阅
-    }
-  }, [])
-
-  const loadNotifications = async () => {
-    try {
-      const data = await notificationsAPI.getNotifications(50)
-      setNotifications(data)
-    } catch (error: any) {
-      Alert.alert('错误', error.message)
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
+  const handleRefresh = () => {
+    setRefreshing(true)
+    // 本地数据库数据是实时的，不需要重新加载
+    setTimeout(() => setRefreshing(false), 500)
   }
 
-  const handleNotificationPress = async (notification: Notification) => {
+  const handleNotificationPress = async (notification: any) => {
     // 标记为已读
-    if (!notification.is_read) {
+    if (!notification.isRead) {
       try {
-        await notificationsAPI.markAsRead(notification.id)
-        setNotifications(prev =>
-          prev.map(n => n.id === notification.id ? { ...n, is_read: true } : n)
-        )
+        await database.write(async () => {
+          await notification.update(record => {
+            record.isRead = true
+            record.readAt = new Date()
+            record.synced = false
+          })
+        })
       } catch (error) {
         console.error('标记已读失败:', error)
       }
@@ -271,3 +261,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
 })
+
+// 使用withObservables包装组件，实现响应式数据
+const NotificationsListScreen = withObservables([], () => ({
+  notifications: database.get('notifications')
+    .query()
+    .observe()
+}))(NotificationsListScreenComponent)
+
+export { NotificationsListScreen }

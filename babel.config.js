@@ -2,6 +2,7 @@ module.exports = {
   presets: ['module:@react-native/babel-preset'],
   plugins: [
     '@babel/plugin-proposal-export-namespace-from',
+    ['@babel/plugin-proposal-decorators', { legacy: true }],
     [
       'module-resolver',
       {
@@ -33,4 +34,16 @@ module.exports = {
       },
     ],
   ],
+  // 添加Babel运行时配置以解决WatermelonDB的模块解析问题
+  env: {
+    production: {
+      plugins: [
+        ['@babel/plugin-transform-runtime', {
+          helpers: true,
+          regenerator: true,
+          useESModules: false
+        }]
+      ]
+    }
+  }
 }

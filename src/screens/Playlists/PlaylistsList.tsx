@@ -11,42 +11,29 @@ import {
   TextInput,
   Modal,
 } from 'react-native'
-import { playlistsAPI } from '@/services/api'
-import type { Playlist } from '@/services/api/playlists'
+import { withObservables } from '@nozbe/watermelondb/react'
+import { Q } from '@nozbe/watermelondb'
+import { database } from '@/database'
+import { authAPI } from '@/services/api/auth'
+import { RequireAuth } from '@/components/common/RequireAuth'
 
 interface PlaylistsListProps {
-  onPlaylistPress?: (playlist: Playlist) => void
+  componentId: string
+  onPlaylistPress?: (playlist: any) => void
 }
 
-export const PlaylistsListScreen: React.FC<PlaylistsListProps> = ({
-  onPlaylistPress,
-}) => {
-  const [playlists, setPlaylists] = useState<Playlist[]>([])
-  const [loading, setLoading] = useState(true)
+const PlaylistsListScreenComponent: React.FC<PlaylistsListProps & {
+  playlists: any[]
+}> = ({ componentId, onPlaylistPress, playlists }) => {
   const [refreshing, setRefreshing] = useState(false)
   const [createModalVisible, setCreateModalVisible] = useState(false)
   const [newPlaylistName, setNewPlaylistName] = useState('')
   const [newPlaylistDesc, setNewPlaylistDesc] = useState('')
 
-  const loadPlaylists = useCallback(async () => {
-    try {
-      const data = await playlistsAPI.getMyPlaylists()
-      setPlaylists(data)
-    } catch (error: any) {
-      Alert.alert('错误', error.message || '加载歌单失败')
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    loadPlaylists()
-  }, [loadPlaylists])
-
   const handleRefresh = () => {
     setRefreshing(true)
-    loadPlaylists()
+    // 本地数据库数据是实时的，不需要重新加载
+    setTimeout(() => setRefreshing(false), 500)
   }
 
   const handleCreatePlaylist = async () => {
@@ -56,16 +43,25 @@ export const PlaylistsListScreen: React.FC<PlaylistsListProps> = ({
     }
 
     try {
-      // 使用同步服务创建歌单
-      const { createPlaylistWithSync } = await import('@/services/playlistSync')
-      const localList = await createPlaylistWithSync(newPlaylistName.trim(), newPlaylistDesc.trim() || undefined)
+      const user = await authAPI.getCurrentUser()
+      if (!user) throw new Error('未登录')
 
-      // 更新UI列表
-      const playlist = await playlistsAPI.getPlaylist(localList.sourceListId!)
-      setPlaylists(prev => [playlist, ...prev])
-
-      // 触发全局事件，通知"我的歌单"页面刷新
-      global.app_event.myListMusicUpdate([])
+      await database.write(async () => {
+        await database.get('playlists').create((playlist: any) => {
+          playlist.userId = user.id
+          playlist.name = newPlaylistName.trim()
+          playlist.description = newPlaylistDesc.trim()
+          playlist.isPublic = false
+          playlist.songCount = 0
+          playlist.playCount = 0
+          playlist.likeCount = 0
+          playlist.commentCount = 0
+          playlist.isDeleted = false
+          playlist.createdAt = new Date()
+          playlist.updatedAt = new Date()
+          playlist.synced = false
+        })
+      })
 
       setCreateModalVisible(false)
       setNewPlaylistName('')
@@ -76,7 +72,7 @@ export const PlaylistsListScreen: React.FC<PlaylistsListProps> = ({
     }
   }
 
-  const handleDeletePlaylist = (playlist: Playlist) => {
+  const handleDeletePlaylist = (playlist: any) => {
     Alert.alert(
       '确认删除',
       `确定要删除歌单"${playlist.name}"吗？`,
@@ -87,14 +83,13 @@ export const PlaylistsListScreen: React.FC<PlaylistsListProps> = ({
           style: 'destructive',
           onPress: async () => {
             try {
-              // 使用同步服务删除歌单
-              const { deletePlaylistWithSync } = await import('@/services/playlistSync')
-              await deletePlaylistWithSync(`cloud_${playlist.id}`)
-
-              setPlaylists(prev => prev.filter(p => p.id !== playlist.id))
-
-              // 触发全局事件，通知"我的歌单"页面刷新
-              global.app_event.myListMusicUpdate([])
+              await database.write(async () => {
+                await playlist.update((record: any) => {
+                  record.isDeleted = true
+                  record.deletedAt = new Date()
+                  record.synced = false
+                })
+              })
             } catch (error: any) {
               Alert.alert('错误', error.message || '删除歌单失败')
             }
@@ -104,7 +99,7 @@ export const PlaylistsListScreen: React.FC<PlaylistsListProps> = ({
     )
   }
 
-  const renderPlaylistItem = ({ item }: { item: Playlist }) => (
+  const renderPlaylistItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.playlistItem}
       onPress={() => onPlaylistPress?.(item)}
@@ -119,7 +114,7 @@ export const PlaylistsListScreen: React.FC<PlaylistsListProps> = ({
           </Text>
         )}
         <Text style={styles.playlistMeta}>
-          {item.song_count || 0} 首歌曲 · {item.is_public ? '公开' : '私密'}
+          {item.songCount || 0} 首歌曲 · {item.isPublic ? '公开' : '私密'}
         </Text>
       </View>
       <TouchableOpacity
@@ -131,16 +126,9 @@ export const PlaylistsListScreen: React.FC<PlaylistsListProps> = ({
     </TouchableOpacity>
   )
 
-  if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#1DB954" />
-      </View>
-    )
-  }
-
   return (
-    <View style={styles.container}>
+    <RequireAuth componentId={componentId}>
+      <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>我的歌单</Text>
         <TouchableOpacity
@@ -217,7 +205,8 @@ export const PlaylistsListScreen: React.FC<PlaylistsListProps> = ({
           </View>
         </View>
       </Modal>
-    </View>
+      </View>
+    </RequireAuth>
   )
 }
 
@@ -370,3 +359,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 })
+
+// 使用withObservables包装组件，实现响应式数据
+const PlaylistsListScreen = withObservables([], () => ({
+  playlists: database.get('playlists')
+    .query(Q.where('is_deleted', false))
+    .observe()
+}))(PlaylistsListScreenComponent)
+
+export { PlaylistsListScreen }

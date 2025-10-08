@@ -1,0 +1,339 @@
+===============================================
+React Native 项目运行问题修复日志
+===============================================
+日期: 2025/10/8
+
+问题 1: Gradle 构建失败 - 缺少依赖包
+-----------------------------------------------
+错误信息:
+Could not read script 'D:\apk\One_Music_mobile\node_modules\@react-native-community\cli-platform-android\native_modules.gradle' as it does not exist.
+
+原因分析:
+node_modules 目录中缺少关键依赖包，包括 react-native 和 @react-native-community/cli-platform-android
+
+解决方案:
+✅ 执行 npm install 重新安装依赖
+✅ 成功安装 903 个包
+✅ 验证 native_modules.gradle 文件已存在
+
+问题 2: 应用启动失败 - 无法加载脚本
+-----------------------------------------------
+错误信息:
+Unable to load script. Make sure you're either running Metro (run 'npx react-native start') or that your bundle 'index.android.bundle' is packaged correctly for release.
+
+原因分析:
+1. Metro 服务器虽然启动，但应用无法连接
+2. Android assets 目录缺少预打包的 bundle 文件
+
+解决方案:
+✅ 生成 bundle 文件: react-native bundle --platform android --dev false --entry-file index.js --bundle-output android/app/src/main/assets/index.android.bundle --assets-dest android/app/src/main/res
+✅ Bundle 文件已生成 (大小: 4.05 MB)
+✅ 复制了 18 个资源文件
+✅ 清理 Android 构建缓存: gradlew.bat clean
+
+后续步骤:
+-----------------------------------------------
+现在可以重新运行应用，有两种方式:
+
+方式 1: 使用开发模式 (推荐用于开发)
+1. 在一个终端运行: npm start (保持 Metro 服务器运行)
+2. 在另一个终端运行: npm run dev
+
+方式 2: 使用打包的 bundle (用于测试发布版本)
+直接运行: npm run dev
+(应用会使用已生成的 index.android.bundle 文件)
+
+注意事项:
+-----------------------------------------------
+- 如果使用方式 1，确保手机/模拟器能访问电脑的 8081 端口
+- 如果遇到连接问题，可以运行: adb reverse tcp:8081 tcp:8081
+- 开发时代码修改后需要重新加载应用 (双击 R 键或摇一摇设备)
+- 如果修改了 native 代码，需要重新构建应用
+
+状态: ✅ 所有问题已修复，可以重新启动应用
+
+===============================================
+问题 3: "我的"页面点击用户头像显示白屏
+===============================================
+日期: 2025/10/8
+
+错误现象:
+在"我的"页面中，点击头部用户信息后，进入个人资料页面显示白屏
+
+原因分析:
+1. UserProfile.tsx 使用 withObservables 包装组件时，查询逻辑有问题
+2. 查询条件 Q.where('user_id', userId || Q.notEq(null)) 在 userId 为 undefined 时会导致查询失败
+3. UserHeader.tsx 调用 USER_PROFILE_SCREEN 时没有传递 userId 参数
+4. 导致 UserProfile 组件无法正确获取当前用户的数据，显示白屏
+
+解决方案:
+✅ 修改 UserProfile.tsx，移除 withObservables 包装
+✅ 改为在组件内部使用 useEffect 动态获取当前登录用户数据
+✅ 通过 supabase.auth.getUser() 获取当前用户 ID
+✅ 使用正确的查询条件从数据库获取用户资料、收藏、歌单和播放历史
+
+修改文件:
+- src/screens/Profile/UserProfile.tsx
+
+状态: ✅ 已修复，重新运行应用后应该可以正常进入个人资料页面
+
+===============================================
+问题 4: 点击"最近播放"（播放历史）报错
+===============================================
+日期: 2025/10/8
+
+错误信息:
+Error: Fatal: ReferenceError Property 'history' doesn't exist
+
+原因分析:
+1. PlayHistoryList.tsx 第 141 行使用了 history.length，但变量名应该是 playHistory
+2. 接口定义 PlayRecord 使用了下划线命名（snake_case），但数据库模型使用驼峰命名（camelCase）
+3. stats 对象缺少 unique_songs 字段定义
+4. 字段名称不匹配导致数据无法正确显示
+
+解决方案:
+✅ 修复第 141 行：history.length 改为 playHistory.length
+✅ 更新 PlayRecord 接口，使用正确的驼峰命名字段
+✅ 添加 unique_songs 统计字段计算逻辑
+✅ 修复 renderHistoryItem 中的字段引用（song_name → songName, played_at → playedAt 等）
+✅ 修复 formatDate 函数参数类型（string → Date）
+
+修改文件:
+- src/screens/PlayHistory/PlayHistoryList.tsx
+
+状态: ✅ 已修复，重新运行应用后应该可以正常查看播放历史
+
+===============================================
+问题 5: "我的"页面用户数据系统完善
+===============================================
+日期: 2025/10/8
+
+需求说明:
+完善"我的"页面的用户数据系统，处理好本地数据库与云端服务器的关系
+
+问题分析:
+1. 用户退出登录后，"我的"页面仍显示数据（收藏、歌单、播放历史等）
+2. 未登录状态下，点击二级页面（收藏、播放历史、歌单、统计）仍能打开并显示数据
+3. 缺少登录状态检查和提示机制
+4. 需要区分游客模式和登录模式
+
+解决方案:
+✅ 创建 RequireAuth 通用组件，用于包装需要登录的页面
+✅ 修改 UserStats 组件，添加登录状态监听，未登录时显示 0
+✅ 修改 QuickMenu 组件，添加登录检查，未登录时提示"请先进行登录以同步数据"
+✅ 修改收藏列表页面（FavoritesList），使用 RequireAuth 包装
+✅ 修改播放历史页面（PlayHistoryList），使用 RequireAuth 包装
+✅ 修改歌单列表页面（PlaylistsList），使用 RequireAuth 包装
+✅ 修改播放统计页面（PlayStatistics），使用 RequireAuth 包装
+✅ 所有需要登录的页面都会显示统一的登录提示界面
+
+实现细节:
+1. RequireAuth 组件功能：
+   - 检查用户登录状态
+   - 未登录时显示友好的提示界面
+   - 提供"去登录"按钮，点击后跳转到登录页面
+   - 登录后自动显示页面内容
+
+2. 登录状态监听：
+   - 使用 supabase.auth.onAuthStateChange 监听认证状态变化
+   - 支持实时响应登录/退出事件
+   - 自动更新 UI 显示
+
+3. 数据显示逻辑：
+   - 未登录：UserStats 显示 0，二级页面显示登录提示
+   - 已登录：正常显示本地数据库中的数据
+   - 退出登录：立即清空显示，提示需要登录
+
+修改文件:
+- src/components/common/RequireAuth.tsx (新建)
+- src/screens/Home/Views/User/UserStats.tsx
+- src/screens/Home/Views/User/QuickMenu.tsx
+- src/screens/Favorites/FavoritesList.tsx
+- src/screens/PlayHistory/PlayHistoryList.tsx
+- src/screens/Playlists/PlaylistsList.tsx
+- src/screens/Statistics/PlayStatistics.tsx
+
+状态: ✅ 已完成，用户数据系统已完善，支持游客模式和登录模式切换
+
+===============================================
+问题 6: 播放统计页面 componentId 错误
+===============================================
+日期: 2025/10/8
+
+错误信息:
+Error: Fatal: ReferenceError Property 'componentId' doesn't exist
+
+原因分析:
+1. PlayStatisticsScreenComponent 组件定义了 componentId 参数，但在解构时没有包含
+2. 代码中调用了不存在的 loadStatistics() 函数
+3. overallStats 对象缺少 total_favorites 和 total_playlists 属性
+4. withObservables 没有提供 favorites 和 playlists 数据
+
+解决方案:
+✅ 在组件参数解构中添加 componentId
+✅ 移除 loadStatistics() 函数调用（使用响应式数据，不需要手动加载）
+✅ 在 overallStats 中添加 total_favorites 和 total_playlists 计算
+✅ 在 withObservables 中添加 favorites 和 playlists 数据查询
+✅ 更新组件类型定义，包含 favorites 和 playlists 参数
+
+修改文件:
+- src/screens/Statistics/PlayStatistics.tsx
+
+状态: ✅ 已修复，播放统计页面可以正常打开
+
+===============================================
+问题 7: 数据迁移页面缺少登录检查
+===============================================
+日期: 2025/10/8
+
+问题描述:
+数据迁移功能二级页面，在没有登录的情况下，没有"请先进行登录以同步数据"的提醒
+
+原因分析:
+1. DataMigration 页面没有使用 RequireAuth 组件包装
+2. QuickMenu 中数据迁移菜单项的 requireAuth 设置为 false
+3. 未登录用户可以直接访问数据迁移页面
+
+解决方案:
+✅ 修改 DataMigration.tsx，添加 RequireAuth 组件包装
+✅ 添加 componentId 参数定义和传递
+✅ 修改 QuickMenu.tsx，将数据迁移的 requireAuth 设置为 true
+✅ 未登录时点击数据迁移，会显示"请先进行登录以同步数据"提示
+
+修改文件:
+- src/screens/Migration/DataMigration.tsx
+- src/screens/Home/Views/User/QuickMenu.tsx
+
+状态: ✅ 已修复，数据迁移页面现在需要登录才能访问
+
+===============================================
+问题 8: "我的"页面头部未正确显示用户名和VIP级别
+===============================================
+日期: 2025/10/8
+
+问题描述:
+"我的"页面头部显示"用户"和"普通会员"，但应该显示实际的用户名和VIP级别
+
+原因分析:
+1. UserHeader 组件使用 withObservables 返回的是数组，但代码中直接使用 profile?.displayName
+2. 登录成功后没有将用户资料同步到本地数据库
+3. 退出登录时没有清除本地用户资料
+4. 导致无法正确显示用户信息
+
+解决方案:
+✅ 修改 UserHeader.tsx：
+   - 将 withObservables 返回的 user 和 profile 合并为 userProfiles
+   - 从数组中获取第一个用户资料：const profile = userProfiles?.[0] || null
+   - 正确访问用户名和VIP状态
+
+✅ 修改 SignIn.tsx：
+   - 添加 syncUserProfile 函数
+   - 登录成功后从云端获取用户资料
+   - 将用户资料同步到本地数据库（创建或更新）
+   - 包含所有字段：用户名、显示名、头像、VIP状态等
+
+✅ 修改 UserProfile.tsx：
+   - 退出登录时清除本地所有用户资料
+   - 确保退出后"我的"页面显示为游客状态
+
+实现细节:
+1. 用户资料同步包含字段：
+   - 基本信息：userId, username, displayName, email, avatarUrl, bio
+   - 个人信息：gender, birthday, location, website
+   - 统计数据：totalPlayTime, totalSongs, totalPlaylists
+   - 社交数据：followingCount, followersCount
+   - 隐私设置：isPublic, showPlayHistory, showPlaylists
+   - VIP信息：vipStatus, vipExpireAt
+
+2. VIP状态显示：
+   - free: 普通会员（灰色）
+   - vip: VIP会员（蓝色）
+   - svip: SVIP会员（金色）
+
+修改文件:
+- src/screens/Home/Views/User/UserHeader.tsx
+- src/screens/Auth/SignIn.tsx
+- src/screens/Profile/UserProfile.tsx
+
+状态: ✅ 已修复，登录后会正确显示用户名和VIP级别
+
+===============================================
+问题 9: 二级页面显示加载圆圈 & 用户资料页面显示"加载失败"
+===============================================
+日期: 2025/10/8
+
+问题描述:
+1. "我的"页面的二级页面点击时显示加载圆圈，不符合本地数据库毫秒级响应的设计
+2. 点击"我的"页面头部进入用户资料页面时，必定会先显示"加载失败"页面
+
+原因分析:
+1. 所有二级页面都有不必要的 loading 状态和 useEffect 延迟
+2. UserProfile 使用异步方式加载数据，在数据加载完成前 profile 为 null
+3. 本地数据库查询是同步的（通过 withObservables），不需要 loading 状态
+4. 异步加载导致首次渲染时数据为空，显示错误页面
+
+解决方案:
+✅ 移除所有二级页面的 loading 状态：
+   - FavoritesList: 移除 loading 状态和相关 useEffect
+   - PlayHistoryList: 移除 loading 状态和相关 useEffect
+   - PlaylistsList: 移除 loading 状态和相关 useEffect
+   - PlayStatistics: 移除 loading 状态和相关 useEffect
+
+✅ 修改 UserProfile 使用 withObservables：
+   - 移除异步数据加载逻辑
+   - 使用 withObservables 实现响应式数据
+   - 从 userProfiles 数组中获取第一个用户资料
+   - 移除 loading 状态，数据即时可用
+   - 将"加载失败"改为"请先登录"（更友好的提示）
+
+实现效果:
+✅ 本地数据库响应：
+   - 所有页面使用 withObservables 响应式数据
+   - 数据查询在毫秒级完成，无需 loading 状态
+   - 页面打开即显示数据，无加载延迟
+
+✅ 用户体验优化：
+   - 点击二级页面立即显示内容
+   - 用户资料页面不再显示"加载失败"
+   - 未登录时显示"请先登录"而不是"加载失败"
+   - 符合本地数据库缓存机制的设计理念
+
+修改文件:
+- src/screens/Favorites/FavoritesList.tsx
+- src/screens/PlayHistory/PlayHistoryList.tsx
+- src/screens/Playlists/PlaylistsList.tsx
+- src/screens/Statistics/PlayStatistics.tsx
+- src/screens/Profile/UserProfile.tsx
+
+状态: ✅ 已修复，所有页面实现毫秒级响应，无加载延迟
+
+===============================================
+问题 10: PlaylistsList 和 PlayStatistics 类型错误
+===============================================
+日期: 2025/10/8
+
+错误信息:
+- PlaylistsList.tsx: 类型"Model"上不存在属性"userId"等13个错误
+- PlayStatistics.tsx: 参数隐式具有"any"类型，共3个错误
+
+原因分析:
+1. database.get('playlists').create() 回调函数缺少类型注解
+2. playlist.update() 回调函数缺少类型注解
+3. playHistory.reduce() 回调函数参数缺少类型注解
+4. songStats.map() 回调函数参数缺少类型注解
+
+解决方案:
+✅ PlaylistsList.tsx:
+   - create 回调添加类型: (playlist: any) => {...}
+   - update 回调添加类型: (record: any) => {...}
+
+✅ PlayStatistics.tsx:
+   - reduce 回调添加类型: (acc: any[], record: any) => {...}
+   - find 回调添加类型: (song: any) => {...}
+   - map 回调添加类型: (song: any, index: number) => {...}
+
+修改文件:
+- src/screens/Playlists/PlaylistsList.tsx
+- src/screens/Statistics/PlayStatistics.tsx
+
+状态: ✅ 已修复，所有类型错误已解决

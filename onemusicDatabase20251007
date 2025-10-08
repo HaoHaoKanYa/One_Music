@@ -1,0 +1,233 @@
+-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.app_settings (
+  user_id uuid NOT NULL,
+  audio_quality character varying DEFAULT 'standard'::character varying,
+  download_quality character varying DEFAULT 'standard'::character varying,
+  auto_play boolean DEFAULT true,
+  shuffle_mode boolean DEFAULT false,
+  repeat_mode character varying DEFAULT 'off'::character varying,
+  wifi_only_download boolean DEFAULT true,
+  wifi_only_stream boolean DEFAULT false,
+  enable_notifications boolean DEFAULT true,
+  notify_new_follower boolean DEFAULT true,
+  notify_new_comment boolean DEFAULT true,
+  notify_new_like boolean DEFAULT true,
+  notify_vip_expire boolean DEFAULT true,
+  show_online_status boolean DEFAULT true,
+  show_listening boolean DEFAULT true,
+  theme character varying DEFAULT 'auto'::character varying,
+  language character varying DEFAULT 'zh-CN'::character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT app_settings_pkey PRIMARY KEY (user_id),
+  CONSTRAINT app_settings_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.artist_play_stats (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  artist character varying NOT NULL,
+  play_count integer DEFAULT 0,
+  total_duration integer DEFAULT 0,
+  last_played_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT artist_play_stats_pkey PRIMARY KEY (id),
+  CONSTRAINT artist_play_stats_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.comments (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  target_type character varying NOT NULL,
+  target_id character varying NOT NULL,
+  content text NOT NULL CHECK (length(content) >= 1 AND length(content) <= 1000),
+  parent_id uuid,
+  like_count integer DEFAULT 0,
+  reply_count integer DEFAULT 0,
+  is_deleted boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT comments_pkey PRIMARY KEY (id),
+  CONSTRAINT comments_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT comments_parent_id_fkey FOREIGN KEY (parent_id) REFERENCES public.comments(id)
+);
+CREATE TABLE public.daily_play_stats (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  date date NOT NULL,
+  total_plays integer DEFAULT 0,
+  total_duration integer DEFAULT 0,
+  unique_songs integer DEFAULT 0,
+  unique_artists integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT daily_play_stats_pkey PRIMARY KEY (id),
+  CONSTRAINT daily_play_stats_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.disliked_songs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  song_id character varying NOT NULL,
+  song_name character varying NOT NULL,
+  artist character varying,
+  source character varying NOT NULL,
+  reason character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT disliked_songs_pkey PRIMARY KEY (id),
+  CONSTRAINT disliked_songs_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.favorite_songs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  song_id character varying NOT NULL,
+  song_name character varying NOT NULL,
+  artist character varying,
+  album character varying,
+  duration integer,
+  source character varying NOT NULL,
+  cover_url text,
+  quality character varying,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT favorite_songs_pkey PRIMARY KEY (id),
+  CONSTRAINT favorite_songs_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.likes (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  target_type character varying NOT NULL,
+  target_id character varying NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT likes_pkey PRIMARY KEY (id),
+  CONSTRAINT likes_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.notifications (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  type character varying NOT NULL,
+  title character varying NOT NULL,
+  content text NOT NULL,
+  data jsonb,
+  is_read boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  read_at timestamp with time zone,
+  CONSTRAINT notifications_pkey PRIMARY KEY (id),
+  CONSTRAINT notifications_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.orders (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  order_no character varying NOT NULL UNIQUE,
+  plan_id uuid,
+  plan_name character varying NOT NULL,
+  plan_type character varying NOT NULL,
+  duration_days integer NOT NULL,
+  amount numeric NOT NULL,
+  status character varying DEFAULT 'pending'::character varying,
+  payment_method character varying,
+  payment_time timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT orders_pkey PRIMARY KEY (id),
+  CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT orders_plan_id_fkey FOREIGN KEY (plan_id) REFERENCES public.vip_plans(id)
+);
+CREATE TABLE public.play_history (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  song_id character varying NOT NULL,
+  song_name character varying NOT NULL,
+  artist character varying,
+  album character varying,
+  source character varying NOT NULL,
+  play_duration integer NOT NULL,
+  total_duration integer,
+  completed boolean DEFAULT false,
+  played_at timestamp with time zone DEFAULT now(),
+  device_type character varying,
+  device_id character varying,
+  CONSTRAINT play_history_pkey PRIMARY KEY (id),
+  CONSTRAINT play_history_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.playlist_songs (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  playlist_id uuid NOT NULL,
+  song_id character varying NOT NULL,
+  song_name character varying NOT NULL,
+  artist character varying,
+  album character varying,
+  duration integer,
+  source character varying NOT NULL,
+  cover_url text,
+  sort_order integer NOT NULL DEFAULT 0,
+  added_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT playlist_songs_pkey PRIMARY KEY (id),
+  CONSTRAINT playlist_songs_playlist_id_fkey FOREIGN KEY (playlist_id) REFERENCES public.playlists(id)
+);
+CREATE TABLE public.playlists (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  name character varying NOT NULL CHECK (length(name::text) >= 1 AND length(name::text) <= 100),
+  description text,
+  cover_url text,
+  is_public boolean DEFAULT false,
+  is_deleted boolean DEFAULT false,
+  song_count integer DEFAULT 0,
+  play_count integer DEFAULT 0,
+  like_count integer DEFAULT 0,
+  comment_count integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  deleted_at timestamp with time zone,
+  CONSTRAINT playlists_pkey PRIMARY KEY (id),
+  CONSTRAINT playlists_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.user_follows (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  follower_id uuid NOT NULL,
+  following_id uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_follows_pkey PRIMARY KEY (id),
+  CONSTRAINT user_follows_follower_id_fkey FOREIGN KEY (follower_id) REFERENCES auth.users(id),
+  CONSTRAINT user_follows_following_id_fkey FOREIGN KEY (following_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.user_profiles (
+  user_id uuid NOT NULL,
+  username character varying NOT NULL UNIQUE CHECK (length(username::text) >= 2 AND length(username::text) <= 50),
+  display_name character varying,
+  email character varying NOT NULL,
+  avatar_url text,
+  bio text,
+  gender character varying,
+  birthday date,
+  location character varying,
+  website character varying,
+  total_play_time bigint DEFAULT 0,
+  total_songs integer DEFAULT 0,
+  total_playlists integer DEFAULT 0,
+  following_count integer DEFAULT 0,
+  followers_count integer DEFAULT 0,
+  is_public boolean DEFAULT true,
+  show_play_history boolean DEFAULT true,
+  show_playlists boolean DEFAULT true,
+  vip_status character varying DEFAULT 'free'::character varying,
+  vip_expire_at timestamp with time zone,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_profiles_pkey PRIMARY KEY (user_id),
+  CONSTRAINT user_profiles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.vip_plans (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name character varying NOT NULL,
+  type character varying NOT NULL,
+  duration_days integer NOT NULL,
+  price numeric NOT NULL,
+  original_price numeric,
+  features jsonb NOT NULL,
+  is_active boolean DEFAULT true,
+  sort_order integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT vip_plans_pkey PRIMARY KEY (id)
+);

@@ -9,44 +9,44 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native'
-import { playHistoryAPI } from '@/services/api'
-import type { PlayRecord } from '@/services/api/playHistory'
+import { withObservables } from '@nozbe/watermelondb/react'
+import { Q } from '@nozbe/watermelondb'
+import { database } from '@/database'
+import { RequireAuth } from '@/components/common/RequireAuth'
 
-interface PlayHistoryListProps {
-  onSongPress?: (record: PlayRecord) => void
+interface PlayRecord {
+  id: string
+  songId: string
+  songName: string
+  artist?: string
+  playedAt: Date
+  playDuration?: number
+  totalDuration?: number
+  completed: boolean
 }
 
-export const PlayHistoryListScreen: React.FC<PlayHistoryListProps> = ({
-  onSongPress,
-}) => {
-  const [history, setHistory] = useState<PlayRecord[]>([])
-  const [stats, setStats] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
+interface PlayHistoryListProps {
+  componentId: string
+  onSongPress?: (record: any) => void
+}
+
+const PlayHistoryListScreenComponent: React.FC<PlayHistoryListProps & {
+  playHistory: any[]
+}> = ({ componentId, onSongPress, playHistory }) => {
   const [refreshing, setRefreshing] = useState(false)
-
-  const loadHistory = useCallback(async () => {
-    try {
-      const [historyData, statsData] = await Promise.all([
-        playHistoryAPI.getPlayHistory({ limit: 100 }),
-        playHistoryAPI.getPlayStats(),
-      ])
-      setHistory(historyData)
-      setStats(statsData)
-    } catch (error: any) {
-      Alert.alert('错误', error.message || '加载播放历史失败')
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    loadHistory()
-  }, [loadHistory])
 
   const handleRefresh = () => {
     setRefreshing(true)
-    loadHistory()
+    // 本地数据库数据是实时的，不需要重新加载
+    setTimeout(() => setRefreshing(false), 500)
+  }
+
+  // 计算统计数据
+  const stats = {
+    total_plays: playHistory?.length || 0,
+    total_duration: playHistory?.reduce((sum, record) => sum + (record.playDuration || 0), 0) || 0,
+    completed_plays: playHistory?.filter(record => record.completed).length || 0,
+    unique_songs: new Set(playHistory?.map(record => record.songId)).size || 0
   }
 
   const handleClearHistory = () => {
@@ -60,9 +60,12 @@ export const PlayHistoryListScreen: React.FC<PlayHistoryListProps> = ({
           style: 'destructive',
           onPress: async () => {
             try {
-              await playHistoryAPI.clearPlayHistory()
-              setHistory([])
-              setStats(null)
+              await database.write(async () => {
+                const allHistory = await database.get('play_history').query().fetch()
+                for (const record of allHistory) {
+                  await record.destroyPermanently()
+                }
+              })
             } catch (error: any) {
               Alert.alert('错误', error.message || '清空历史失败')
             }
@@ -78,8 +81,7 @@ export const PlayHistoryListScreen: React.FC<PlayHistoryListProps> = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
+  const formatDate = (date: Date) => {
     const now = new Date()
     const diff = now.getTime() - date.getTime()
     const days = Math.floor(diff / (1000 * 60 * 60 * 24))
@@ -97,28 +99,21 @@ export const PlayHistoryListScreen: React.FC<PlayHistoryListProps> = ({
     >
       <View style={styles.songInfo}>
         <Text style={styles.songName} numberOfLines={1}>
-          {item.song_name}
+          {item.songName}
         </Text>
         <Text style={styles.artistName} numberOfLines={1}>
-          {item.artist}
+          {item.artist || '未知艺术家'}
         </Text>
         <Text style={styles.playTime}>
-          {formatDate(item.played_at)} · {formatDuration(item.play_duration || 0)}
+          {formatDate(item.playedAt)} · {formatDuration(item.playDuration || 0)}
         </Text>
       </View>
     </TouchableOpacity>
   )
 
-  if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#1DB954" />
-      </View>
-    )
-  }
-
   return (
-    <View style={styles.container}>
+    <RequireAuth componentId={componentId}>
+      <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>播放历史</Text>
         
@@ -141,7 +136,7 @@ export const PlayHistoryListScreen: React.FC<PlayHistoryListProps> = ({
           </View>
         )}
 
-        {history.length > 0 && (
+        {playHistory.length > 0 && (
           <TouchableOpacity
             style={styles.clearButton}
             onPress={handleClearHistory}
@@ -152,10 +147,10 @@ export const PlayHistoryListScreen: React.FC<PlayHistoryListProps> = ({
       </View>
 
       <FlatList
-        data={history}
+        data={playHistory}
         renderItem={renderHistoryItem}
         keyExtractor={item => item.id}
-        contentContainerStyle={history.length === 0 ? styles.emptyContainer : undefined}
+        contentContainerStyle={playHistory.length === 0 ? styles.emptyContainer : undefined}
         ListEmptyComponent={
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>还没有播放记录</Text>
@@ -166,7 +161,8 @@ export const PlayHistoryListScreen: React.FC<PlayHistoryListProps> = ({
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       />
-    </View>
+      </View>
+    </RequireAuth>
   )
 }
 
@@ -268,3 +264,12 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
 })
+
+// 使用withObservables包装组件，实现响应式数据
+const PlayHistoryListScreen = withObservables([], () => ({
+  playHistory: database.get('play_history')
+    .query()
+    .observe()
+}))(PlayHistoryListScreenComponent)
+
+export { PlayHistoryListScreen }

@@ -1,8 +1,10 @@
-import { View, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, TouchableOpacity, StyleSheet, Alert } from 'react-native'
+import { useState, useEffect } from 'react'
 import { Navigation } from 'react-native-navigation'
 import { Icon } from '@/components/common/Icon'
 import Text from '@/components/common/Text'
 import { useTheme } from '@/store/theme/hook'
+import { supabase } from '@/lib/supabase'
 import {
   FAVORITES_LIST_SCREEN,
   PLAY_HISTORY_SCREEN,
@@ -11,6 +13,7 @@ import {
   NOTIFICATIONS_LIST_SCREEN,
   VIP_PLANS_SCREEN,
   PLAY_STATISTICS_SCREEN,
+  SIGN_IN_SCREEN,
 } from '@/navigation/screenNames'
 
 interface MenuItem {
@@ -19,37 +22,97 @@ interface MenuItem {
   screen: string
   title: string
   color: string
+  requireAuth?: boolean  // 是否需要登录
 }
 
 const menuSections = [
   {
     title: '🎵 我的音乐',
     items: [
-      { icon: 'love', label: '我喜欢的音乐', screen: FAVORITES_LIST_SCREEN, title: '我的收藏', color: '#FF6B6B' },
-      { icon: 'music_time', label: '最近播放', screen: PLAY_HISTORY_SCREEN, title: '播放历史', color: '#4ECDC4' },
-      { icon: 'album', label: '我的歌单', screen: PLAYLISTS_SCREEN, title: '我的歌单', color: '#95E1D3' },
+      { icon: 'love', label: '我喜欢的音乐', screen: FAVORITES_LIST_SCREEN, title: '我的收藏', color: '#FF6B6B', requireAuth: true },
+      { icon: 'music_time', label: '最近播放', screen: PLAY_HISTORY_SCREEN, title: '播放历史', color: '#4ECDC4', requireAuth: true },
+      { icon: 'album', label: '我的歌单', screen: PLAYLISTS_SCREEN, title: '我的歌单', color: '#95E1D3', requireAuth: true },
     ],
   },
   {
     title: '📊 数据中心',
     items: [
-      { icon: 'leaderboard', label: '播放统计', screen: PLAY_STATISTICS_SCREEN, title: '播放统计', color: '#3498DB' },
-      { icon: 'comment', label: '通知中心', screen: NOTIFICATIONS_LIST_SCREEN, title: '通知中心', color: '#9B59B6' },
+      { icon: 'leaderboard', label: '播放统计', screen: PLAY_STATISTICS_SCREEN, title: '播放统计', color: '#3498DB', requireAuth: true },
+      { icon: 'comment', label: '通知中心', screen: NOTIFICATIONS_LIST_SCREEN, title: '通知中心', color: '#9B59B6', requireAuth: true },
     ],
   },
   {
     title: '⚙️ 更多功能',
     items: [
-      { icon: 'love', label: '会员中心', screen: VIP_PLANS_SCREEN, title: '会员中心', color: '#FFD700' },
-      { icon: 'share', label: '数据迁移', screen: DATA_MIGRATION_SCREEN, title: '数据迁移', color: '#F38181' },
+      { icon: 'love', label: '会员中心', screen: VIP_PLANS_SCREEN, title: '会员中心', color: '#FFD700', requireAuth: false },
+      { icon: 'share', label: '数据迁移', screen: DATA_MIGRATION_SCREEN, title: '数据迁移', color: '#F38181', requireAuth: true },
     ],
   },
 ]
 
 export default () => {
   const theme = useTheme()
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+
+  useEffect(() => {
+    checkAuth()
+    
+    // 监听认证状态变化
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setIsLoggedIn(true)
+      } else if (event === 'SIGNED_OUT') {
+        setIsLoggedIn(false)
+      }
+    })
+
+    return () => {
+      authListener?.subscription?.unsubscribe()
+    }
+  }, [])
+
+  const checkAuth = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      setIsLoggedIn(!!user)
+    } catch (error) {
+      setIsLoggedIn(false)
+    }
+  }
 
   const handlePress = (item: MenuItem) => {
+    // 如果需要登录但用户未登录，显示提示
+    if (item.requireAuth && !isLoggedIn) {
+      Alert.alert(
+        '需要登录',
+        '请先进行登录以同步数据',
+        [
+          { text: '取消', style: 'cancel' },
+          {
+            text: '去登录',
+            onPress: () => {
+              Navigation.showModal({
+                stack: {
+                  children: [{
+                    component: {
+                      name: SIGN_IN_SCREEN,
+                      options: {
+                        topBar: {
+                          visible: false,
+                          height: 0,
+                        },
+                      },
+                    },
+                  }],
+                },
+              })
+            },
+          },
+        ]
+      )
+      return
+    }
+
     Navigation.showModal({
       stack: {
         children: [{

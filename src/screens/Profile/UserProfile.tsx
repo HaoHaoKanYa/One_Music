@@ -20,6 +20,9 @@ import {
   PLAYLISTS_SCREEN,
   PLAY_STATISTICS_SCREEN,
 } from '@/navigation/screenNames'
+import { withObservables } from '@nozbe/watermelondb/react'
+import { Q } from '@nozbe/watermelondb'
+import { database } from '@/database'
 
 interface UserProfile {
   user_id: string
@@ -41,33 +44,41 @@ interface UserProfileScreenProps {
   userId?: string
 }
 
-export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentId, userId }) => {
-  const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [loading, setLoading] = useState(true)
+const UserProfileScreenComponent: React.FC<UserProfileScreenProps & {
+  userProfiles: any[]
+  favorites: any[]
+  playlists: any[]
+  playHistory: any[]
+}> = ({ componentId, userId, userProfiles, favorites, playlists, playHistory }) => {
   const [isFollowing, setIsFollowing] = useState(false)
   const [isCurrentUser, setIsCurrentUser] = useState(true)
 
+  // 从数组中获取第一个用户资料
+  const profile = userProfiles?.[0] || null
+
   useEffect(() => {
-    loadProfile()
-    
-    // 监听收藏更新事件
-    const handleFavoritesUpdate = () => {
-      loadProfile()
+    checkUser()
+  }, [userId, profile])
+
+  const checkUser = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        console.log('用户未登录')
+        return
+      }
+
+      const isCurrent = profile?.userId === user.id
+      setIsCurrentUser(isCurrent)
+
+      // 如果不是当前用户，检查关注状态
+      if (!isCurrent && profile) {
+        await checkFollowStatus(profile.userId)
+      }
+    } catch (error: any) {
+      console.log('检查用户状态失败:', error)
     }
-    
-    // 监听播放历史更新事件
-    const handlePlayHistoryUpdate = () => {
-      loadProfile()
-    }
-    
-    global.app_event.on('favoritesUpdated', handleFavoritesUpdate)
-    global.app_event.on('playHistoryUpdated', handlePlayHistoryUpdate)
-    
-    return () => {
-      global.app_event.off('favoritesUpdated', handleFavoritesUpdate)
-      global.app_event.off('playHistoryUpdated', handlePlayHistoryUpdate)
-    }
-  }, [])
+  }
 
   const checkFollowStatus = async (targetUserId: string) => {
     try {
@@ -80,7 +91,7 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
 
   const handleFollow = async () => {
     if (!profile) return
-    
+
     try {
       if (isFollowing) {
         await followAPI.unfollowUser(profile.user_id)
@@ -96,71 +107,8 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
     }
   }
 
-  const loadProfile = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) throw new Error('未登录')
-
-      const targetUserId = userId || user.id
-
-      const { data, error } = await supabase
-        .from('user_profiles')
-        .select('*')
-        .eq('user_id', targetUserId)
-        .single()
-
-      if (error) throw error
-      
-      // 获取实时统计数据
-      const [favCount, playlistCount, totalPlayTime] = await Promise.all([
-        supabase
-          .from('favorite_songs')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', targetUserId)
-          .then(res => res.count || 0),
-        supabase
-          .from('playlists')
-          .select('*', { count: 'exact', head: true })
-          .eq('user_id', targetUserId)
-          .eq('is_deleted', false)
-          .then(res => res.count || 0),
-        supabase
-          .from('play_history')
-          .select('play_duration')
-          .eq('user_id', targetUserId)
-          .then(res => {
-            const total = res.data?.reduce((sum, record) => sum + (record.play_duration || 0), 0) || 0
-            const hours = Math.floor(total / 3600)
-            const minutes = Math.floor((total % 3600) / 60)
-            console.log('[UserProfile] 播放时长:', total, '秒 =', hours, '小时', minutes, '分钟')
-            return total // 保持秒数
-          }),
-      ])
-      
-      console.log('[UserProfile] 统计数据:', { favCount, playlistCount, totalPlayTime })
-      
-      // 合并实时统计数据
-      setProfile({
-        ...data,
-        total_songs: favCount,
-        total_playlists: playlistCount,
-        total_play_time: totalPlayTime,
-      })
-      
-      // 检查是否是当前用户
-      const isCurrent = data.user_id === user.id
-      setIsCurrentUser(isCurrent)
-      
-      // 如果不是当前用户，检查关注状态
-      if (!isCurrent) {
-        await checkFollowStatus(data.user_id)
-      }
-    } catch (error: any) {
-      Alert.alert('错误', error.message)
-    } finally {
-      setLoading(false)
-    }
-  }
+  // 计算统计数据
+  const totalPlayTime = playHistory?.reduce((sum, record) => sum + (record.playDuration || 0), 0) || 0
 
   const handleSignOut = async () => {
     Alert.alert(
@@ -172,7 +120,17 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
           text: '确定',
           onPress: async () => {
             try {
+              // 清除本地用户资料
+              await database.write(async () => {
+                const profiles = await database.get('user_profiles').query().fetch()
+                for (const profile of profiles) {
+                  await profile.destroyPermanently()
+                }
+              })
+
+              // 退出登录
               await supabase.auth.signOut()
+              
               Navigation.dismissModal(componentId)
               setTimeout(() => {
                 Alert.alert('成功', '已退出登录')
@@ -213,18 +171,11 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
     return `${minutes} 分钟`
   }
 
-  if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2196F3" />
-      </View>
-    )
-  }
-
+  // 如果没有用户资料，显示空状态（不显示错误，因为可能是未登录）
   if (!profile) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>加载失败</Text>
+        <Text style={styles.errorText}>请先登录</Text>
       </View>
     )
   }
@@ -249,16 +200,16 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
         </TouchableOpacity>
 
         <Text style={styles.displayName}>
-          {profile.display_name || profile.username}
+          {profile.displayName || profile.username}
         </Text>
         <Text style={styles.username}>@{profile.username}</Text>
 
         {profile.bio && <Text style={styles.bio}>{profile.bio}</Text>}
 
-        {profile.vip_status !== 'free' && (
+        {profile.vipStatus !== 'free' && (
           <View style={styles.vipBadge}>
             <Text style={styles.vipText}>
-              {profile.vip_status === 'vip' ? 'VIP' : 'SVIP'}
+              {profile.vipStatus === 'vip' ? 'VIP' : 'SVIP'}
             </Text>
           </View>
         )}
@@ -267,15 +218,15 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
       {/* Stats */}
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{profile.total_songs}</Text>
+          <Text style={styles.statValue}>{favorites?.length || 0}</Text>
           <Text style={styles.statLabel}>收藏歌曲</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{profile.total_playlists}</Text>
+          <Text style={styles.statValue}>{playlists?.length || 0}</Text>
           <Text style={styles.statLabel}>创建歌单</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statValue}>{formatPlayTime(profile.total_play_time)}</Text>
+          <Text style={styles.statValue}>{formatPlayTime(totalPlayTime)}</Text>
           <Text style={styles.statLabel}>播放时长</Text>
         </View>
       </View>
@@ -340,7 +291,7 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
 
       {/* Menu */}
       <View style={styles.menuContainer}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.menuItem}
           onPress={() => handleNavigate(FAVORITES_LIST_SCREEN, '我的收藏')}
         >
@@ -348,7 +299,7 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
           <Text style={styles.menuItemArrow}>›</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.menuItem}
           onPress={() => handleNavigate(PLAY_HISTORY_SCREEN, '播放历史')}
         >
@@ -356,7 +307,7 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
           <Text style={styles.menuItemArrow}>›</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.menuItem}
           onPress={() => handleNavigate(PLAYLISTS_SCREEN, '我的歌单')}
         >
@@ -365,7 +316,7 @@ export const UserProfileScreen: React.FC<UserProfileScreenProps> = ({ componentI
         </TouchableOpacity>
 
         {isCurrentUser && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.menuItem}
             onPress={() => handleNavigate(PLAY_STATISTICS_SCREEN, '播放统计')}
           >
@@ -536,3 +487,21 @@ const styles = StyleSheet.create({
     color: '#BDBDBD',
   },
 })
+
+// 使用withObservables包装组件，实现响应式数据
+const UserProfileScreen = withObservables([], () => ({
+  userProfiles: database.get('user_profiles')
+    .query()
+    .observe(),
+  favorites: database.get('favorites')
+    .query()
+    .observe(),
+  playlists: database.get('playlists')
+    .query(Q.where('is_deleted', false))
+    .observe(),
+  playHistory: database.get('play_history')
+    .query()
+    .observe()
+}))(UserProfileScreenComponent)
+
+export { UserProfileScreen }

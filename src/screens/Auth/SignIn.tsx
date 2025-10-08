@@ -99,6 +99,11 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ componentId }) => {
 
       if (error) throw error
 
+      // 登录成功后，同步用户资料到本地数据库
+      if (data.user) {
+        await syncUserProfile(data.user.id)
+      }
+
       // 先关闭Modal，再显示成功提示
       Navigation.dismissModal(componentId)
       setTimeout(() => {
@@ -107,6 +112,94 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ componentId }) => {
     } catch (error: any) {
       Alert.alert('登录失败', error.message)
       throw error
+    }
+  }
+
+  const syncUserProfile = async (userId: string) => {
+    try {
+      // 从云端获取用户资料
+      const { data: profileData, error: profileError } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single()
+
+      if (profileError) {
+        console.log('获取用户资料失败:', profileError)
+        return
+      }
+
+      if (!profileData) return
+
+      // 导入数据库
+      const { database } = require('@/database')
+
+      // 检查本地是否已存在该用户资料
+      const existingProfiles = await database.get('user_profiles')
+        .query()
+        .fetch()
+
+      await database.write(async () => {
+        if (existingProfiles.length > 0) {
+          // 更新现有资料
+          const profile = existingProfiles[0]
+          await profile.update(record => {
+            record.userId = profileData.user_id
+            record.username = profileData.username
+            record.displayName = profileData.display_name
+            record.email = profileData.email
+            record.avatarUrl = profileData.avatar_url
+            record.bio = profileData.bio
+            record.gender = profileData.gender
+            record.birthday = profileData.birthday ? new Date(profileData.birthday) : undefined
+            record.location = profileData.location
+            record.website = profileData.website
+            record.totalPlayTime = profileData.total_play_time || 0
+            record.totalSongs = profileData.total_songs || 0
+            record.totalPlaylists = profileData.total_playlists || 0
+            record.followingCount = profileData.following_count || 0
+            record.followersCount = profileData.followers_count || 0
+            record.isPublic = profileData.is_public !== false
+            record.showPlayHistory = profileData.show_play_history !== false
+            record.showPlaylists = profileData.show_playlists !== false
+            record.vipStatus = profileData.vip_status || 'free'
+            record.vipExpireAt = profileData.vip_expire_at ? new Date(profileData.vip_expire_at) : undefined
+            record.updatedAt = new Date()
+            record.synced = true
+          })
+        } else {
+          // 创建新资料
+          await database.get('user_profiles').create(record => {
+            record.userId = profileData.user_id
+            record.username = profileData.username
+            record.displayName = profileData.display_name
+            record.email = profileData.email
+            record.avatarUrl = profileData.avatar_url
+            record.bio = profileData.bio
+            record.gender = profileData.gender
+            record.birthday = profileData.birthday ? new Date(profileData.birthday) : undefined
+            record.location = profileData.location
+            record.website = profileData.website
+            record.totalPlayTime = profileData.total_play_time || 0
+            record.totalSongs = profileData.total_songs || 0
+            record.totalPlaylists = profileData.total_playlists || 0
+            record.followingCount = profileData.following_count || 0
+            record.followersCount = profileData.followers_count || 0
+            record.isPublic = profileData.is_public !== false
+            record.showPlayHistory = profileData.show_play_history !== false
+            record.showPlaylists = profileData.show_playlists !== false
+            record.vipStatus = profileData.vip_status || 'free'
+            record.vipExpireAt = profileData.vip_expire_at ? new Date(profileData.vip_expire_at) : undefined
+            record.createdAt = new Date(profileData.created_at)
+            record.updatedAt = new Date()
+            record.synced = true
+          })
+        }
+      })
+
+      console.log('[SignIn] 用户资料已同步到本地数据库')
+    } catch (error) {
+      console.error('[SignIn] 同步用户资料失败:', error)
     }
   }
 

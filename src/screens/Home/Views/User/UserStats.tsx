@@ -1,69 +1,44 @@
-import { useState, useEffect } from 'react'
 import { View, StyleSheet } from 'react-native'
+import { useState, useEffect } from 'react'
 import Text from '@/components/common/Text'
 import { useTheme } from '@/store/theme/hook'
-import { favoritesAPI } from '@/services/api/favorites'
-import { playHistoryAPI } from '@/services/api/playHistory'
-import { playlistsAPI } from '@/services/api/playlists'
+import { withObservables } from '@nozbe/watermelondb/react'
+import { Q } from '@nozbe/watermelondb'
+import { database } from '@/database'
 import { supabase } from '@/lib/supabase'
 
-export default () => {
+const UserStatsComponent = ({ favorites, playlists, playHistory }: any) => {
   const theme = useTheme()
-  const [stats, setStats] = useState({
-    favorites: 0,
-    playlists: 0,
-    history: 0,
-  })
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
 
   useEffect(() => {
-    loadStats()
-    
-    // 监听收藏更新事件
-    const handleFavoritesUpdate = () => {
-      loadStats()
-    }
-    
-    // 监听播放历史更新事件
-    const handlePlayHistoryUpdate = () => {
-      loadStats()
-    }
+    checkAuth()
     
     // 监听认证状态变化
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') {
-        setStats({ favorites: 0, playlists: 0, history: 0 })
-      } else if (event === 'SIGNED_IN') {
-        loadStats()
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setIsLoggedIn(true)
+      } else if (event === 'SIGNED_OUT') {
+        setIsLoggedIn(false)
       }
     })
-    
-    global.app_event.on('favoritesUpdated', handleFavoritesUpdate)
-    global.app_event.on('playHistoryUpdated', handlePlayHistoryUpdate)
-    
+
     return () => {
-      global.app_event.off('favoritesUpdated', handleFavoritesUpdate)
-      global.app_event.off('playHistoryUpdated', handlePlayHistoryUpdate)
       authListener?.subscription?.unsubscribe()
     }
   }, [])
 
-  const loadStats = async () => {
+  const checkAuth = async () => {
     try {
-      const [favCount, playlistsData, historyStats] = await Promise.all([
-        favoritesAPI.getFavoritesCount().catch(() => 0),
-        playlistsAPI.getMyPlaylists().catch(() => []),
-        playHistoryAPI.getPlayStats().catch(() => ({ total_plays: 0 })),
-      ])
-
-      setStats({
-        favorites: favCount,
-        playlists: playlistsData.length,
-        history: (historyStats as any).total_plays || 0,
-      })
+      const { data: { user } } = await supabase.auth.getUser()
+      setIsLoggedIn(!!user)
     } catch (error) {
-      console.log('加载统计失败:', error)
+      setIsLoggedIn(false)
     }
   }
+
+  // 如果未登录，显示 0
+  const displayValue = (value: number) => isLoggedIn ? value : 0
 
   return (
     <View style={styles.container}>
@@ -71,17 +46,23 @@ export default () => {
 
       <View style={styles.statsGrid}>
         <View style={styles.statItem}>
-          <Text style={styles.statValue} color={theme['c-primary-font']}>{stats.favorites}</Text>
+          <Text style={styles.statValue} color={theme['c-primary-font']}>
+            {displayValue(favorites?.length || 0)}
+          </Text>
           <Text style={styles.statLabel} color={theme['c-350']}>收藏歌曲</Text>
         </View>
 
         <View style={styles.statItem}>
-          <Text style={styles.statValue} color={theme['c-primary-font']}>{stats.playlists}</Text>
+          <Text style={styles.statValue} color={theme['c-primary-font']}>
+            {displayValue(playlists?.length || 0)}
+          </Text>
           <Text style={styles.statLabel} color={theme['c-350']}>创建歌单</Text>
         </View>
 
         <View style={styles.statItem}>
-          <Text style={styles.statValue} color={theme['c-primary-font']}>{stats.history}</Text>
+          <Text style={styles.statValue} color={theme['c-primary-font']}>
+            {displayValue(playHistory?.length || 0)}
+          </Text>
           <Text style={styles.statLabel} color={theme['c-350']}>播放历史</Text>
         </View>
       </View>
@@ -120,3 +101,18 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
 })
+
+// 使用withObservables包装组件，实现响应式数据
+const UserStats = withObservables([], () => ({
+  favorites: database.get('favorites')
+    .query()
+    .observe(),
+  playlists: database.get('playlists')
+    .query(Q.where('is_deleted', false))
+    .observe(),
+  playHistory: database.get('play_history')
+    .query()
+    .observe()
+}))(UserStatsComponent)
+
+export default UserStats

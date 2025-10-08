@@ -1,0 +1,691 @@
+# OneMusic 本地数据库缓存机制部署指引
+
+## 一、问题分析与解决方案
+
+### 1.1 当前问题
+- "我的"页面所有二级、三级组件页面跳转耗时10秒+
+- 页面加载时出现转圈等待，用户体验极差
+- 频繁与后端Supabase数据库通信导致性能瓶颈
+
+### 1.2 解决方案：本地优先架构（Local-First Architecture）
+采用"本地数据库 + 后台异步同步"的架构模式：
+- 前端所有数据操作基于本地数据库
+- UI层直接读取本地数据，实现秒开
+- 后台异步与服务器同步，用户无感知
+- 仅在特定时机上传数据到服务器
+
+### 1.3 技术选型
+推荐使用 **WatermelonDB** 作为本地数据库方案：
+- 专为React Native优化的高性能数据库
+- 基于SQLite，支持复杂查询和关系
+- 内置响应式数据流（Observables）
+- 自动处理数据同步冲突
+- 比AsyncStorage性能提升10-100倍
+
+备选方案：
+- Realm：功能强大但体积较大
+- react-native-sqlite-storage：轻量但需手动处理响应式
+
+## 二、数据模型设计
+
+### 2.1 核心数据表结构
+
+#### 用户收藏表 (favorites)
+```sql
+CREATE TABLE favorites (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  song_id TEXT NOT NULL,
+  song_name TEXT NOT NULL,
+  artist TEXT,
+  album TEXT,
+  source TEXT,
+  cover_url TEXT,
+  created_at INTEGER NOT NULL,
+  synced BOOLEAN DEFAULT 0,
+  UNIQUE(user_id, song_id, source)
+);
+```
+
+#### 用户歌单表 (playlists)
+```sql
+CREATE TABLE playlists (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  name TEXT NOT NULL,
+  description TEXT,
+  cover_url TEXT,
+  is_public BOOLEAN DEFAULT 0,
+  is_deleted BOOLEAN DEFAULT 0,
+  song_count INTEGER DEFAULT 0,
+  play_count INTEGER DEFAULT 0,
+  like_count INTEGER DEFAULT 0,
+  comment_count INTEGER DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  deleted_at INTEGER,
+  synced BOOLEAN DEFAULT 0
+);
+```
+
+#### 歌单歌曲关联表 (playlist_songs)
+```sql
+CREATE TABLE playlist_songs (
+  id TEXT PRIMARY KEY,
+  playlist_id TEXT NOT NULL,
+  song_id TEXT NOT NULL,
+  song_name TEXT NOT NULL,
+  artist TEXT,
+  album TEXT,
+  source TEXT,
+  duration INTEGER,
+  cover_url TEXT,
+  position INTEGER NOT NULL,
+  added_at INTEGER NOT NULL,
+  synced BOOLEAN DEFAULT 0,
+  FOREIGN KEY (playlist_id) REFERENCES playlists(id) ON DELETE CASCADE
+);
+```
+
+#### 播放历史表 (play_history)
+```sql
+CREATE TABLE play_history (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  song_id TEXT NOT NULL,
+  song_name TEXT NOT NULL,
+  artist TEXT,
+  album TEXT,
+  source TEXT,
+  play_duration INTEGER,
+  total_duration INTEGER,
+  completed BOOLEAN DEFAULT 0,
+  played_at INTEGER NOT NULL,
+  synced BOOLEAN DEFAULT 0
+);
+```
+
+#### 播放统计表 (play_statistics)
+```sql
+CREATE TABLE play_statistics (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  song_id TEXT NOT NULL,
+  song_name TEXT NOT NULL,
+  artist TEXT,
+  source TEXT,
+  play_count INTEGER DEFAULT 0,
+  total_duration INTEGER DEFAULT 0,
+  last_played_at INTEGER,
+  synced BOOLEAN DEFAULT 0,
+  UNIQUE(user_id, song_id, source)
+);
+```
+
+#### 用户配置表 (app_settings)
+```sql
+CREATE TABLE app_settings (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  audio_quality TEXT DEFAULT 'standard',
+  download_quality TEXT DEFAULT 'standard',
+  auto_play BOOLEAN DEFAULT 1,
+  shuffle_mode BOOLEAN DEFAULT 0,
+  repeat_mode TEXT DEFAULT 'off',
+  wifi_only_download BOOLEAN DEFAULT 1,
+  wifi_only_stream BOOLEAN DEFAULT 0,
+  enable_notifications BOOLEAN DEFAULT 1,
+  notify_new_follower BOOLEAN DEFAULT 1,
+  notify_new_comment BOOLEAN DEFAULT 1,
+  notify_new_like BOOLEAN DEFAULT 1,
+  notify_vip_expire BOOLEAN DEFAULT 1,
+  show_online_status BOOLEAN DEFAULT 1,
+  show_listening BOOLEAN DEFAULT 1,
+  theme TEXT DEFAULT 'auto',
+  language TEXT DEFAULT 'zh-CN',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  synced BOOLEAN DEFAULT 0
+);
+```
+
+#### 用户资料表 (user_profiles)
+```sql
+CREATE TABLE user_profiles (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL UNIQUE,
+  username TEXT NOT NULL UNIQUE,
+  display_name TEXT,
+  email TEXT NOT NULL,
+  avatar_url TEXT,
+  bio TEXT,
+  gender TEXT,
+  birthday INTEGER,
+  location TEXT,
+  website TEXT,
+  total_play_time INTEGER DEFAULT 0,
+  total_songs INTEGER DEFAULT 0,
+  total_playlists INTEGER DEFAULT 0,
+  following_count INTEGER DEFAULT 0,
+  followers_count INTEGER DEFAULT 0,
+  is_public BOOLEAN DEFAULT 1,
+  show_play_history BOOLEAN DEFAULT 1,
+  show_playlists BOOLEAN DEFAULT 1,
+  vip_status TEXT DEFAULT 'free',
+  vip_expire_at INTEGER,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  synced BOOLEAN DEFAULT 0
+);
+```
+
+#### 不喜欢的歌曲表 (disliked_songs)
+```sql
+CREATE TABLE disliked_songs (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  song_id TEXT NOT NULL,
+  song_name TEXT NOT NULL,
+  artist TEXT,
+  source TEXT NOT NULL,
+  reason TEXT,
+  created_at INTEGER NOT NULL,
+  synced BOOLEAN DEFAULT 0,
+  UNIQUE(user_id, song_id, source)
+);
+```
+
+#### 艺术家播放统计表 (artist_play_stats)
+```sql
+CREATE TABLE artist_play_stats (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  artist TEXT NOT NULL,
+  play_count INTEGER DEFAULT 0,
+  total_duration INTEGER DEFAULT 0,
+  last_played_at INTEGER,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  synced BOOLEAN DEFAULT 0,
+  UNIQUE(user_id, artist)
+);
+```
+
+#### 每日播放统计表 (daily_play_stats)
+```sql
+CREATE TABLE daily_play_stats (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  date TEXT NOT NULL,
+  total_plays INTEGER DEFAULT 0,
+  total_duration INTEGER DEFAULT 0,
+  unique_songs INTEGER DEFAULT 0,
+  unique_artists INTEGER DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  synced BOOLEAN DEFAULT 0,
+  UNIQUE(user_id, date)
+);
+```
+
+#### 评论表 (comments)
+```sql
+CREATE TABLE comments (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  content TEXT NOT NULL,
+  parent_id TEXT,
+  like_count INTEGER DEFAULT 0,
+  reply_count INTEGER DEFAULT 0,
+  is_deleted BOOLEAN DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  synced BOOLEAN DEFAULT 0
+);
+```
+
+#### 点赞表 (likes)
+```sql
+CREATE TABLE likes (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  synced BOOLEAN DEFAULT 0
+);
+```
+
+#### 通知表 (notifications)
+```sql
+CREATE TABLE notifications (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  content TEXT NOT NULL,
+  data TEXT, -- JSON字符串
+  is_read BOOLEAN DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  read_at INTEGER,
+  synced BOOLEAN DEFAULT 0
+);
+```
+
+#### 订单表 (orders)
+```sql
+CREATE TABLE orders (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL,
+  order_no TEXT NOT NULL UNIQUE,
+  plan_id TEXT,
+  plan_name TEXT NOT NULL,
+  plan_type TEXT NOT NULL,
+  duration_days INTEGER NOT NULL,
+  amount REAL NOT NULL,
+  status TEXT DEFAULT 'pending',
+  payment_method TEXT,
+  payment_time INTEGER,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  synced BOOLEAN DEFAULT 0
+);
+```
+
+#### 用户关注表 (user_follows)
+```sql
+CREATE TABLE user_follows (
+  id TEXT PRIMARY KEY,
+  follower_id TEXT NOT NULL,
+  following_id TEXT NOT NULL,
+  created_at INTEGER NOT NULL,
+  synced BOOLEAN DEFAULT 0
+);
+```
+
+#### VIP套餐表 (vip_plans)
+```sql
+CREATE TABLE vip_plans (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  duration_days INTEGER NOT NULL,
+  price REAL NOT NULL,
+  original_price REAL,
+  features TEXT NOT NULL, -- JSON字符串
+  is_active BOOLEAN DEFAULT 1,
+  sort_order INTEGER DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL,
+  synced BOOLEAN DEFAULT 0
+);
+```
+
+### 2.2 同步状态字段说明
+- **synced**: 0=未同步到服务器，1=已同步
+- 所有表都包含此字段用于追踪同步状态
+- 本地操作后自动标记为未同步
+- 后台同步成功后更新为已同步
+
+## 三、数据流转机制
+
+### 3.1 应用启动流程
+```
+1. 启动应用
+2. 初始化本地数据库（WatermelonDB）
+3. 加载本地数据到内存/状态管理
+4. UI立即渲染（使用本地数据）
+5. 后台启动异步同步任务
+6. 检查用户登录状态
+7. 如果已登录：
+   - 拉取服务器最新数据
+   - 对比本地数据时间戳
+   - 合并冲突（服务器优先或本地优先）
+   - 更新本地数据库
+   - 推送本地未同步数据到服务器
+```
+
+### 3.2 用户操作流程
+
+#### 添加收藏
+```
+用户点击收藏按钮
+↓
+立即写入本地数据库（synced=0）
+↓
+UI立即更新（无延迟）
+↓
+后台异步上传到服务器
+↓
+成功后更新synced=1
+```
+
+#### 创建歌单
+```
+用户创建歌单
+↓
+生成本地UUID作为临时ID
+↓
+写入本地数据库（synced=0）
+↓
+UI立即显示新歌单
+↓
+后台上传到服务器
+↓
+获取服务器返回的真实ID
+↓
+更新本地记录（保存server_id映射）
+```
+
+#### 播放歌曲
+```
+用户播放歌曲
+↓
+实时写入本地播放历史
+↓
+更新本地播放统计
+↓
+UI实时显示最新数据
+↓
+累积到一定数量或时间间隔
+↓
+批量上传到服务器
+```
+
+### 3.3 数据同步时机
+
+#### 自动同步触发条件
+1. **应用启动时**：拉取服务器最新数据
+2. **应用进入后台**：推送本地未同步数据
+3. **用户退出登录**：强制同步所有数据
+4. **定时同步**：每5分钟检查一次未同步数据
+5. **网络恢复时**：从离线恢复后立即同步
+
+#### 手动同步触发
+- 用户在"数据迁移"功能中点击同步
+- 下拉刷新时触发同步检查
+
+### 3.4 冲突解决策略
+
+#### 时间戳优先原则
+- 每条记录包含 updated_at 字段
+- 对比本地与服务器时间戳
+- 保留最新的数据版本
+- 特殊情况：播放统计采用累加策略
+
+#### 具体规则
+```javascript
+// 收藏/歌单：最后修改时间优先
+if (serverData.updated_at > localData.updated_at) {
+  updateLocal(serverData)
+} else if (localData.updated_at > serverData.updated_at) {
+  uploadToServer(localData)
+}
+
+// 播放历史：双向追加，不删除
+mergePlayHistory(localData, serverData)
+
+// 播放统计：累加计数
+localPlayCount + serverPlayCount
+```
+
+## 四、实施步骤
+
+### 4.1 安装依赖
+```bash
+npm install @nozbe/watermelondb @nozbe/with-observables
+npm install --save-dev @babel/plugin-proposal-decorators
+```
+
+### 4.2 配置Babel
+在 `babel.config.js` 中添加：
+```javascript
+module.exports = {
+  presets: ['module:metro-react-native-babel-preset'],
+  plugins: [
+    ['@babel/plugin-proposal-decorators', { legacy: true }],
+  ],
+}
+```
+
+### 4.3 创建目录结构
+```
+src/
+  database/
+    index.ts              # 数据库初始化
+    schema.ts             # 数据库表结构定义
+    models/               # 数据模型
+      Favorite.ts
+      Playlist.ts
+      PlaylistSong.ts
+      PlayHistory.ts
+      PlayStatistic.ts
+      AppSetting.ts
+      UserProfile.ts
+      DislikedSong.ts
+      ArtistPlayStat.ts
+      DailyPlayStat.ts
+      Comment.ts
+      Like.ts
+      Notification.ts
+      Order.ts
+      UserFollow.ts
+      VipPlan.ts
+    sync/                 # 同步逻辑
+      syncEngine.ts       # 同步引擎
+      syncFavorites.ts
+      syncPlaylists.ts
+      syncPlayHistory.ts
+      syncStatistics.ts
+      syncSettings.ts
+      syncProfiles.ts
+    hooks/                # React Hooks
+      useFavorites.ts
+      usePlaylists.ts
+      usePlayHistory.ts
+      useStatistics.ts
+      useSettings.ts
+      useProfiles.ts
+    repositories/         # 数据访问层
+      FavoriteRepository.ts
+      PlaylistRepository.ts
+      PlayHistoryRepository.ts
+      StatisticsRepository.ts
+      SettingsRepository.ts
+      ProfileRepository.ts
+```
+
+### 4.4 核心文件实现要点
+
+#### 数据库初始化 (src/database/index.ts)
+```typescript
+// src/database/index.ts
+import { Database } from '@nozbe/watermelondb'
+import SQLiteAdapter from '@nozbe/watermelondb/adapters/sqlite'
+import schema from './schema'
+import migrations from './migrations'
+import Favorite from './models/Favorite'
+import Playlist from './models/Playlist'
+import PlaylistSong from './models/PlaylistSong'
+import PlayHistory from './models/PlayHistory'
+import PlayStatistic from './models/PlayStatistic'
+import AppSetting from './models/AppSetting'
+import UserProfile from './models/UserProfile'
+import DislikedSong from './models/DislikedSong'
+import ArtistPlayStat from './models/ArtistPlayStat'
+import DailyPlayStat from './models/DailyPlayStat'
+import Comment from './models/Comment'
+import Like from './models/Like'
+import Notification from './models/Notification'
+import Order from './models/Order'
+import UserFollow from './models/UserFollow'
+import VipPlan from './models/VipPlan'
+
+const adapter = new SQLiteAdapter({
+  schema,
+  migrations,
+  jsi: true, // 启用JSI以获得最佳性能
+  onSetUpError: error => {
+    console.error('数据库初始化失败:', error)
+  }
+})
+
+export const database = new Database({
+  adapter,
+  modelClasses: [
+    Favorite,
+    Playlist,
+    PlaylistSong,
+    PlayHistory,
+    PlayStatistic,
+    AppSetting,
+    UserProfile,
+    DislikedSong,
+    ArtistPlayStat,
+    DailyPlayStat,
+    Comment,
+    Like,
+    Notification,
+    Order,
+    UserFollow,
+    VipPlan,
+  ],
+})
+```
+
+#### 数据模型 (src/database/models/*.ts)
+- 使用装饰器定义字段
+- 实现关联关系（如歌单与歌曲）
+- 添加业务方法（如标记为已同步）
+
+#### 同步引擎 (src/database/sync/syncEngine.ts)
+- 监听应用状态（前台/后台）
+- 定时检查未同步数据
+- 批量上传到Supabase
+- 处理同步冲突（服务器优先）
+- 下载服务器新数据到本地
+
+#### React Hooks (src/database/hooks/*.ts)
+- 使用withObservables包装组件
+- 提供响应式数据查询
+- 自动更新UI（无需手动setState）
+
+### 4.5 修改现有代码
+
+#### 需要修改的核心文件：
+1. **src/core/init/dataInit.ts**
+   - 初始化本地数据库
+   - 启动后台同步服务
+   - 从本地数据库加载用户列表
+
+2. **src/services/playlistSync.ts**
+   - 改为从本地数据库读取
+   - 写操作先写本地，标记待同步
+   - 移除直接的Supabase调用
+
+3. **src/core/player/playHistoryIntegration.ts**
+   - 播放记录写入本地数据库
+   - 移除直接调用API
+
+4. **所有"我的"页面组件**
+   - 使用withObservables HOC订阅数据
+   - 从本地数据库读取数据
+   - 实现实时响应式更新
+
+## 五、实施优先级
+
+### 5.1 第一阶段（核心功能）
+1. 安装WatermelonDB依赖
+2. 创建基础数据模型（Favorite, Playlist, PlayHistory）
+3. 实现数据库初始化
+4. 修改收藏功能使用本地数据库
+5. 实现基础同步引擎
+
+### 5.2 第二阶段（扩展功能）
+1. 实现歌单本地存储
+2. 实现播放历史本地存储
+3. 实现播放统计本地存储
+4. 修改所有"我的"页面组件
+5. 实现响应式UI更新
+
+### 5.3 第三阶段（同步功能）
+1. 实现后台同步引擎
+2. 实现冲突解决机制
+3. 实现数据迁移功能
+4. 完善错误处理和重试机制
+
+### 5.4 第四阶段（高级功能）
+1. 实现用户配置本地存储
+2. 实现用户资料本地存储
+3. 实现艺术家统计本地存储
+4. 实现每日统计本地存储
+5. 完善同步策略
+
+## 六、预期效果
+
+### 6.1 性能提升
+- **页面跳转时间**：从10秒+降低到毫秒级
+- **数据加载速度**：从网络请求延迟降低到本地读取
+- **用户体验**：从转圈等待变为即时响应
+
+### 6.2 功能特性
+- **离线使用**：无网络时仍可正常使用所有功能
+- **数据同步**：后台自动同步，用户无感知
+- **冲突解决**：智能处理数据冲突
+- **实时更新**：UI自动响应数据变化
+
+### 6.3 开发体验
+- **响应式编程**：使用Observable自动更新UI
+- **类型安全**：TypeScript支持
+- **调试友好**：本地数据库便于调试
+- **扩展性强**：易于添加新功能
+
+## 七、数据监听与实时更新
+
+使用WatermelonDB的Observable特性实现响应式UI：
+```typescript
+// 监听收藏列表变化
+const favorites = database.get('favorites')
+  .query(Q.where('user_id', userId))
+  .observe()
+
+// 在React组件中使用
+const MyFavorites = withObservables(['userId'], ({ userId }) => ({
+  favorites: database.get('favorites')
+    .query(Q.where('user_id', userId))
+    .observe()
+}))(({ favorites }) => (
+  <FlatList data={favorites} ... />
+))
+```
+
+当用户添加收藏时，UI自动更新，无需手动刷新。
+
+## 八、增量同步策略
+
+### 8.1 增量同步实现
+只同步 synced=0 的记录，减少数据传输：
+```typescript
+// 获取未同步的收藏
+const unsyncedFavorites = await database
+  .get('favorites')
+  .query(Q.where('synced', false))
+  .fetch()
+
+// 批量上传到服务器
+await supabase.from('favorite_songs').upsert(unsyncedFavorites)
+
+// 标记为已同步
+await database.write(async () => {
+  for (const fav of unsyncedFavorites) {
+    await fav.update(f => { f.synced = true })
+  }
+})
+```
+
+### 8.2 冲突解决策略
+- **服务器优先**：启动时服务器数据覆盖本地
+- **本地优先**：用户操作后本地数据覆盖服务器
+- **时间戳比较**：updated_at 较新的数据获胜

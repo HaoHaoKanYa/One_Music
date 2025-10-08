@@ -9,44 +9,30 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native'
-import { favoritesAPI } from '@/services/api'
-import type { FavoriteSong } from '@/services/api/favorites'
+import { withObservables } from '@nozbe/watermelondb/react'
+import { Q } from '@nozbe/watermelondb'
+import { database } from '@/database'
+import { authAPI } from '@/services/api/auth'
+import { RequireAuth } from '@/components/common/RequireAuth'
 
 interface FavoritesListProps {
-  onSongPress?: (song: FavoriteSong) => void
-  onPlayAll?: (songs: FavoriteSong[]) => void
+  componentId: string
+  onSongPress?: (song: any) => void
+  onPlayAll?: (songs: any[]) => void
 }
 
-export const FavoritesListScreen: React.FC<FavoritesListProps> = ({
-  onSongPress,
-  onPlayAll,
-}) => {
-  const [favorites, setFavorites] = useState<FavoriteSong[]>([])
-  const [loading, setLoading] = useState(true)
+const FavoritesListScreenComponent: React.FC<FavoritesListProps & {
+  favorites: any[]
+}> = ({ componentId, onSongPress, onPlayAll, favorites }) => {
   const [refreshing, setRefreshing] = useState(false)
-
-  const loadFavorites = useCallback(async () => {
-    try {
-      const data = await favoritesAPI.getFavorites()
-      setFavorites(data)
-    } catch (error: any) {
-      Alert.alert('错误', error.message || '加载收藏失败')
-    } finally {
-      setLoading(false)
-      setRefreshing(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    loadFavorites()
-  }, [loadFavorites])
 
   const handleRefresh = () => {
     setRefreshing(true)
-    loadFavorites()
+    // 本地数据库数据是实时的，不需要重新加载
+    setTimeout(() => setRefreshing(false), 500)
   }
 
-  const handleRemoveFavorite = async (song: FavoriteSong) => {
+  const handleRemoveFavorite = async (song: any) => {
     Alert.alert(
       '确认',
       '确定要取消收藏这首歌吗？',
@@ -57,8 +43,9 @@ export const FavoritesListScreen: React.FC<FavoritesListProps> = ({
           style: 'destructive',
           onPress: async () => {
             try {
-              await favoritesAPI.removeFavorite(song.song_id, song.source)
-              setFavorites(prev => prev.filter(s => s.id !== song.id))
+              await database.write(async () => {
+                await song.destroyPermanently()
+              })
               // 触发收藏更新事件
               global.app_event.favoritesUpdated()
             } catch (error: any) {
@@ -78,14 +65,14 @@ export const FavoritesListScreen: React.FC<FavoritesListProps> = ({
     onPlayAll?.(favorites)
   }
 
-  const renderSongItem = ({ item }: { item: FavoriteSong }) => (
+  const renderSongItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       style={styles.songItem}
       onPress={() => onSongPress?.(item)}
     >
       <View style={styles.songInfo}>
         <Text style={styles.songName} numberOfLines={1}>
-          {item.song_name}
+          {item.songName}
         </Text>
         <Text style={styles.artistName} numberOfLines={1}>
           {item.artist}
@@ -100,16 +87,9 @@ export const FavoritesListScreen: React.FC<FavoritesListProps> = ({
     </TouchableOpacity>
   )
 
-  if (loading) {
-    return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#1DB954" />
-      </View>
-    )
-  }
-
   return (
-    <View style={styles.container}>
+    <RequireAuth componentId={componentId}>
+      <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>我的收藏</Text>
         <Text style={styles.count}>{favorites.length} 首歌曲</Text>
@@ -135,7 +115,8 @@ export const FavoritesListScreen: React.FC<FavoritesListProps> = ({
           <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
       />
-    </View>
+      </View>
+    </RequireAuth>
   )
 }
 
@@ -228,3 +209,12 @@ const styles = StyleSheet.create({
     color: '#666666',
   },
 })
+
+// 使用withObservables包装组件，实现响应式数据
+const FavoritesListScreen = withObservables([], () => ({
+  favorites: database.get('favorites')
+    .query()
+    .observe()
+}))(FavoritesListScreenComponent)
+
+export { FavoritesListScreen }
