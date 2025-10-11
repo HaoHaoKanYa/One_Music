@@ -25,7 +25,7 @@ export default memo(() => {
       </View>
 
       {/* 一、品牌定位与致谢 */}
-      <View style={styles.centerPart}>
+      <View style={styles.part}>
         <Text style={styles.sectionTitle}>一、One_Music 品牌定位与致谢</Text>
       </View>
       <View style={styles.part}>
@@ -33,7 +33,7 @@ export default memo(() => {
       </View>
 
       {/* 二、免费属性与官方渠道声明 */}
-      <View style={styles.centerPart}>
+      <View style={styles.part}>
         <Text style={styles.sectionTitle}>二、One_Music 免费属性与官方渠道声明</Text>
       </View>
       <View style={styles.part}>
@@ -47,7 +47,7 @@ export default memo(() => {
       </View>
 
       {/* 三、数据来源与音源规则 */}
-      <View style={styles.centerPart}>
+      <View style={styles.part}>
         <Text style={styles.sectionTitle}>三、One_Music 数据来源与音源规则</Text>
       </View>
       <View style={styles.part}>
@@ -58,7 +58,7 @@ export default memo(() => {
       </View>
 
       {/* 四、版权保护与数据处理要求 */}
-      <View style={styles.centerPart}>
+      <View style={styles.part}>
         <Text style={styles.sectionTitle}>四、One_Music 版权保护与数据处理要求</Text>
       </View>
       <View style={styles.part}>
@@ -69,7 +69,7 @@ export default memo(() => {
       </View>
 
       {/* 五、免责声明 */}
-      <View style={styles.centerPart}>
+      <View style={styles.part}>
         <Text style={styles.sectionTitle}>五、One_Music 免责声明</Text>
       </View>
       <View style={styles.part}>
@@ -77,7 +77,7 @@ export default memo(() => {
       </View>
 
       {/* 六、使用协议接受条款 */}
-      <View style={styles.centerPart}>
+      <View style={styles.part}>
         <Text style={styles.sectionTitle}>六、One_Music 使用协议接受条款</Text>
       </View>
       <View style={styles.part}>
@@ -85,7 +85,7 @@ export default memo(() => {
       </View>
 
       {/* 署名 */}
-      <View style={styles.part}>
+      <View style={styles.rightPart}>
         <Text style={styles.text}>By: </Text>
         <Text style={styles.boldText}>One_Music</Text>
       </View>
@@ -110,6 +110,15 @@ const styles = createStyle({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  rightPart: {
+    marginLeft: 15,
+    marginRight: 15,
+    marginBottom: 10,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+  },
   titleText: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -123,7 +132,6 @@ const styles = createStyle({
     textAlignVertical: 'bottom',
     marginTop: 5,
     marginBottom: 3,
-    textAlign: 'center',
   },
   text: {
     fontSize: 14,

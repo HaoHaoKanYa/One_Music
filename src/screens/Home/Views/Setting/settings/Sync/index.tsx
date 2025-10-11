@@ -14,7 +14,8 @@ export default memo(() => {
   return (
     <Section title={t('setting_sync')}>
       <IsEnable host={host} setHost={setHost} />
-      <History setHost={setHost} />
+      {/* 隐藏历史地址按钮 */}
+      {/* <History setHost={setHost} /> */}
     </Section>
   )
 })

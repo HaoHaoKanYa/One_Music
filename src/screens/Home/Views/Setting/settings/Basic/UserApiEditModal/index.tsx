@@ -108,12 +108,6 @@ export default forwardRef<UserApiEditModalType, {}>((props, ref) => {
               <Text size={16} style={styles.title}>{t('user_api_title')}</Text>
               <List />
               <View style={styles.tips}>
-                <Text style={styles.tipsText} size={12}>
-                  {t('user_api_readme')}
-                </Text>
-                <TouchableOpacity onPress={openFAQPage}>
-                  <Text style={{ ...styles.tipsText, textDecorationLine: 'underline' }} size={12} color={theme['c-primary-font']}>FAQ</Text>
-                </TouchableOpacity>
                 <View>
                   <Text style={styles.tipsText} size={12}>{t('user_api_note')}</Text>
                 </View>

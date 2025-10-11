@@ -32,7 +32,7 @@ export default ({ title, children }: Props) => {
         </Text>
       </TouchableOpacity>
       {isExpanded && (
-        <View style={styles.content}>
+        <View style={{ ...styles.content, borderColor: theme['c-border-background'] }}>
           {children}
         </View>
       )}
@@ -58,6 +58,13 @@ const styles = createStyle({
     flex: 1,
   },
   content: {
-    paddingTop: 5,
+    marginHorizontal: 10,
+    marginTop: 5,
+    marginBottom: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 5,
+    borderWidth: 1,
+    borderRadius: 8,
+    backgroundColor: 'transparent',
   },
 })

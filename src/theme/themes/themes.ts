@@ -2020,7 +2020,7 @@ export default [
   },
   {
     "id": "grey",
-    "name": "灰常美丽",
+    "name": "时尚简约",
     "isDark": false,
     "isCustom": false,
     "config": {

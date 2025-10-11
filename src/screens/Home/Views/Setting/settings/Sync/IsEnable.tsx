@@ -155,6 +155,17 @@ export default memo(({ host, setHost }: {
   return (
     <>
       <View style={styles.infoContent}>
+        <View style={styles.noticeContainer}>
+          <Text style={styles.noticeTitle} size={15} color={theme['c-font']}>
+            💡 {t('setting_sync_notice_title')}
+          </Text>
+          <Text style={styles.noticeDesc} size={14} color={theme['c-font']}>
+            {t('setting_sync_notice_desc')}
+          </Text>
+        </View>
+      </View>
+      {/* 隐藏原有的同步设置项 */}
+      {/* <View style={styles.infoContent}>
         <CheckBoxItem disabled={!host} check={isEnableSync} label={t('setting_sync_enable')} onChange={handleSetEnableSync} />
         <Text style={styles.textAddr} size={13}>{t('setting_sync_address', { address })}</Text>
         <Text style={styles.text} size={13}>{t('setting_sync_status', { status })}</Text>
@@ -176,7 +187,7 @@ export default memo(({ host, setHost }: {
             style={{ ...styles.authCodeInput, backgroundColor: theme['c-primary-background'] }}
           />
         </View>
-      </ConfirmAlert>
+      </ConfirmAlert> */}
     </>
   )
 })
@@ -185,6 +196,18 @@ export default memo(({ host, setHost }: {
 const styles = createStyle({
   infoContent: {
     marginTop: 5,
+  },
+  noticeContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  noticeTitle: {
+    marginBottom: 12,
+    lineHeight: 22,
+  },
+  noticeDesc: {
+    lineHeight: 22,
   },
   textAddr: {
     marginLeft: 25,

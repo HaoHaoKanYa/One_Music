@@ -19,6 +19,19 @@ const useActive = (id: string) => {
   return isActive
 }
 
+// 只显示这9个主题ID
+const VISIBLE_THEME_IDS = [
+  'grey',          // 灰常美丽
+  'piano_girl',    // 钢琴女孩 (gqnh)
+  'guitar_boy',    // 吉他男孩 (jtnh)
+  'flute_girl',    // 笛子女孩 (dznh)
+  'drum_girl',     // 敲鼓女孩 (qgnh)
+  'guzheng_girl',  // 古筝女孩 (gznh)
+  'microphone_girl', // 话筒女孩 (htnh)
+  'dance_girl',    // 跳舞女孩 (twnh)
+  'keyboard_boy',  // 电子琴男孩 (dzqnh)
+]
+
 const ThemeItem = ({ id, name, color, image, setTheme, showAll }: {
   id: string
   name: string
@@ -29,9 +42,12 @@ const ThemeItem = ({ id, name, color, image, setTheme, showAll }: {
 }) => {
   const theme = useTheme()
   const isActive = useActive(id)
+  
+  // 只显示指定的主题
+  const isVisible = VISIBLE_THEME_IDS.includes(id)
 
   return (
-    showAll || isActive ? (
+    (showAll || isActive) && isVisible ? (
       <TouchableOpacity style={{ ...styles.item, width: scaleSizeH(ITEM_HEIGHT) }} activeOpacity={0.5} onPress={() => { setTheme(id) }}>
         <View style={{ ...styles.colorContent, width: scaleSizeH(COLOR_ITEM_HEIGHT), borderColor: isActive ? color : 'transparent' }}>
           {
