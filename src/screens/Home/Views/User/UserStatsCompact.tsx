@@ -7,7 +7,7 @@ import { Q } from '@nozbe/watermelondb'
 import { database } from '@/database'
 import { supabase } from '@/lib/supabase'
 
-const UserStatsComponent = ({ favorites, playlists, playHistory }: any) => {
+const UserStatsCompactComponent = ({ favorites, playlists, playHistory }: any) => {
   const theme = useTheme()
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
@@ -15,7 +15,6 @@ const UserStatsComponent = ({ favorites, playlists, playHistory }: any) => {
   useEffect(() => {
     checkAuth()
     
-    // 监听认证状态变化
     const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         setIsLoggedIn(true)
@@ -26,7 +25,6 @@ const UserStatsComponent = ({ favorites, playlists, playHistory }: any) => {
       }
     })
 
-    // 监听数据更新事件
     const handleFavoritesUpdate = () => {
       setRefreshKey(prev => prev + 1)
     }
@@ -63,33 +61,36 @@ const UserStatsComponent = ({ favorites, playlists, playHistory }: any) => {
     }
   }
 
-  // 如果未登录，显示 0
   const displayValue = (value: number) => isLoggedIn ? value : 0
 
   return (
     <View style={styles.container}>
       <Text style={styles.title} color={theme['c-font']}>📊 我的数据</Text>
 
-      <View style={styles.statsGrid}>
+      <View style={styles.statsRow}>
         <View style={styles.statItem}>
+          <Text style={styles.statLabel} color={theme['c-350']}>收藏</Text>
           <Text style={styles.statValue} color={theme['c-primary-font']}>
             {displayValue(favorites?.length || 0)}
           </Text>
-          <Text style={styles.statLabel} color={theme['c-350']}>收藏歌曲</Text>
         </View>
 
+        <View style={styles.statDivider} />
+
         <View style={styles.statItem}>
+          <Text style={styles.statLabel} color={theme['c-350']}>歌单</Text>
           <Text style={styles.statValue} color={theme['c-primary-font']}>
             {displayValue(playlists?.length || 0)}
           </Text>
-          <Text style={styles.statLabel} color={theme['c-350']}>创建歌单</Text>
         </View>
 
+        <View style={styles.statDivider} />
+
         <View style={styles.statItem}>
+          <Text style={styles.statLabel} color={theme['c-350']}>历史</Text>
           <Text style={styles.statValue} color={theme['c-primary-font']}>
             {displayValue(playHistory?.length || 0)}
           </Text>
-          <Text style={styles.statLabel} color={theme['c-350']}>播放历史</Text>
         </View>
       </View>
     </View>
@@ -99,37 +100,45 @@ const UserStatsComponent = ({ favorites, playlists, playHistory }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 12,
-    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 8,
     backgroundColor: 'rgba(248, 249, 250, 0.7)',
     borderWidth: 1,
     borderColor: 'rgba(232, 232, 232, 0.5)',
-    justifyContent: 'center',
   },
   title: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginRight: 12,
   },
-  statsGrid: {
+  statsRow: {
+    flex: 1,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-around',
   },
   statItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 2,
+    gap: 4,
   },
   statLabel: {
     fontSize: 11,
   },
+  statValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  statDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+  },
 })
 
-// 使用withObservables包装组件，实现响应式数据
-const UserStats = withObservables([], () => ({
+const UserStatsCompact = withObservables([], () => ({
   favorites: database.get('favorites')
     .query()
     .observe(),
@@ -139,6 +148,6 @@ const UserStats = withObservables([], () => ({
   playHistory: database.get('play_history')
     .query()
     .observe()
-}))(UserStatsComponent)
+}))(UserStatsCompactComponent)
 
-export default UserStats
+export default UserStatsCompact

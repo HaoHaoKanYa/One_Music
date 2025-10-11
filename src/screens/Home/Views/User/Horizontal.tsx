@@ -4,8 +4,8 @@ import { Icon } from '@/components/common/Icon'
 import Text from '@/components/common/Text'
 import { useTheme } from '@/store/theme/hook'
 import { setNavActiveId } from '@/core/common'
-import UserHeader from './UserHeader'
-import UserStats from './UserStats'
+import UserHeaderCompact from './UserHeaderCompact'
+import UserStatsCompact from './UserStatsCompact'
 import FavoritesContent from './components/FavoritesContent'
 import PlayHistoryContent from './components/PlayHistoryContent'
 import PlaylistsContent from './components/PlaylistsContent'
@@ -57,10 +57,10 @@ export default () => {
         </TouchableOpacity>
 
         <View style={styles.cardWrapper}>
-          <UserHeader />
+          <UserHeaderCompact />
         </View>
         <View style={styles.cardWrapper}>
-          <UserStats />
+          <UserStatsCompact />
         </View>
       </View>
 
