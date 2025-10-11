@@ -1,5 +1,5 @@
 import React, { memo } from 'react'
-import { View } from 'react-native'
+import { View, TouchableOpacity, Alert } from 'react-native'
 import { useI18n } from '@/lang'
 import { createStyle } from '@/utils/tools'
 import Section from '../../components/Section'
@@ -9,6 +9,7 @@ import CheckBox from '@/components/common/CheckBox'
 import Text from '@/components/common/Text'
 import { useTheme } from '@/store/theme/hook'
 import RNFS from 'react-native-fs'
+import { downloadManager } from '@/services/downloadManager'
 
 const QUALITY_OPTIONS = [
   { value: 'standard', label: '标准音质 (128kbps)' },
@@ -30,19 +31,95 @@ const Download = memo(() => {
   const [wifiOnly, setWifiOnly] = React.useState(false)
   const [maxConcurrent, setMaxConcurrent] = React.useState(3)
   const [autoCleanup, setAutoCleanup] = React.useState(false)
-  
-  // 获取完整的下载路径 - 使用外部存储的 Download/OneMusic 目录
-  const downloadPath = RNFS.ExternalStorageDirectoryPath + '/Download/OneMusic'
+
+  // 获取当前下载路径
+  const [downloadPath, setDownloadPath] = React.useState(downloadManager.getDownloadPath())
+
+  React.useEffect(() => {
+    // 定期更新显示的路径
+    const interval = setInterval(() => {
+      setDownloadPath(downloadManager.getDownloadPath())
+    }, 1000)
+    return () => clearInterval(interval)
+  }, [])
 
   React.useEffect(() => {
     // 同步设置到 downloadManager
-    const { downloadManager } = require('@/services/downloadManager')
     downloadManager.updateSettings({
       wifiOnly,
       maxConcurrent,
       autoCleanup,
     })
   }, [wifiOnly, maxConcurrent, autoCleanup])
+
+  const handleChangeDownloadPath = () => {
+    const pathOptions = [
+      {
+        label: '应用私有目录（推荐）',
+        path: RNFS.DocumentDirectoryPath + '/OneMusic',
+        desc: '无需额外权限，卸载应用时会被删除',
+      },
+      {
+        label: '应用缓存目录',
+        path: RNFS.CachesDirectoryPath + '/OneMusic',
+        desc: '无需额外权限，系统可能自动清理',
+      },
+      {
+        label: '公共下载目录',
+        path: RNFS.ExternalStorageDirectoryPath + '/Download/OneMusic',
+        desc: 'Android 11+可能需要额外权限',
+      },
+      {
+        label: '音乐目录',
+        path: RNFS.ExternalStorageDirectoryPath + '/Music/OneMusic',
+        desc: 'Android 11+可能需要额外权限',
+      },
+    ]
+
+    Alert.alert(
+      '选择下载路径',
+      '请选择歌曲下载保存位置\n\n推荐使用应用私有目录，无需额外权限',
+      [
+        ...pathOptions.map(option => ({
+          text: `${option.label}\n${option.desc}`,
+          onPress: async () => {
+            try {
+              await downloadManager.setDownloadPath(option.path)
+              Alert.alert('成功', `下载路径已设置为:\n${option.path}\n\n新下载的歌曲将保存到此位置`)
+            } catch (error: any) {
+              Alert.alert(
+                '设置失败',
+                `无法使用该路径:\n${error.message}\n\n建议使用应用私有目录`
+              )
+            }
+          },
+        })),
+        { text: '取消', style: 'cancel' },
+      ]
+    )
+  }
+
+  const handleCleanupNow = () => {
+    Alert.alert(
+      '清理过期下载',
+      '将删除30天未播放的下载文件，确定继续吗？',
+      [
+        { text: '取消', style: 'cancel' },
+        {
+          text: '确定',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await downloadManager.cleanupOldDownloads()
+              Alert.alert('成功', '清理完成')
+            } catch (error: any) {
+              Alert.alert('错误', error.message || '清理失败')
+            }
+          },
+        },
+      ]
+    )
+  }
 
   return (
     <Section title={t('setting_download')}>
@@ -87,14 +164,17 @@ const Download = memo(() => {
       </SubTitle>
 
       {/* 下载路径 */}
-      <View style={styles.content}>
-        <Text size={14} color={theme['c-font']}>
-          {t('setting_download_path')}
-        </Text>
+      <TouchableOpacity style={styles.content} onPress={handleChangeDownloadPath}>
+        <View style={styles.pathRow}>
+          <Text size={14} color={theme['c-font']}>
+            {t('setting_download_path')}
+          </Text>
+          <Text style={styles.arrow}>›</Text>
+        </View>
         <Text style={styles.pathText} size={12} color={theme['c-font-label']} selectable>
           {downloadPath}
         </Text>
-      </View>
+      </TouchableOpacity>
 
       {/* 自动清理 */}
       <View style={styles.content}>
@@ -107,6 +187,19 @@ const Download = memo(() => {
           {t('setting_download_auto_cleanup_desc')}
         </Text>
       </View>
+
+      {/* 立即清理 */}
+      <TouchableOpacity style={styles.content} onPress={handleCleanupNow}>
+        <View style={styles.pathRow}>
+          <Text size={14} color={theme['c-font']}>
+            立即清理过期下载
+          </Text>
+          <Text style={styles.arrow}>›</Text>
+        </View>
+        <Text style={styles.desc} size={13} color={theme['c-font-label']}>
+          清理30天未播放的下载文件
+        </Text>
+      </TouchableOpacity>
     </Section>
   )
 })
@@ -126,8 +219,17 @@ const styles = createStyle({
     marginTop: 5,
     marginLeft: 30,
   },
+  pathRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   pathText: {
     marginTop: 5,
     marginLeft: 5,
+  },
+  arrow: {
+    fontSize: 18,
+    color: '#999',
   },
 })

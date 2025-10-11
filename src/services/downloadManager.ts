@@ -25,9 +25,9 @@ class DownloadManager {
   private autoCleanupEnabled = false
 
   constructor() {
-    // 设置默认下载路径 - 优先使用外部存储的 Download 目录
-    const externalDownload = RNFS.ExternalStorageDirectoryPath + '/Download/OneMusic'
-    this.downloadPath = externalDownload
+    // 设置默认下载路径 - 使用应用私有目录（无需额外权限）
+    // Android 11+ 对公共目录访问有严格限制
+    this.downloadPath = RNFS.DocumentDirectoryPath + '/OneMusic'
     console.log('[DownloadManager] 默认下载路径:', this.downloadPath)
     this.initDownloadPath()
     this.loadSettings()
@@ -119,31 +119,17 @@ class DownloadManager {
       console.log('[DownloadManager] 下载目录创建成功')
     } catch (error: any) {
       console.error('[DownloadManager] 创建下载目录失败:', error)
-      console.log('[DownloadManager] 尝试使用备用路径...')
-      
-      // 如果创建失败，使用应用私有目录
+      // 使用缓存目录作为最后的备用方案
+      this.downloadPath = RNFS.CachesDirectoryPath + '/OneMusic'
+      console.log('[DownloadManager] 使用缓存目录:', this.downloadPath)
       try {
-        this.downloadPath = RNFS.DocumentDirectoryPath + '/OneMusic'
-        console.log('[DownloadManager] 备用路径:', this.downloadPath)
-        
-        const backupExists = await RNFS.exists(this.downloadPath)
-        if (!backupExists) {
+        const cacheExists = await RNFS.exists(this.downloadPath)
+        if (!cacheExists) {
           await RNFS.mkdir(this.downloadPath)
-          console.log('[DownloadManager] 备用目录创建成功')
+          console.log('[DownloadManager] 缓存目录创建成功')
         }
-      } catch (backupError) {
-        console.error('[DownloadManager] 创建备用目录也失败:', backupError)
-        // 最后尝试使用缓存目录
-        this.downloadPath = RNFS.CachesDirectoryPath + '/OneMusic'
-        console.log('[DownloadManager] 使用缓存目录:', this.downloadPath)
-        try {
-          const cacheExists = await RNFS.exists(this.downloadPath)
-          if (!cacheExists) {
-            await RNFS.mkdir(this.downloadPath)
-          }
-        } catch (cacheError) {
-          console.error('[DownloadManager] 所有路径都失败了:', cacheError)
-        }
+      } catch (cacheError) {
+        console.error('[DownloadManager] 创建缓存目录失败:', cacheError)
       }
     }
   }
