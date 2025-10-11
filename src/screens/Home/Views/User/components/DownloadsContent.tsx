@@ -7,10 +7,12 @@ import {
   StyleSheet,
   Alert,
   RefreshControl,
+  Linking,
 } from 'react-native'
 import { downloadManager } from '@/services/downloadManager'
 import { useTheme } from '@/store/theme/hook'
 import { Icon } from '@/components/common/Icon'
+import RNFS from 'react-native-fs'
 
 interface DownloadItem {
   id: string
@@ -50,7 +52,7 @@ export default function DownloadsContent() {
 
     return () => {
       if (global.app_event.downloadListUpdate === handleUpdate) {
-        global.app_event.downloadListUpdate = () => {}
+        global.app_event.downloadListUpdate = () => { }
       }
     }
   }, [])
@@ -114,6 +116,107 @@ export default function DownloadsContent() {
     )
   }
 
+  const handleOpenFolder = async (item: DownloadItem) => {
+    try {
+      if (!item.filePath) {
+        Alert.alert('提示', '文件路径不存在')
+        return
+      }
+
+      // 获取文件所在目录
+      const folderPath = item.filePath.substring(0, item.filePath.lastIndexOf('/'))
+
+      // 显示文件位置，提供多个选项
+      Alert.alert(
+        '文件位置',
+        `${folderPath}`,
+        [
+          {
+            text: '复制路径',
+            onPress: () => {
+              const Clipboard = require('@react-native-clipboard/clipboard').default
+              Clipboard.setString(folderPath)
+              Alert.alert('成功', '路径已复制到剪贴板')
+            }
+          },
+          {
+            text: '打开文件管理器',
+            onPress: async () => {
+              try {
+                const { NativeModules } = require('react-native')
+                const { FileManagerModule } = NativeModules
+                if (FileManagerModule && FileManagerModule.openFolder) {
+                  await FileManagerModule.openFolder(folderPath)
+                }
+              } catch (error: any) {
+                console.error('[DownloadsContent] 打开文件夹失败:', error)
+              }
+            }
+          },
+          { text: '取消', style: 'cancel' }
+        ]
+      )
+    } catch (error: any) {
+      console.error('[DownloadsContent] 处理失败:', error)
+      Alert.alert('错误', error.message)
+    }
+  }
+
+  const handlePlaySong = async (item: DownloadItem) => {
+    try {
+      console.log('[DownloadsContent] 准备播放歌曲:', item.songName, item.filePath)
+
+      if (item.downloadStatus !== 'completed') {
+        Alert.alert('提示', '歌曲尚未下载完成')
+        return
+      }
+
+      // 检查文件是否存在
+      const exists = await RNFS.exists(item.filePath)
+      if (!exists) {
+        Alert.alert('错误', '文件不存在，可能已被删除')
+        return
+      }
+
+      // 构造本地音乐信息对象
+      const ext = item.filePath.substring(item.filePath.lastIndexOf('.') + 1)
+      const musicInfo: LX.Music.MusicInfoLocal = {
+        id: item.songId,
+        name: item.songName,
+        singer: item.artist,
+        source: 'local',
+        interval: null,
+        meta: {
+          songId: item.songId,
+          filePath: item.filePath,
+          ext: ext,
+          albumName: '',
+        },
+      }
+
+      console.log('[DownloadsContent] 音乐信息:', musicInfo)
+
+      // 直接播放歌曲
+      const { playNext } = await import('@/core/player/player')
+      const { addTempPlayList } = await import('@/core/player/tempPlayList')
+
+      // 添加到临时播放列表
+      addTempPlayList([{
+        listId: null,
+        musicInfo,
+        isTop: true,
+      }])
+
+      // 立即播放
+      await playNext()
+
+      console.log('[DownloadsContent] 已开始播放')
+    } catch (error: any) {
+      console.error('[DownloadsContent] 播放失败:', error)
+      Alert.alert('错误', '播放失败: ' + error.message)
+    }
+  }
+
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 B'
     const k = 1024
@@ -163,6 +266,7 @@ export default function DownloadsContent() {
     <TouchableOpacity
       style={styles.downloadItem}
       activeOpacity={0.6}
+      onPress={() => handlePlaySong(item)}
     >
       <Text style={styles.songIndex}>{index + 1}</Text>
       <Text style={styles.songName} numberOfLines={1}>
@@ -175,12 +279,27 @@ export default function DownloadsContent() {
         {getStatusText(item.downloadStatus)}
       </Text>
       <Text style={styles.fileSize}>
-        {item.downloadStatus === 'completed' 
+        {item.downloadStatus === 'completed'
           ? formatFileSize(item.fileSize)
           : item.downloadStatus === 'downloading'
-          ? `${item.progress}%`
-          : '未知'}
+            ? `${item.progress}%`
+            : '未知'}
       </Text>
+
+      {/* 打开文件夹按钮 */}
+      {item.downloadStatus === 'completed' && (
+        <TouchableOpacity
+          style={styles.folderButton}
+          onPress={(e) => {
+            e.stopPropagation()
+            handleOpenFolder(item)
+          }}
+        >
+          <Text style={{ fontSize: 18 }}>📁</Text>
+        </TouchableOpacity>
+      )}
+
+      {/* 删除按钮 */}
       <TouchableOpacity
         style={styles.deleteButton}
         onPress={(e) => {
@@ -269,8 +388,8 @@ export default function DownloadsContent() {
               {filter === 'all'
                 ? '开始下载你喜欢的音乐吧'
                 : filter === 'downloading'
-                ? '当前没有正在下载的歌曲'
-                : '还没有完成的下载'}
+                  ? '当前没有正在下载的歌曲'
+                  : '还没有完成的下载'}
             </Text>
           </View>
         }
@@ -347,6 +466,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#999',
     marginRight: 12,
+  },
+  folderButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 8,
   },
   deleteButton: {
     paddingHorizontal: 8,

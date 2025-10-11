@@ -36,6 +36,7 @@ public class MainApplication extends NavigationApplication {
           packages.add(new UtilsPackage());
           packages.add(new CryptoPackage());
           packages.add(new UserApiPackage());
+          packages.add(new FileManagerPackage());
           // 添加 WatermelonDB JSI 支持以启用高性能数据库操作
           packages.add(new WatermelonDBJSIPackage());
           return packages;

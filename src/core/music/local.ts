@@ -74,7 +74,6 @@ export const getMusicUrl = async({ musicInfo, isRefresh, allowToggleSource = tru
 }): Promise<string> => {
   if (!isRefresh) {
     const path = await getLocalFilePath(musicInfo)
-    // console.log(path)
     if (path) return path
   }
 
