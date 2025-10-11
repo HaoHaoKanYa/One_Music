@@ -98,18 +98,18 @@ const UserStatsComponent = ({ favorites, playlists, playHistory }: any) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    padding: 12,
+    padding: 16,
+    marginBottom: 12,
     borderRadius: 12,
+    marginHorizontal: 12,
     backgroundColor: 'rgba(248, 249, 250, 0.7)',
     borderWidth: 1,
     borderColor: 'rgba(232, 232, 232, 0.5)',
-    justifyContent: 'center',
   },
   title: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   statsGrid: {
     flexDirection: 'row',
@@ -119,12 +119,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 2,
+    marginBottom: 4,
   },
   statLabel: {
-    fontSize: 11,
+    fontSize: 12,
   },
 })
 
