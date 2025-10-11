@@ -13,17 +13,21 @@ import Version from '../settings/Version'
 import About from '../settings/About'
 import { createStyle } from '@/utils/tools'
 import { SETTING_SCREENS, type SettingScreenIds } from '../Main'
+import { useTheme } from '@/store/theme/hook'
 
 type FlatListType = FlatListProps<SettingScreenIds>
 
 
 const styles = createStyle({
   content: {
-    paddingLeft: 15,
-    paddingRight: 15,
-    paddingTop: 15,
-    paddingBottom: 15,
+    marginHorizontal: 10,
+    marginVertical: 15,
+    paddingHorizontal: 10,
+    paddingVertical: 15,
     flex: 0,
+    borderWidth: 1,
+    borderRadius: 12,
+    backgroundColor: 'transparent',
   },
 })
 
@@ -45,6 +49,7 @@ const ListItem = memo(({
 }, () => true)
 
 export default () => {
+  const theme = useTheme()
   const renderItem: FlatListType['renderItem'] = ({ item }) => <ListItem id={item} />
   const getkey: FlatListType['keyExtractor'] = item => item
 
@@ -54,7 +59,7 @@ export default () => {
       keyboardShouldPersistTaps={'always'}
       renderItem={renderItem}
       keyExtractor={getkey}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={{ ...styles.content, borderColor: theme['c-border-background'] }}
       maxToRenderPerBatch={2}
       // updateCellsBatchingPeriod={80}
       windowSize={2}

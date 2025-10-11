@@ -27,8 +27,8 @@ export default ({ title, children }: Props) => {
         activeOpacity={0.7}
       >
         <Text style={{ ...styles.title, borderLeftColor: theme['c-primary'] }} size={16}>{title}</Text>
-        <Text size={18} color={theme['c-font']}>
-          {isExpanded ? '▲' : '▼'}
+        <Text size={18} color={theme['c-primary']}>
+          {isExpanded ? '∧' : '∨'}
         </Text>
       </TouchableOpacity>
       {isExpanded && (

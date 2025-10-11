@@ -11,6 +11,7 @@ import { TEMP_FILE_PATH } from '@/utils/tools'
 import { syncPlaylistsFromServer } from '@/services/playlistSync'
 import { database } from '@/database'
 import { syncEngine } from '@/database/sync/syncEngine'
+import { loadPlaylistsFromDatabase } from '@/core/list/playlistsIntegration'
 // import { play, playList } from '../player/player'
 
 // const initPrevPlayInfo = async(appSetting: LX.AppSetting) => {
@@ -25,11 +26,11 @@ import { syncEngine } from '@/database/sync/syncEngine'
 //   if (appSetting['player.startupAutoPlay']) setTimeout(play)
 // }
 
-export default async(appSetting: LX.AppSetting) => {
+export default async (appSetting: LX.AppSetting) => {
   // await Promise.all([
   //   initUserApi(), // 自定义API
   // ]).catch(err => log.error(err))
-  
+
   // 初始化本地数据库
   bootLog('Initializing local database...')
   try {
@@ -40,7 +41,7 @@ export default async(appSetting: LX.AppSetting) => {
     console.error('Failed to initialize local database:', error)
     bootLog('Local database initialization failed.')
   }
-  
+
   // 启动同步引擎
   bootLog('Starting sync engine...')
   try {
@@ -50,21 +51,30 @@ export default async(appSetting: LX.AppSetting) => {
     console.error('Failed to start sync engine:', error)
     bootLog('Sync engine start failed.')
   }
-  
+
   void musicSdkInit() // 初始化音乐sdk
   bootLog('User list init...')
-  setUserList(await getUserLists()) // 获取用户列表
   
-  // 同步云端歌单（现在由同步引擎处理）
-  bootLog('Syncing playlists from server...')
+  // 从本地数据库(WatermelonDB)加载歌单到应用状态
+  bootLog('Loading playlists from database...')
   try {
-    await syncPlaylistsFromServer()
-    bootLog('Playlists synced.')
+    // 延迟加载，避免阻塞启动，并确保数据库已初始化
+    setTimeout(() => {
+      void loadPlaylistsFromDatabase().then(() => {
+        bootLog('Playlists loaded from database.')
+      }).catch((error) => {
+        console.error('Failed to load playlists from database:', error)
+        bootLog('Playlists load failed.')
+        // 如果加载失败，初始化为空列表
+        setUserList([])
+      })
+    }, 1000)
   } catch (error) {
-    console.error('Failed to sync playlists:', error)
-    bootLog('Playlists sync failed, using local data.')
+    console.error('Failed to schedule playlist loading:', error)
+    // 初始化为空列表
+    setUserList([])
   }
-  
+
   setDislikeInfo(await getDislikeInfo()) // 获取不喜欢列表
   bootLog('User list inited.')
   setNavActiveId((await getViewPrevState()).id)

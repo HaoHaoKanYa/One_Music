@@ -109,10 +109,9 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ componentId }) => {
       const { loadFavoritesFromDatabase } = require('@/core/list/favoritesIntegration')
       await loadFavoritesFromDatabase()
 
-      // 加载用户歌单到内存
-      const { getUserLists, setUserList } = require('@/core/list')
-      const userLists = await getUserLists()
-      setUserList(userLists)
+      // 从本地数据库加载用户歌单到内存
+      const { loadPlaylistsFromDatabase } = require('@/core/list/playlistsIntegration')
+      await loadPlaylistsFromDatabase()
 
       // 先关闭Modal，再显示成功提示
       Navigation.dismissModal(componentId)

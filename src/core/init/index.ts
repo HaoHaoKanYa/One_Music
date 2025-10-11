@@ -16,6 +16,7 @@ import { bootLog } from '@/utils/bootLog'
 import { cheatTip } from '@/utils/tools'
 import { initPlayHistoryIntegration } from '@/core/player/playHistoryIntegration'
 import { initFavoritesIntegration } from '@/core/list/favoritesIntegration'
+import { initPlaylistsIntegration } from '@/core/list/playlistsIntegration'
 
 let isFirstPush = true
 const handlePushedHomeScreen = async() => {
@@ -70,6 +71,9 @@ export default async() => {
 
   initFavoritesIntegration()
   bootLog('Favorites Integration inited.')
+
+  initPlaylistsIntegration()
+  bootLog('Playlists Integration inited.')
 
   // syncSetting()
 

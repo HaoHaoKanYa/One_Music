@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { setUserList, addListMusics, overwriteListMusics } from '@/core/list'
 import listState from '@/store/list/state'
 import settingState from '@/store/setting/state'
+import { Q } from '@nozbe/watermelondb'
 
 /**
  * 从Supabase加载用户歌单到本地
@@ -103,12 +104,34 @@ export const createPlaylistWithSync = async (name: string, description?: string)
             is_public: false,
         })
 
-        // 创建本地歌单
+        // 创建本地数据库记录
+        const { database } = await import('@/database')
+        let dbPlaylistId: string = ''
+
+        await database.write(async () => {
+            const dbPlaylist = await database.get('playlists').create((record: any) => {
+                record.userId = user.id
+                record.name = playlist.name
+                record.description = playlist.description
+                record.isPublic = playlist.is_public || false
+                record.songCount = 0
+                record.playCount = 0
+                record.likeCount = 0
+                record.commentCount = 0
+                record.isDeleted = false
+                record.createdAt = new Date(playlist.created_at!)
+                record.updatedAt = new Date(playlist.updated_at || playlist.created_at!)
+                record.synced = true
+            })
+            dbPlaylistId = dbPlaylist.id
+        })
+
+        // 创建本地歌单信息
         const localList: LX.List.UserListInfo = {
-            id: `cloud_${playlist.id}`,
+            id: `db_${dbPlaylistId}`, // 使用数据库ID
             name: playlist.name,
             source: undefined,
-            sourceListId: playlist.id,
+            sourceListId: dbPlaylistId,
             locationUpdateTime: Date.now(),
         }
 
@@ -117,6 +140,9 @@ export const createPlaylistWithSync = async (name: string, description?: string)
         setUserList(newUserLists)
 
         console.log(`[PlaylistSync] 创建歌单: ${name}`)
+
+        // 触发歌单更新事件
+        global.app_event.playlistsUpdated?.()
 
         return localList
     } catch (error) {
@@ -133,33 +159,67 @@ export const addSongsToPlaylistWithSync = async (
     musicInfos: LX.Music.MusicInfo[]
 ) => {
     try {
-        // 检查是否是云端歌单
-        if (!localListId.startsWith('cloud_')) {
-            // 纯本地歌单，只添加到本地
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) {
+            throw new Error('用户未登录')
+        }
+
+        // 检查是否是数据库歌单
+        if (!localListId.startsWith('db_')) {
+            // 旧格式歌单，只添加到本地
             await addListMusics(localListId, musicInfos, settingState.setting['list.addMusicLocationType'])
             return
         }
 
-        const supabaseId = localListId.replace('cloud_', '')
+        const dbPlaylistId = localListId.replace('db_', '')
+        const { database } = await import('@/database')
 
-        // 转换为服务端歌曲格式
-        const songs: PlaylistSong[] = musicInfos.map(music => ({
-            song_id: music.id,
-            song_name: music.name,
-            artist: music.singer,
-            album: (music as any).meta?.albumName || '',
-            duration: music.interval ? parseDuration(music.interval) : undefined,
-            source: music.source,
-            cover_url: (music as any).img || '',
-        }))
+        // 获取歌单记录
+        const playlist = await database.get('playlists').find(dbPlaylistId)
 
-        // 同步到服务端
-        await playlistsAPI.addSongsToPlaylist(supabaseId, songs)
+        // 获取当前歌单的最大position
+        const existingSongs = await database.get('playlist_songs')
+            .query(Q.where('playlist_id', dbPlaylistId))
+            .fetch()
 
-        // 添加到本地
+        let maxPosition = existingSongs.length > 0
+            ? Math.max(...existingSongs.map((s: any) => s.position))
+            : -1
+
+        // 添加到本地数据库
+        await database.write(async () => {
+            for (const music of musicInfos) {
+                maxPosition++
+                await database.get('playlist_songs').create((song: any) => {
+                    song.playlistId = dbPlaylistId
+                    song.songId = music.id
+                    song.songName = music.name
+                    song.artist = music.singer
+                    song.album = (music as any).meta?.albumName || ''
+                    song.source = music.source
+                    song.duration = music.interval ? parseDuration(String(music.interval)) : undefined
+                    song.coverUrl = (music as any).img || ''
+                    song.position = maxPosition
+                    song.addedAt = new Date()
+                    song.synced = false
+                })
+            }
+
+            // 更新歌单的songCount
+            await (playlist as any).update((record: any) => {
+                record.songCount = (record.songCount || 0) + musicInfos.length
+                record.updatedAt = new Date()
+                record.synced = false
+            })
+        })
+
+        // 添加到内存
         await addListMusics(localListId, musicInfos, settingState.setting['list.addMusicLocationType'])
 
         console.log(`[PlaylistSync] 添加歌曲到歌单: ${localListId}, ${musicInfos.length} 首`)
+
+        // 触发歌单更新事件
+        global.app_event.playlistsUpdated?.()
     } catch (error) {
         console.error('[PlaylistSync] 添加歌曲失败:', error)
         throw error

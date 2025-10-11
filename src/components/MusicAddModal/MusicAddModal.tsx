@@ -53,15 +53,15 @@ export default forwardRef<MusicAddModalType, MusicAddModalProps>(({ onAdded }, r
     
     try {
       if (selectInfo.isMove) {
-        // 移动到云端歌单
-        if (listInfo.id.startsWith('cloud_')) {
+        // 移动到数据库歌单
+        if (listInfo.id.startsWith('db_')) {
           const { addSongsToPlaylistWithSync, removeSongsFromPlaylistWithSync } = await import('@/services/playlistSync')
           
           // 先添加到目标歌单
           await addSongsToPlaylistWithSync(listInfo.id, [selectInfo.musicInfo!])
           
           // 再从源歌单删除
-          if (selectInfo.listId.startsWith('cloud_')) {
+          if (selectInfo.listId.startsWith('db_')) {
             await removeSongsFromPlaylistWithSync(selectInfo.listId, [selectInfo.musicInfo!.id])
           } else {
             const { removeListMusics } = await import('@/core/list')
@@ -77,8 +77,8 @@ export default forwardRef<MusicAddModalType, MusicAddModalProps>(({ onAdded }, r
         onAdded?.()
         toast(t('list_edit_action_tip_move_success'))
       } else {
-        // 检查是否是云端歌单
-        if (listInfo.id.startsWith('cloud_')) {
+        // 检查是否是数据库歌单
+        if (listInfo.id.startsWith('db_')) {
           const { addSongsToPlaylistWithSync } = await import('@/services/playlistSync')
           await addSongsToPlaylistWithSync(listInfo.id, [selectInfo.musicInfo!])
         } else {
