@@ -19,6 +19,7 @@ import Notification from './models/Notification'
 import Order from './models/Order'
 import UserFollow from './models/UserFollow'
 import VipPlan from './models/VipPlan'
+import DownloadedSong from './models/DownloadedSong'
 
 const adapter = new SQLiteAdapter({
   schema,
@@ -47,6 +48,7 @@ export const database = new Database({
     Order,
     UserFollow,
     VipPlan,
+    DownloadedSong,
   ],
 })
 

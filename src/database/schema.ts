@@ -1,7 +1,7 @@
 import { appSchema, tableSchema } from '@nozbe/watermelondb'
 
 export default appSchema({
-  version: 1,
+  version: 2,
   tables: [
     // 用户收藏表
     tableSchema({
@@ -286,6 +286,30 @@ export default appSchema({
         { name: 'sort_order', type: 'number' },
         { name: 'created_at', type: 'number' },
         { name: 'updated_at', type: 'number' },
+        { name: 'synced', type: 'boolean' },
+      ],
+    }),
+
+    // 下载歌曲表
+    tableSchema({
+      name: 'downloaded_songs',
+      columns: [
+        { name: 'user_id', type: 'string', isIndexed: true },
+        { name: 'song_id', type: 'string' },
+        { name: 'song_name', type: 'string' },
+        { name: 'artist', type: 'string' },
+        { name: 'album', type: 'string', isOptional: true },
+        { name: 'source', type: 'string' },
+        { name: 'file_path', type: 'string' },
+        { name: 'file_size', type: 'number' },
+        { name: 'quality', type: 'string' },
+        { name: 'duration', type: 'number', isOptional: true },
+        { name: 'cover_url', type: 'string', isOptional: true },
+        { name: 'download_status', type: 'string' }, // 'downloading' | 'completed' | 'failed' | 'paused'
+        { name: 'progress', type: 'number' },
+        { name: 'error_message', type: 'string', isOptional: true },
+        { name: 'downloaded_at', type: 'number' },
+        { name: 'created_at', type: 'number' },
         { name: 'synced', type: 'boolean' },
       ],
     }),
