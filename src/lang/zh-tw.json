@@ -522,5 +522,20 @@
   "version_title_latest": "🎉 目前版本已是最新 🎊",
   "version_title_new": "🌟 發現新版本 🌟",
   "version_title_unknown": "❓ 獲取最新版本資訊失敗 ❓",
-  "version_title_update": "🚀 軟體更新 🚀"
+  "version_title_update": "🚀 軟體更新 🚀",
+  "download": "下載",
+  "download_list": "下載列表",
+  "download_start": "開始下載",
+  "download_pause": "暫停下載",
+  "download_resume": "繼續下載",
+  "download_cancel": "取消下載",
+  "download_delete": "刪除下載",
+  "download_completed": "下載完成",
+  "download_failed": "下載失敗",
+  "download_downloading": "下載中",
+  "download_paused": "已暫停",
+  "download_already_downloaded": "歌曲已下載",
+  "download_no_url": "無法獲取下載連結",
+  "download_empty": "暫無下載",
+  "download_empty_tip": "下載的歌曲將顯示在這裡"
 }

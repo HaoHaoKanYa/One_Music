@@ -514,5 +514,20 @@
   "version_title_latest": "🎉 The current version is already the latest 🎊",
   "version_title_new": "🌟 New version found 🌟",
   "version_title_unknown": "❓ Failed to get the latest version information ❓",
-  "version_title_update": "🚀 App update 🚀"
+  "version_title_update": "🚀 App update 🚀",
+  "download": "Download",
+  "download_list": "Downloads",
+  "download_start": "Start Download",
+  "download_pause": "Pause Download",
+  "download_resume": "Resume Download",
+  "download_cancel": "Cancel Download",
+  "download_delete": "Delete Download",
+  "download_completed": "Download Completed",
+  "download_failed": "Download Failed",
+  "download_downloading": "Downloading",
+  "download_paused": "Paused",
+  "download_already_downloaded": "Already Downloaded",
+  "download_no_url": "Cannot get download link",
+  "download_empty": "No Downloads",
+  "download_empty_tip": "Downloaded songs will appear here"
 }

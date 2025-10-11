@@ -522,5 +522,20 @@
   "version_title_latest": "当前版本已是最新",
   "version_title_new": "🌟 发现新版本 🌟",
   "version_title_unknown": "❓ 获取最新版本信息失败 ❓",
-  "version_title_update": "🚀 软件更新 🚀"
+  "version_title_update": "🚀 软件更新 🚀",
+  "download": "下载",
+  "download_list": "下载列表",
+  "download_start": "开始下载",
+  "download_pause": "暂停下载",
+  "download_resume": "继续下载",
+  "download_cancel": "取消下载",
+  "download_delete": "删除下载",
+  "download_completed": "下载完成",
+  "download_failed": "下载失败",
+  "download_downloading": "下载中",
+  "download_paused": "已暂停",
+  "download_already_downloaded": "歌曲已下载",
+  "download_no_url": "无法获取下载链接",
+  "download_empty": "暂无下载",
+  "download_empty_tip": "下载的歌曲将显示在这里"
 }
