@@ -40,7 +40,7 @@ export default () => {
         {/* 横屏模式下侧边栏默认隐藏 */}
         {isShowAside && <Aside />}
         <View style={styles.content}>
-          <Header />
+          {/* 横屏模式下移除 Header，节省空间 */}
           <Main />
           <PlayerBar isHome />
           <BottomTabBar />

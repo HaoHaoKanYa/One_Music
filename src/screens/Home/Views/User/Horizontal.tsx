@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { Icon } from '@/components/common/Icon'
 import Text from '@/components/common/Text'
 import { useTheme } from '@/store/theme/hook'
+import { setNavActiveId } from '@/core/common'
 import UserHeader from './UserHeader'
 import UserStats from './UserStats'
 import FavoritesContent from './components/FavoritesContent'
@@ -39,10 +40,19 @@ export default () => {
   const theme = useTheme()
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
 
+  const handleMenuPress = () => {
+    setNavActiveId('nav_setting')
+  }
+
   return (
     <View style={styles.container}>
-      {/* 顶部：账户信息和数据统计横向排列 */}
+      {/* 顶部：菜单按钮 + 账户信息 + 数据统计 */}
       <View style={[styles.topSection, { backgroundColor: theme['c-primary-background'] }]}>
+        {/* 左侧菜单按钮 */}
+        <TouchableOpacity style={styles.menuButton} onPress={handleMenuPress}>
+          <Icon name="menu" size={20} color={theme['c-font']} />
+        </TouchableOpacity>
+
         <View style={styles.cardWrapper}>
           <UserHeader />
         </View>
@@ -112,11 +122,19 @@ const styles = StyleSheet.create({
   },
   topSection: {
     flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(0, 0, 0, 0.1)',
     gap: 12,
+  },
+  menuButton: {
+    width: 44,
+    height: 44,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
   },
   cardWrapper: {
     flex: 1,
