@@ -51,7 +51,8 @@ const Image = memo(({ url, cache, resizeMode = 'cover', style, onError, nativeID
     : typeof url === 'string' && url.startsWith('/')
       ? 'file://' + url
       : url
-  const showDefault = useMemo(() => !uri || isError, [isError, uri])
+  // 修复：确保 uri 是有效的字符串，而不仅仅是非空
+  const showDefault = useMemo(() => !uri || uri === '' || uri === 'undefined' || isError, [isError, uri])
   return (
     showDefault ? <EmptyPic style={style} nativeID={nativeID} showBackground={showEmptyBackground} />
       : (

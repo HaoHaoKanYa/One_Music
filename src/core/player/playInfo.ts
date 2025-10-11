@@ -89,7 +89,7 @@ const setPlayerMusicInfo = (musicInfo: LX.Music.MusicInfo | LX.Download.ListItem
   if (musicInfo) {
     setMusicInfo('progress' in musicInfo ? {
       id: musicInfo.id,
-      pic: musicInfo.metadata.musicInfo.meta.picUrl,
+      pic: musicInfo.metadata.musicInfo.meta.picUrl || null,
       name: musicInfo.metadata.musicInfo.name,
       singer: musicInfo.metadata.musicInfo.singer,
       album: musicInfo.metadata.musicInfo.meta.albumName ?? '',
@@ -100,7 +100,7 @@ const setPlayerMusicInfo = (musicInfo: LX.Music.MusicInfo | LX.Download.ListItem
       rawlrc: null,
     } : {
       id: musicInfo.id,
-      pic: musicInfo.meta.picUrl,
+      pic: musicInfo.meta.picUrl || null,
       name: musicInfo.name,
       singer: musicInfo.singer,
       album: musicInfo.meta.albumName ?? '',
