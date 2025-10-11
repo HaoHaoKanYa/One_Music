@@ -20,7 +20,7 @@ class DownloadManager {
   private downloadQueue: Map<string, DownloadTask> = new Map()
   private pendingQueue: Array<{ musicInfo: LX.Music.MusicInfo; quality: string }> = []
   private maxConcurrentDownloads = 3
-  private downloadPath: string = RNFS.DocumentDirectoryPath + '/downloads'
+  private downloadPath: string = RNFS.ExternalStorageDirectoryPath + '/OneMusic/downloads'
   private isWifiOnly = false
   private autoCleanupEnabled = false
 

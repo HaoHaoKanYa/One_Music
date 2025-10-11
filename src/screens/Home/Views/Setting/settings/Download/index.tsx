@@ -31,8 +31,8 @@ const Download = memo(() => {
   const [maxConcurrent, setMaxConcurrent] = React.useState(3)
   const [autoCleanup, setAutoCleanup] = React.useState(false)
   
-  // 获取完整的下载路径
-  const downloadPath = RNFS.DocumentDirectoryPath + '/downloads'
+  // 获取完整的下载路径 - 使用外部存储的 OneMusic 目录
+  const downloadPath = RNFS.ExternalStorageDirectoryPath + '/OneMusic/downloads'
 
   return (
     <Section title={t('setting_download')}>
