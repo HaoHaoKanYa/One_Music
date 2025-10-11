@@ -20,11 +20,13 @@ class DownloadManager {
   private downloadQueue: Map<string, DownloadTask> = new Map()
   private pendingQueue: Array<{ musicInfo: LX.Music.MusicInfo; quality: string }> = []
   private maxConcurrentDownloads = 3
-  private downloadPath: string = RNFS.ExternalStorageDirectoryPath + '/OneMusic/downloads'
+  private downloadPath: string = ''
   private isWifiOnly = false
   private autoCleanupEnabled = false
 
   constructor() {
+    // 设置默认下载路径
+    this.downloadPath = RNFS.DownloadDirectoryPath || (RNFS.ExternalStorageDirectoryPath + '/Download')
     this.initDownloadPath()
     this.loadSettings()
   }
@@ -68,36 +70,45 @@ class DownloadManager {
    */
   private async initDownloadPath() {
     try {
-      // 先检查父目录是否存在
-      const parentPath = RNFS.ExternalStorageDirectoryPath + '/OneMusic'
-      const parentExists = await RNFS.exists(parentPath)
+      console.log('[DownloadManager] 初始化下载路径:', this.downloadPath)
       
-      if (!parentExists) {
-        await RNFS.mkdir(parentPath)
-        console.log('[DownloadManager] 父目录已创建:', parentPath)
+      const exists = await RNFS.exists(this.downloadPath)
+      if (exists) {
+        console.log('[DownloadManager] 下载目录已存在')
+        return
       }
 
-      // 再创建下载目录
-      const exists = await RNFS.exists(this.downloadPath)
-      if (!exists) {
-        await RNFS.mkdir(this.downloadPath)
-        console.log('[DownloadManager] 下载目录已创建:', this.downloadPath)
-      } else {
-        console.log('[DownloadManager] 下载目录已存在:', this.downloadPath)
-      }
+      // 下载目录不存在，尝试创建
+      console.log('[DownloadManager] 下载目录不存在，开始创建...')
+      await RNFS.mkdir(this.downloadPath)
+      console.log('[DownloadManager] 下载目录创建成功')
     } catch (error: any) {
       console.error('[DownloadManager] 创建下载目录失败:', error)
-      // 如果创建失败，尝试使用备用路径（应用私有目录）
+      console.log('[DownloadManager] 尝试使用备用路径...')
+      
+      // 如果创建失败，使用应用私有目录
       try {
-        this.downloadPath = RNFS.DocumentDirectoryPath + '/downloads'
+        this.downloadPath = RNFS.DocumentDirectoryPath + '/OneMusic'
+        console.log('[DownloadManager] 备用路径:', this.downloadPath)
+        
         const backupExists = await RNFS.exists(this.downloadPath)
         if (!backupExists) {
           await RNFS.mkdir(this.downloadPath)
-          console.log('[DownloadManager] 使用备用下载目录:', this.downloadPath)
+          console.log('[DownloadManager] 备用目录创建成功')
         }
       } catch (backupError) {
         console.error('[DownloadManager] 创建备用目录也失败:', backupError)
-        throw new Error('无法创建下载目录，请检查存储权限')
+        // 最后尝试使用缓存目录
+        this.downloadPath = RNFS.CachesDirectoryPath + '/OneMusic'
+        console.log('[DownloadManager] 使用缓存目录:', this.downloadPath)
+        try {
+          const cacheExists = await RNFS.exists(this.downloadPath)
+          if (!cacheExists) {
+            await RNFS.mkdir(this.downloadPath)
+          }
+        } catch (cacheError) {
+          console.error('[DownloadManager] 所有路径都失败了:', cacheError)
+        }
       }
     }
   }

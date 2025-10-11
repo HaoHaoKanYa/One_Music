@@ -33,3 +33,6 @@ export { DataMigrationScreen } from './Migration/DataMigration'
 export { NotificationsListScreen } from './Notifications/NotificationsList'
 export { VipPlansScreen } from './Vip/VipPlans'
 export { PlayStatisticsScreen } from './Statistics/PlayStatistics'
+
+// 下载界面
+export { DownloadsListScreen } from './Downloads/DownloadsList'

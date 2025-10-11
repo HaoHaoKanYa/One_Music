@@ -18,6 +18,7 @@ export const FAVORITES_LIST_SCREEN = 'lxm.FavoritesListScreen'
 export const PLAY_HISTORY_SCREEN = 'lxm.PlayHistoryScreen'
 export const PLAYLISTS_SCREEN = 'lxm.PlaylistsScreen'
 export const PLAYLIST_DETAIL_SCREEN = 'lxm.PlaylistDetailScreen'
+export const DOWNLOADS_LIST_SCREEN = 'lxm.DownloadsListScreen'
 export const SETTINGS_SCREEN = 'lxm.SettingsScreen'
 export const DATA_MIGRATION_SCREEN = 'lxm.DataMigrationScreen'
 

@@ -22,6 +22,7 @@ import {
   NotificationsListScreen,
   VipPlansScreen,
   PlayStatisticsScreen,
+  DownloadsListScreen,
 } from '@/screens'
 import { Provider } from '@/store/Provider'
 
@@ -48,6 +49,7 @@ import {
   NOTIFICATIONS_LIST_SCREEN,
   VIP_PLANS_SCREEN,
   PLAY_STATISTICS_SCREEN,
+  DOWNLOADS_LIST_SCREEN,
 } from './screenNames'
 import VersionModal from './components/VersionModal'
 import PactModal from './components/PactModal'
@@ -94,6 +96,7 @@ export default () => {
   Navigation.registerComponent(NOTIFICATIONS_LIST_SCREEN, () => WrappedComponent(NotificationsListScreen))
   Navigation.registerComponent(VIP_PLANS_SCREEN, () => WrappedComponent(VipPlansScreen))
   Navigation.registerComponent(PLAY_STATISTICS_SCREEN, () => WrappedComponent(PlayStatisticsScreen))
+  Navigation.registerComponent(DOWNLOADS_LIST_SCREEN, () => WrappedComponent(DownloadsListScreen))
 
   console.info('All screens have been registered...')
 }
