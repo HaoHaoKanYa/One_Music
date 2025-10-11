@@ -105,10 +105,11 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
 export const checkNotificationPermission = async (): Promise<boolean> => {
   if (Platform.OS === 'ios') {
     try {
-      const settings = await PushNotificationIOS.checkPermissions((permissions) => {
-        return !!(permissions?.alert || permissions?.badge || permissions?.sound)
+      return new Promise((resolve) => {
+        PushNotificationIOS.checkPermissions((permissions) => {
+          resolve(!!(permissions?.alert || permissions?.badge || permissions?.sound))
+        })
       })
-      return !!settings
     } catch (error) {
       console.error('[PushNotification] 检查权限失败:', error)
       return false

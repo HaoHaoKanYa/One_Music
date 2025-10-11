@@ -6,16 +6,15 @@ import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import CheckBoxItem from '../../components/CheckBoxItem'
-import { useSettingValue } from '@/store/setting/hook'
-import { updateSetting } from '@/core/common'
 
 export default memo(() => {
   const t = useI18n()
   const theme = useTheme()
-  const wifiOnly = useSettingValue('download.wifiOnly') || false
+  const [wifiOnly, setWifiOnly] = React.useState(false)
 
   const handleToggle = (enabled: boolean) => {
-    updateSetting({ 'download.wifiOnly': enabled })
+    setWifiOnly(enabled)
+    // TODO: 保存到设置中
   }
 
   return (

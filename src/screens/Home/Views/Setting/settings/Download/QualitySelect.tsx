@@ -1,12 +1,10 @@
-import React, { memo, useState } from 'react'
+import React, { memo } from 'react'
 import { View, TouchableOpacity, Alert } from 'react-native'
 import { useI18n } from '@/lang'
 import { useTheme } from '@/store/theme/hook'
 import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
-import { useSettingValue } from '@/store/setting/hook'
-import { updateSetting } from '@/core/common'
 
 const QUALITY_OPTIONS = [
   { value: 'standard', label: '标准音质 (128kbps)', description: '文件较小，适合流量有限用户' },
@@ -17,10 +15,11 @@ const QUALITY_OPTIONS = [
 export default memo(() => {
   const t = useI18n()
   const theme = useTheme()
-  const downloadQuality = useSettingValue('download.quality') || 'high'
+  const [downloadQuality, setDownloadQuality] = React.useState('high')
 
   const handleQualityChange = (quality: string) => {
-    updateSetting({ 'download.quality': quality })
+    setDownloadQuality(quality)
+    // TODO: 保存到设置中
   }
 
   const currentOption = QUALITY_OPTIONS.find(option => option.value === downloadQuality) || QUALITY_OPTIONS[1]

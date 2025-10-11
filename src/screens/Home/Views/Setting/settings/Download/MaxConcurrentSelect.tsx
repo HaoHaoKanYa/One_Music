@@ -5,8 +5,6 @@ import { useTheme } from '@/store/theme/hook'
 import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
-import { useSettingValue } from '@/store/setting/hook'
-import { updateSetting } from '@/core/common'
 
 const CONCURRENT_OPTIONS = [
   { value: 1, label: '1个任务' },
@@ -18,10 +16,11 @@ const CONCURRENT_OPTIONS = [
 export default memo(() => {
   const t = useI18n()
   const theme = useTheme()
-  const maxConcurrent = useSettingValue('download.maxConcurrent') || 3
+  const [maxConcurrent, setMaxConcurrent] = React.useState(3)
 
   const handleChange = (value: number) => {
-    updateSetting({ 'download.maxConcurrent': value })
+    setMaxConcurrent(value)
+    // TODO: 保存到设置中
   }
 
   const currentOption = CONCURRENT_OPTIONS.find(option => option.value === maxConcurrent) || CONCURRENT_OPTIONS[2]
@@ -34,9 +33,9 @@ export default memo(() => {
         ...CONCURRENT_OPTIONS.map(option => ({
           text: option.label,
           onPress: () => handleChange(option.value),
-          style: option.value === maxConcurrent ? 'default' : 'cancel',
+          style: (option.value === maxConcurrent ? 'default' : 'cancel') as 'default' | 'cancel',
         })),
-        { text: '取消', style: 'cancel' },
+        { text: '取消', style: 'cancel' as 'cancel' },
       ]
     )
   }

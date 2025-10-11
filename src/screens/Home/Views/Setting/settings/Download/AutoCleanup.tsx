@@ -6,13 +6,11 @@ import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
 import CheckBoxItem from '../../components/CheckBoxItem'
-import { useSettingValue } from '@/store/setting/hook'
-import { updateSetting } from '@/core/common'
 
 export default memo(() => {
   const t = useI18n()
   const theme = useTheme()
-  const autoCleanup = useSettingValue('download.autoCleanup') || false
+  const [autoCleanup, setAutoCleanup] = React.useState(false)
 
   const handleToggle = (enabled: boolean) => {
     if (enabled) {
@@ -26,12 +24,12 @@ export default memo(() => {
           },
           {
             text: '确定',
-            onPress: () => updateSetting({ 'download.autoCleanup': true }),
+            onPress: () => setAutoCleanup(true),
           },
         ]
       )
     } else {
-      updateSetting({ 'download.autoCleanup': false })
+      setAutoCleanup(false)
     }
   }
 

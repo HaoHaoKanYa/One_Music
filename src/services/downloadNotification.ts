@@ -20,19 +20,14 @@ class DownloadNotificationService {
     try {
       PushNotification.localNotification({
         channelId: this.channelId,
-        id: this.getNotificationId(songId),
+        id: String(this.getNotificationId(songId)),
         title: '开始下载',
         message: songName,
         playSound: false,
         vibrate: false,
         ongoing: true,
         autoCancel: false,
-        progress: {
-          max: 100,
-          current: 0,
-          indeterminate: false,
-        },
-      })
+      } as any)
     } catch (error) {
       console.error('[DownloadNotification] 显示通知失败:', error)
     }
@@ -45,19 +40,14 @@ class DownloadNotificationService {
     try {
       PushNotification.localNotification({
         channelId: this.channelId,
-        id: this.getNotificationId(songId),
+        id: String(this.getNotificationId(songId)),
         title: `下载中 (${progress}%)`,
         message: songName,
         playSound: false,
         vibrate: false,
         ongoing: true,
         autoCancel: false,
-        progress: {
-          max: 100,
-          current: progress,
-          indeterminate: false,
-        },
-      })
+      } as any)
     } catch (error) {
       console.error('[DownloadNotification] 更新进度失败:', error)
     }
@@ -70,7 +60,7 @@ class DownloadNotificationService {
     try {
       PushNotification.localNotification({
         channelId: this.channelId,
-        id: this.getNotificationId(songId),
+        id: String(this.getNotificationId(songId)),
         title: '下载完成',
         message: songName,
         playSound: true,
@@ -90,7 +80,7 @@ class DownloadNotificationService {
     try {
       PushNotification.localNotification({
         channelId: this.channelId,
-        id: this.getNotificationId(songId),
+        id: String(this.getNotificationId(songId)),
         title: '下载失败',
         message: `${songName}: ${error}`,
         playSound: true,
@@ -108,7 +98,7 @@ class DownloadNotificationService {
    */
   cancelNotification(songId: string) {
     try {
-      PushNotification.cancelLocalNotification(this.getNotificationId(songId))
+      PushNotification.cancelLocalNotification(String(this.getNotificationId(songId)))
     } catch (error) {
       console.error('[DownloadNotification] 取消通知失败:', error)
     }

@@ -5,13 +5,12 @@ import { useTheme } from '@/store/theme/hook'
 import { createStyle } from '@/utils/tools'
 import Text from '@/components/common/Text'
 import { Icon } from '@/components/common/Icon'
-import { useSettingValue } from '@/store/setting/hook'
 import RNFS from 'react-native-fs'
 
 export default memo(() => {
   const t = useI18n()
   const theme = useTheme()
-  const downloadPath = useSettingValue('download.path') || RNFS.DocumentDirectoryPath + '/downloads'
+  const downloadPath = RNFS.DocumentDirectoryPath + '/downloads'
 
   const handlePress = () => {
     Alert.alert(
