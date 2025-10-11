@@ -300,6 +300,14 @@
   "setting_dislike_list_input_tip": "標題@演出者\n標題\n@演出者",
   "setting_dislike_list_tips": "1. 每條一行，若歌曲或者演出者名字中存在「@」符號，需要將其取代成「#」\n2. 指定某演出者的某首歌：標題@演出者\n3. 指定某首歌：演出者\n4. 指定某演出者：@演出者",
   "setting_list": "清單設定",
+  "setting_download": "下載設定",
+  "setting_download_quality": "下載音質",
+  "setting_download_wifi_only": "僅WiFi下載",
+  "setting_download_wifi_only_desc": "啟用後僅在WiFi網路下下載",
+  "setting_download_max_concurrent": "最大同時下載數",
+  "setting_download_path": "下載路徑",
+  "setting_download_auto_cleanup": "自動清理",
+  "setting_download_auto_cleanup_desc": "自動刪除30天未播放的下載",
   "setting_list_add_music_location_type": "添加歌曲到清單時的位置",
   "setting_list_add_music_location_type_bottom": "底部",
   "setting_list_add_music_location_type_top": "頂部",
@@ -537,5 +545,8 @@
   "download_already_downloaded": "歌曲已下載",
   "download_no_url": "無法獲取下載連結",
   "download_empty": "暫無下載",
-  "download_empty_tip": "下載的歌曲將顯示在這裡"
+  "download_empty_tip": "下載的歌曲將顯示在這裡",
+  "batch_download": "批次下載",
+  "downloading": "下載中",
+  "download_queue": "下載佇列"
 }

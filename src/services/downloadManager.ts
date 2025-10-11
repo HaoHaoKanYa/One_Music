@@ -8,6 +8,7 @@ import { downloadFile, stopDownload } from '@/utils/fs'
 import { authAPI } from '@/services/api/auth'
 import RNFS from 'react-native-fs'
 import { toast } from '@/utils/tools'
+import { downloadNotificationService } from './downloadNotification'
 
 interface DownloadTask {
   songId: string
@@ -17,11 +18,49 @@ interface DownloadTask {
 
 class DownloadManager {
   private downloadQueue: Map<string, DownloadTask> = new Map()
+  private pendingQueue: Array<{ musicInfo: LX.Music.MusicInfo; quality: string }> = []
   private maxConcurrentDownloads = 3
   private downloadPath: string = RNFS.DocumentDirectoryPath + '/downloads'
+  private isWifiOnly = false
+  private autoCleanupEnabled = false
 
   constructor() {
     this.initDownloadPath()
+    this.loadSettings()
+  }
+
+  /**
+   * 加载设置
+   */
+  private loadSettings() {
+    // 从设置中加载配置
+    try {
+      const settings = (global.lx as any).config?.download || {}
+      this.maxConcurrentDownloads = settings.maxConcurrent || 3
+      this.isWifiOnly = settings.wifiOnly || false
+      this.autoCleanupEnabled = settings.autoCleanup || false
+    } catch (error) {
+      console.log('[DownloadManager] 加载设置失败，使用默认值')
+    }
+  }
+
+  /**
+   * 更新设置
+   */
+  updateSettings(settings: {
+    maxConcurrent?: number
+    wifiOnly?: boolean
+    autoCleanup?: boolean
+  }) {
+    if (settings.maxConcurrent !== undefined) {
+      this.maxConcurrentDownloads = settings.maxConcurrent
+    }
+    if (settings.wifiOnly !== undefined) {
+      this.isWifiOnly = settings.wifiOnly
+    }
+    if (settings.autoCleanup !== undefined) {
+      this.autoCleanupEnabled = settings.autoCleanup
+    }
   }
 
   /**
@@ -122,6 +161,9 @@ class DownloadManager {
       // 触发下载列表更新事件
       global.app_event.downloadListUpdate?.()
 
+      // 显示下载开始通知
+      downloadNotificationService.showDownloadStarted(musicInfo.name, musicInfo.id)
+
       toast('开始下载: ' + musicInfo.name)
 
       await downloadPromise
@@ -165,6 +207,15 @@ class DownloadManager {
             console.error('[DownloadManager] 更新进度失败:', error)
           }
 
+          // 更新通知进度（每10%更新一次）
+          if (progress % 10 === 0) {
+            downloadNotificationService.updateDownloadProgress(
+              musicInfo.name,
+              musicInfo.id,
+              progress
+            )
+          }
+
           // 触发下载列表更新事件
           global.app_event.downloadListUpdate?.()
         },
@@ -190,6 +241,9 @@ class DownloadManager {
           // 触发下载列表更新事件
           global.app_event.downloadListUpdate?.()
 
+          // 显示下载完成通知
+          downloadNotificationService.showDownloadCompleted(musicInfo.name, musicInfo.id)
+
           toast('下载完成: ' + musicInfo.name)
           resolve()
         })
@@ -209,6 +263,13 @@ class DownloadManager {
 
           // 触发下载列表更新事件
           global.app_event.downloadListUpdate?.()
+
+          // 显示下载失败通知
+          downloadNotificationService.showDownloadFailed(
+            musicInfo.name,
+            musicInfo.id,
+            error.message || '下载失败'
+          )
 
           reject(error)
         })
@@ -404,6 +465,176 @@ class DownloadManager {
       .fetch()
 
     return records.length > 0
+  }
+
+  /**
+   * 批量下载歌曲
+   */
+  async batchDownload(musicList: LX.Music.MusicInfo[], quality: string = 'standard') {
+    if (musicList.length === 0) {
+      toast('没有可下载的歌曲')
+      return
+    }
+
+    // 检查网络状态
+    if (this.isWifiOnly) {
+      const isWifi = await this.checkWifiConnection()
+      if (!isWifi) {
+        toast('仅WiFi下载已启用，请连接WiFi后重试')
+        return
+      }
+    }
+
+    // 添加到待下载队列
+    for (const music of musicList) {
+      this.pendingQueue.push({ musicInfo: music, quality })
+    }
+
+    toast(`已添加 ${musicList.length} 首歌曲到下载队列`)
+
+    // 开始处理队列
+    this.processQueue()
+  }
+
+  /**
+   * 处理下载队列
+   */
+  private async processQueue() {
+    // 检查当前下载数量
+    while (this.downloadQueue.size < this.maxConcurrentDownloads && this.pendingQueue.length > 0) {
+      const item = this.pendingQueue.shift()
+      if (item) {
+        try {
+          await this.downloadSong(item.musicInfo, item.quality)
+        } catch (error) {
+          console.error('[DownloadManager] 队列下载失败:', error)
+        }
+      }
+    }
+
+    // 如果还有待下载的，继续处理
+    if (this.pendingQueue.length > 0) {
+      setTimeout(() => this.processQueue(), 1000)
+    }
+  }
+
+  /**
+   * 检查WiFi连接
+   */
+  private async checkWifiConnection(): Promise<boolean> {
+    try {
+      // 使用 NetInfo 检查网络状态
+      const NetInfo = require('@react-native-community/netinfo')
+      const state = await NetInfo.fetch()
+      return state.type === 'wifi'
+    } catch (error) {
+      console.error('[DownloadManager] 检查网络状态失败:', error)
+      return true // 如果检查失败，默认允许下载
+    }
+  }
+
+  /**
+   * 获取所有下载任务
+   */
+  async getAllDownloads(): Promise<any[]> {
+    const user = await authAPI.getCurrentUser()
+    if (!user) return []
+
+    const records = await database.get('downloaded_songs')
+      .query(Q.where('user_id', user.id))
+      .fetch()
+
+    return records
+  }
+
+  /**
+   * 清理过期下载
+   * 删除30天未播放的下载文件
+   */
+  async cleanupOldDownloads() {
+    if (!this.autoCleanupEnabled) return
+
+    const user = await authAPI.getCurrentUser()
+    if (!user) return
+
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const records = await database.get('downloaded_songs')
+      .query(
+        Q.where('user_id', user.id),
+        Q.where('download_status', 'completed'),
+        Q.where('last_played_at', Q.lt(thirtyDaysAgo.getTime()))
+      )
+      .fetch()
+
+    let deletedCount = 0
+    for (const record of records) {
+      try {
+        const filePath = (record as any).filePath
+        const exists = await RNFS.exists(filePath)
+        if (exists) {
+          await RNFS.unlink(filePath)
+        }
+
+        await database.write(async () => {
+          await record.destroyPermanently()
+        })
+
+        deletedCount++
+      } catch (error) {
+        console.error('[DownloadManager] 清理下载失败:', error)
+      }
+    }
+
+    if (deletedCount > 0) {
+      console.log(`[DownloadManager] 已清理 ${deletedCount} 个过期下载`)
+      toast(`已清理 ${deletedCount} 个过期下载`)
+      global.app_event.downloadListUpdate?.()
+    }
+  }
+
+  /**
+   * 获取下载统计信息
+   */
+  async getDownloadStats(): Promise<{
+    totalCount: number
+    totalSize: number
+    completedCount: number
+    downloadingCount: number
+  }> {
+    const user = await authAPI.getCurrentUser()
+    if (!user) {
+      return {
+        totalCount: 0,
+        totalSize: 0,
+        completedCount: 0,
+        downloadingCount: 0,
+      }
+    }
+
+    const allRecords = await database.get('downloaded_songs')
+      .query(Q.where('user_id', user.id))
+      .fetch()
+
+    const completedRecords = allRecords.filter(
+      (r: any) => r.downloadStatus === 'completed'
+    )
+    const downloadingRecords = allRecords.filter(
+      (r: any) => r.downloadStatus === 'downloading'
+    )
+
+    const totalSize = completedRecords.reduce(
+      (sum: number, r: any) => sum + (r.fileSize || 0),
+      0
+    )
+
+    return {
+      totalCount: allRecords.length,
+      totalSize,
+      completedCount: completedRecords.length,
+      downloadingCount: downloadingRecords.length,
+    }
   }
 }
 

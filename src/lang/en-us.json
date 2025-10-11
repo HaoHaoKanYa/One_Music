@@ -300,6 +300,14 @@
   "setting_dislike_list_input_tip": "song_name@artist_name\nsong_name\n@artist_name",
   "setting_dislike_list_tips": "1. One line per entry. If there is an \"@\" symbol in the name of the song or artist, it needs to be replaced with \"#\"\n2. Specify a song by a certain artist: song_name@artist_name\n3. Specify a song: song_name\n4. Specify an artist: @artist_name",
   "setting_list": "List",
+  "setting_download": "Download",
+  "setting_download_quality": "Download Quality",
+  "setting_download_wifi_only": "WiFi Only",
+  "setting_download_wifi_only_desc": "Download only on WiFi network",
+  "setting_download_max_concurrent": "Max Concurrent Downloads",
+  "setting_download_path": "Download Path",
+  "setting_download_auto_cleanup": "Auto Cleanup",
+  "setting_download_auto_cleanup_desc": "Auto delete downloads not played for 30 days",
   "setting_list_add_music_location_type": "Position When Adding a Song to the List",
   "setting_list_add_music_location_type_bottom": "Bottom",
   "setting_list_add_music_location_type_top": "Top",
@@ -529,5 +537,8 @@
   "download_already_downloaded": "Already Downloaded",
   "download_no_url": "Cannot get download link",
   "download_empty": "No Downloads",
-  "download_empty_tip": "Downloaded songs will appear here"
+  "download_empty_tip": "Downloaded songs will appear here",
+  "batch_download": "Batch Download",
+  "downloading": "Downloading",
+  "download_queue": "Download Queue"
 }

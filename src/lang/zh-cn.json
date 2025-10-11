@@ -300,6 +300,14 @@
   "setting_dislike_list_input_tip": "歌曲名@艺术家\n歌曲名\n@艺术家",
   "setting_dislike_list_tips": "1. 每条一行，若歌曲或者艺术家名字中存在「@」符号，需要将其替换成「#」\n2. 指定某艺术家的某首歌：歌曲名@艺术家\n3. 指定某首歌：歌曲名\n4. 指定某艺术家：@艺术家",
   "setting_list": "列表设置",
+  "setting_download": "下载设置",
+  "setting_download_quality": "下载音质",
+  "setting_download_wifi_only": "仅WiFi下载",
+  "setting_download_wifi_only_desc": "启用后仅在WiFi网络下下载",
+  "setting_download_max_concurrent": "最大同时下载数",
+  "setting_download_path": "下载路径",
+  "setting_download_auto_cleanup": "自动清理",
+  "setting_download_auto_cleanup_desc": "自动删除30天未播放的下载",
   "setting_list_add_music_location_type": "添加歌曲到列表时的位置",
   "setting_list_add_music_location_type_bottom": "底部",
   "setting_list_add_music_location_type_top": "顶部",
@@ -537,5 +545,8 @@
   "download_already_downloaded": "歌曲已下载",
   "download_no_url": "无法获取下载链接",
   "download_empty": "暂无下载",
-  "download_empty_tip": "下载的歌曲将显示在这里"
+  "download_empty_tip": "下载的歌曲将显示在这里",
+  "batch_download": "批量下载",
+  "downloading": "下载中",
+  "download_queue": "下载队列"
 }
