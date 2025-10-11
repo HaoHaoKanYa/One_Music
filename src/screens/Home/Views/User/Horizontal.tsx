@@ -135,12 +135,14 @@ const styles = StyleSheet.create({
     minHeight: 500,
   },
   leftPanel: {
-    width: 240,
+    flex: 0.28,
     borderRightWidth: 1,
     paddingVertical: 12,
+    minWidth: 180,
+    maxWidth: 220,
   },
   rightPanel: {
-    flex: 1,
+    flex: 0.72,
   },
   section: {
     marginBottom: 12,
