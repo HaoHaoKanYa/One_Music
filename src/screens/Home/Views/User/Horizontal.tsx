@@ -9,7 +9,6 @@ import FavoritesContent from './components/FavoritesContent'
 import PlayHistoryContent from './components/PlayHistoryContent'
 import PlaylistsContent from './components/PlaylistsContent'
 import { PlayStatisticsScreen } from '@/screens/Statistics/PlayStatistics'
-import DataMigration from '@/screens/Migration/DataMigration'
 
 interface MenuItem {
   id: string
@@ -34,12 +33,6 @@ const menuSections = [
       { id: 'statistics', icon: 'leaderboard', label: '播放统计', color: '#3498DB', component: <PlayStatisticsScreen componentId="" /> },
     ],
   },
-  {
-    title: '⚙️ 更多功能',
-    items: [
-      { id: 'migration', icon: 'share', label: '数据迁移', color: '#F38181', component: <DataMigration componentId="" /> },
-    ],
-  },
 ]
 
 export default () => {
@@ -47,9 +40,9 @@ export default () => {
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
       {/* 顶部：账户信息和数据统计横向排列 */}
-      <View style={[styles.topSection, { backgroundColor: theme['c-primary-background'], borderBottomColor: theme['c-border'] }]}>
+      <View style={[styles.topSection, { backgroundColor: theme['c-primary-background'] }]}>
         <View style={styles.cardWrapper}>
           <UserHeader />
         </View>
@@ -61,40 +54,39 @@ export default () => {
       {/* 下方：左侧菜单 + 右侧内容 */}
       <View style={styles.mainContent}>
         {/* 左侧菜单 */}
-        <ScrollView 
-          style={[styles.leftPanel, { backgroundColor: theme['c-primary-background'], borderRightColor: theme['c-border'] }]}
-          showsVerticalScrollIndicator={false}
-        >
-          {menuSections.map((section, sectionIndex) => (
-            <View key={sectionIndex} style={styles.section}>
-              <Text style={styles.sectionTitle} color={theme['c-font']}>
-                {section.title}
-              </Text>
-              
-              {section.items.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={[
-                    styles.menuItem,
-                    selectedItem?.id === item.id && { backgroundColor: theme['c-primary-light-100'] }
-                  ]}
-                  onPress={() => setSelectedItem(item)}
-                  activeOpacity={0.7}
-                >
-                  <View style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}>
-                    <Icon name={item.icon} size={18} color={item.color} />
-                  </View>
-                  <Text style={styles.label} color={theme['c-font']} numberOfLines={1}>
-                    {item.label}
-                  </Text>
-                  {selectedItem?.id === item.id && (
-                    <Icon name="chevron-right" size={14} color={theme['c-primary-font']} />
-                  )}
-                </TouchableOpacity>
-              ))}
-            </View>
-          ))}
-        </ScrollView>
+        <View style={[styles.leftPanel, { backgroundColor: theme['c-primary-background'] }]}>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {menuSections.map((section, sectionIndex) => (
+              <View key={sectionIndex} style={styles.section}>
+                <Text style={styles.sectionTitle} color={theme['c-font']}>
+                  {section.title}
+                </Text>
+
+                {section.items.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={[
+                      styles.menuItem,
+                      selectedItem?.id === item.id && { backgroundColor: theme['c-primary-light-100'] }
+                    ]}
+                    onPress={() => setSelectedItem(item)}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.iconContainer, { backgroundColor: item.color + '20' }]}>
+                      <Icon name={item.icon} size={18} color={item.color} />
+                    </View>
+                    <Text style={styles.label} color={theme['c-font']} numberOfLines={1}>
+                      {item.label}
+                    </Text>
+                    {selectedItem?.id === item.id && (
+                      <Icon name="chevron-right" size={14} color={theme['c-primary-font']} />
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ))}
+          </ScrollView>
+        </View>
 
         {/* 右侧内容 */}
         <View style={[styles.rightPanel, { backgroundColor: theme['c-content-background'] }]}>
@@ -110,7 +102,7 @@ export default () => {
           )}
         </View>
       </View>
-    </ScrollView>
+    </View>
   )
 }
 
@@ -123,6 +115,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
     gap: 12,
   },
   cardWrapper: {
@@ -132,11 +125,11 @@ const styles = StyleSheet.create({
   mainContent: {
     flex: 1,
     flexDirection: 'row',
-    minHeight: 500,
   },
   leftPanel: {
     flex: 0.28,
     borderRightWidth: 1,
+    borderRightColor: 'rgba(0, 0, 0, 0.1)',
     paddingVertical: 12,
     minWidth: 180,
     maxWidth: 220,
