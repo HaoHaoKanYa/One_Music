@@ -590,19 +590,8 @@ export const toMD5 = stringMd5
 
 
 export const cheatTip = async () => {
-  const isRead = await getData<boolean>(storageDataPrefix.cheatTip)
-  if (isRead) return
-
-  return tipDialog({
-    title: '友情提示',
-    message: `欢迎使用 One Music！\n
-为了获得更好的使用体验，建议您前往「我的」页面登录账号。\n
-登录后，您的歌单、收藏和播放历史将自动在多个设备间同步，让您随时随地畅享音乐！`,
-    btnText: '好的 (OK)',
-    bgClose: true,
-  }).then(() => {
-    void saveData(storageDataPrefix.cheatTip, true)
-  })
+  // 隐藏提示弹窗
+  return Promise.resolve()
 }
 
 export const remoteLyricTip = async () => {
