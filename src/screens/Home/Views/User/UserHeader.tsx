@@ -154,23 +154,22 @@ const UserHeaderComponent = ({ userProfiles, playHistory }: any) => {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 20,
-    marginBottom: 12,
+    padding: 12,
     borderRadius: 12,
-    marginHorizontal: 12,
     backgroundColor: 'rgba(248, 249, 250, 0.7)',
     borderWidth: 1,
     borderColor: 'rgba(232, 232, 232, 0.5)',
   },
   avatarContainer: {
-    marginRight: 16,
+    marginRight: 12,
   },
   avatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
   infoContainer: {
     flex: 1,
@@ -178,24 +177,24 @@ const styles = StyleSheet.create({
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 4,
   },
   name: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 'bold',
-    marginRight: 8,
+    marginRight: 6,
   },
   vipBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 2,
-    borderRadius: 10,
+    borderRadius: 8,
   },
   vipText: {
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: 'bold',
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 12,
   },
 })
 

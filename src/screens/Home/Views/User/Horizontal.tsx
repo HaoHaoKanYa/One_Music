@@ -1,4 +1,4 @@
-import { View, TouchableOpacity, StyleSheet } from 'react-native'
+import { View, TouchableOpacity, StyleSheet, ScrollView } from 'react-native'
 import { useState } from 'react'
 import { Icon } from '@/components/common/Icon'
 import Text from '@/components/common/Text'
@@ -47,13 +47,13 @@ export default () => {
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* 顶部：账户信息和数据统计横向排列 */}
       <View style={[styles.topSection, { backgroundColor: theme['c-primary-background'], borderBottomColor: theme['c-border'] }]}>
-        <View style={styles.headerContainer}>
+        <View style={styles.cardWrapper}>
           <UserHeader />
         </View>
-        <View style={styles.statsContainer}>
+        <View style={styles.cardWrapper}>
           <UserStats />
         </View>
       </View>
@@ -61,7 +61,10 @@ export default () => {
       {/* 下方：左侧菜单 + 右侧内容 */}
       <View style={styles.mainContent}>
         {/* 左侧菜单 */}
-        <View style={[styles.leftPanel, { backgroundColor: theme['c-primary-background'], borderRightColor: theme['c-border'] }]}>
+        <ScrollView 
+          style={[styles.leftPanel, { backgroundColor: theme['c-primary-background'], borderRightColor: theme['c-border'] }]}
+          showsVerticalScrollIndicator={false}
+        >
           {menuSections.map((section, sectionIndex) => (
             <View key={sectionIndex} style={styles.section}>
               <Text style={styles.sectionTitle} color={theme['c-font']}>
@@ -91,7 +94,7 @@ export default () => {
               ))}
             </View>
           ))}
-        </View>
+        </ScrollView>
 
         {/* 右侧内容 */}
         <View style={[styles.rightPanel, { backgroundColor: theme['c-content-background'] }]}>
@@ -107,7 +110,7 @@ export default () => {
           )}
         </View>
       </View>
-    </View>
+    </ScrollView>
   )
 }
 
@@ -117,19 +120,19 @@ const styles = StyleSheet.create({
   },
   topSection: {
     flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
+    gap: 12,
   },
-  headerContainer: {
+  cardWrapper: {
     flex: 1,
-  },
-  statsContainer: {
-    flex: 1,
+    height: 120,
   },
   mainContent: {
     flex: 1,
     flexDirection: 'row',
+    minHeight: 500,
   },
   leftPanel: {
     width: 240,
