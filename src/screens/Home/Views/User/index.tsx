@@ -1,23 +1,11 @@
-import { ScrollView, StyleSheet } from 'react-native'
-import UserHeader from '@/screens/Home/Views/User/UserHeader'
-import UserStats from '@/screens/Home/Views/User/UserStats'
-import QuickMenu from '@/screens/Home/Views/User/QuickMenu'
+import { useHorizontalMode } from '@/utils/hooks'
+import Vertical from './Vertical'
+import Horizontal from './Horizontal'
 
 export default () => {
-    return (
-        <ScrollView
-            style={styles.container}
-            showsVerticalScrollIndicator={false}
-        >
-            <UserHeader />
-            <UserStats />
-            <QuickMenu />
-        </ScrollView>
-    )
-}
+  const isHorizontalMode = useHorizontalMode()
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-})
+  return isHorizontalMode
+    ? <Horizontal />
+    : <Vertical />
+}
