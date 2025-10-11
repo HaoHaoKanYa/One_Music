@@ -33,7 +33,7 @@ const menuSections = [
       { icon: 'love', label: '我喜欢的音乐', screen: FAVORITES_LIST_SCREEN, title: '我的收藏', color: '#FF6B6B', requireAuth: true },
       { icon: 'music_time', label: '最近播放', screen: PLAY_HISTORY_SCREEN, title: '播放历史', color: '#4ECDC4', requireAuth: true },
       { icon: 'album', label: '我的歌单', screen: PLAYLISTS_SCREEN, title: '我的歌单', color: '#95E1D3', requireAuth: true },
-      { icon: 'download', label: '我的下载', screen: DOWNLOADS_LIST_SCREEN, title: '我的下载', color: '#9B59B6', requireAuth: true },
+      { icon: 'sd-card', label: '我的下载', screen: DOWNLOADS_LIST_SCREEN, title: '我的下载', color: '#9B59B6', requireAuth: true },
     ],
   },
   {
