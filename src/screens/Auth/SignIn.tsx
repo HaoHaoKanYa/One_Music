@@ -114,7 +114,9 @@ export const SignInScreen: React.FC<SignInScreenProps> = ({ componentId }) => {
       await loadPlaylistsFromDatabase()
 
       // 先关闭Modal，再显示成功提示
-      Navigation.dismissModal(componentId)
+      Navigation.dismissModal(componentId).catch((err) => {
+        console.log('关闭Modal失败:', err)
+      })
       setTimeout(() => {
         Alert.alert('成功', '登录成功！')
         // 触发全局事件，刷新UI
