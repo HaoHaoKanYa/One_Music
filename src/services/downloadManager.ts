@@ -68,6 +68,39 @@ class DownloadManager {
   }
 
   /**
+   * 设置下载路径
+   */
+  async setDownloadPath(path: string) {
+    try {
+      console.log('[DownloadManager] 设置下载路径:', path)
+      
+      // 检查路径是否存在
+      const exists = await RNFS.exists(path)
+      if (!exists) {
+        // 尝试创建目录
+        await RNFS.mkdir(path)
+        console.log('[DownloadManager] 创建下载目录成功')
+      }
+      
+      // 更新下载路径
+      this.downloadPath = path
+      console.log('[DownloadManager] 下载路径已更新为:', this.downloadPath)
+      
+      return true
+    } catch (error: any) {
+      console.error('[DownloadManager] 设置下载路径失败:', error)
+      throw new Error('设置下载路径失败: ' + error.message)
+    }
+  }
+
+  /**
+   * 获取当前下载路径
+   */
+  getDownloadPath(): string {
+    return this.downloadPath
+  }
+
+  /**
    * 初始化下载目录
    */
   private async initDownloadPath() {

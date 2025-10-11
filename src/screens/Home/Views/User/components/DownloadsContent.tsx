@@ -49,7 +49,9 @@ export default function DownloadsContent() {
     global.app_event.downloadListUpdate = handleUpdate
 
     return () => {
-      global.app_event.downloadListUpdate = undefined
+      if (global.app_event.downloadListUpdate === handleUpdate) {
+        global.app_event.downloadListUpdate = () => {}
+      }
     }
   }, [])
 
@@ -310,7 +312,7 @@ const styles = StyleSheet.create({
   downloadItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 14,
+    paddingVertical: 4,
     paddingHorizontal: 20,
     backgroundColor: '#FFFFFF',
   },
