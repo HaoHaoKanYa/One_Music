@@ -25,9 +25,10 @@ class DownloadManager {
   private autoCleanupEnabled = false
 
   constructor() {
-    // 设置默认下载路径 - 使用 Music 子目录
-    const baseDownloadPath = RNFS.DownloadDirectoryPath || (RNFS.ExternalStorageDirectoryPath + '/Download')
-    this.downloadPath = baseDownloadPath + '/OneMusic'
+    // 设置默认下载路径 - 优先使用外部存储的 Download 目录
+    const externalDownload = RNFS.ExternalStorageDirectoryPath + '/Download/OneMusic'
+    this.downloadPath = externalDownload
+    console.log('[DownloadManager] 默认下载路径:', this.downloadPath)
     this.initDownloadPath()
     this.loadSettings()
   }

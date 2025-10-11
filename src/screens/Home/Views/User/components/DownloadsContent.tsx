@@ -157,73 +157,42 @@ export default function DownloadsContent() {
     return true
   })
 
-  const renderDownloadItem = ({ item }: { item: DownloadItem }) => (
-    <View style={[styles.downloadItem, { backgroundColor: '#FFFFFF' }]}>
-      <View style={styles.itemInfo}>
-        <Text style={styles.songName} numberOfLines={1}>
-          {item.songName}
-        </Text>
-        <Text style={styles.artist} numberOfLines={1}>
-          {item.artist}
-        </Text>
-        <View style={styles.statusRow}>
-          <Text style={[styles.status, { color: getStatusColor(item.downloadStatus) }]}>
-            {getStatusText(item.downloadStatus)}
-          </Text>
-          {item.downloadStatus === 'downloading' && (
-            <Text style={styles.progress}>{item.progress}%</Text>
-          )}
-          {item.downloadStatus === 'completed' && (
-            <Text style={styles.fileSize}>{formatFileSize(item.fileSize)}</Text>
-          )}
-        </View>
-        {item.downloadStatus === 'downloading' && (
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${item.progress}%`, backgroundColor: '#4ECDC4' },
-              ]}
-            />
-          </View>
-        )}
-      </View>
-
-      <View style={styles.actions}>
-        {item.downloadStatus === 'downloading' && (
-          <>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => handlePause(item)}
-            >
-              <Text style={{ color: '#FF9800', fontSize: 18 }}>⏸</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => handleCancel(item)}
-            >
-              <Text style={{ color: '#F44336', fontSize: 18 }}>✕</Text>
-            </TouchableOpacity>
-          </>
-        )}
-        {item.downloadStatus === 'completed' && (
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => handleDelete(item)}
-          >
-            <Text style={{ color: '#F44336', fontSize: 18 }}>🗑</Text>
-          </TouchableOpacity>
-        )}
-        {item.downloadStatus === 'failed' && (
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => handleDelete(item)}
-          >
-            <Text style={{ color: '#F44336', fontSize: 18 }}>🗑</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-    </View>
+  const renderDownloadItem = ({ item, index }: { item: DownloadItem; index: number }) => (
+    <TouchableOpacity
+      style={styles.downloadItem}
+      activeOpacity={0.6}
+    >
+      <Text style={styles.songIndex}>{index + 1}</Text>
+      <Text style={styles.songName} numberOfLines={1}>
+        {item.songName}
+      </Text>
+      <Text style={styles.artist} numberOfLines={1}>
+        {item.artist}
+      </Text>
+      <Text style={[styles.status, { color: getStatusColor(item.downloadStatus) }]}>
+        {getStatusText(item.downloadStatus)}
+      </Text>
+      <Text style={styles.fileSize}>
+        {item.downloadStatus === 'completed' 
+          ? formatFileSize(item.fileSize)
+          : item.downloadStatus === 'downloading'
+          ? `${item.progress}%`
+          : '未知'}
+      </Text>
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={(e) => {
+          e.stopPropagation()
+          if (item.downloadStatus === 'downloading') {
+            handleCancel(item)
+          } else {
+            handleDelete(item)
+          }
+        }}
+      >
+        <Text style={{ color: '#F44336', fontSize: 18 }}>🗑</Text>
+      </TouchableOpacity>
+    </TouchableOpacity>
   )
 
   return (
@@ -336,75 +305,50 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   listContent: {
-    padding: 12,
+    paddingHorizontal: 0,
   },
   downloadItem: {
     flexDirection: 'row',
-    padding: 12,
-    marginBottom: 8,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    backgroundColor: '#FFFFFF',
   },
-  itemInfo: {
-    flex: 1,
-    marginRight: 12,
+  songIndex: {
+    width: 28,
+    fontSize: 15,
+    color: '#999',
+    fontWeight: '600',
+    textAlign: 'left',
   },
   songName: {
+    flex: 2,
     fontSize: 15,
-    fontWeight: '600',
     color: '#333',
-    marginBottom: 4,
+    marginLeft: 8,
+    marginRight: 12,
   },
   artist: {
+    flex: 1.5,
     fontSize: 13,
-    color: '#666',
-    marginBottom: 6,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
+    color: '#999',
+    marginRight: 12,
   },
   status: {
-    fontSize: 12,
+    flex: 1,
+    fontSize: 13,
     fontWeight: '500',
-  },
-  progress: {
-    fontSize: 12,
-    color: '#4ECDC4',
-    fontWeight: '600',
+    marginRight: 12,
   },
   fileSize: {
-    fontSize: 12,
+    flex: 1,
+    fontSize: 13,
     color: '#999',
+    marginRight: 12,
   },
-  progressBar: {
-    height: 4,
-    backgroundColor: '#E0E0E0',
-    borderRadius: 2,
-    marginTop: 8,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-  actions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  actionButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#F5F5F5',
-    justifyContent: 'center',
-    alignItems: 'center',
+  deleteButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 8,
   },
   emptyContainer: {
     flex: 1,

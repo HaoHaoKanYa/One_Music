@@ -31,8 +31,18 @@ const Download = memo(() => {
   const [maxConcurrent, setMaxConcurrent] = React.useState(3)
   const [autoCleanup, setAutoCleanup] = React.useState(false)
   
-  // 获取完整的下载路径 - 使用外部存储的 OneMusic 目录
-  const downloadPath = RNFS.ExternalStorageDirectoryPath + '/OneMusic/downloads'
+  // 获取完整的下载路径 - 使用外部存储的 Download/OneMusic 目录
+  const downloadPath = RNFS.ExternalStorageDirectoryPath + '/Download/OneMusic'
+
+  React.useEffect(() => {
+    // 同步设置到 downloadManager
+    const { downloadManager } = require('@/services/downloadManager')
+    downloadManager.updateSettings({
+      wifiOnly,
+      maxConcurrent,
+      autoCleanup,
+    })
+  }, [wifiOnly, maxConcurrent, autoCleanup])
 
   return (
     <Section title={t('setting_download')}>
