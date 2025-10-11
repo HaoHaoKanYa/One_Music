@@ -186,19 +186,19 @@ const PlayHistoryListScreenComponent: React.FC<PlayHistoryListProps & {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: '#FFFFFF',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'transparent',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 12,
-    backgroundColor: 'transparent',
+    backgroundColor: '#FFFFFF',
   },
   title: {
     fontSize: 20,
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     paddingHorizontal: 20,
-    backgroundColor: 'transparent',
+    backgroundColor: '#FFFFFF',
   },
   historyIndex: {
     width: 28,

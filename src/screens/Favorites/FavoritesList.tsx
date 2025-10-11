@@ -146,13 +146,13 @@ const FavoritesListScreenComponent: React.FC<FavoritesListProps & {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: '#FFFFFF',
   },
   header: {
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 12,
-    backgroundColor: 'transparent',
+    backgroundColor: '#FFFFFF',
   },
   title: {
     fontSize: 20,
@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     flex: 1,
-    backgroundColor: 'transparent',
+    backgroundColor: '#FFFFFF',
   },
   listContent: {
     paddingHorizontal: 0,
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     paddingHorizontal: 20,
-    backgroundColor: 'transparent',
+    backgroundColor: '#FFFFFF',
     borderWidth: 0,
     borderRadius: 0,
     marginHorizontal: 0,
