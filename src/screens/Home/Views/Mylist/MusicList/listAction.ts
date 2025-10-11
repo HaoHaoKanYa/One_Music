@@ -11,6 +11,7 @@ import type { SelectInfo } from './ListMenu'
 import { type Metadata } from '@/components/MetadataEditModal'
 import musicSdk from '@/utils/musicSdk'
 import { getListMusicSync } from '@/utils/listManage'
+import { downloadManager } from '@/services/downloadManager'
 
 export const handlePlay = (listId: SelectInfo['listId'], index: SelectInfo['index']) => {
   void playList(listId, index)
@@ -131,6 +132,20 @@ export const handleDislikeMusic = async(musicInfo: SelectInfo['musicInfo']) => {
   toast(global.i18n.t('lists_dislike_music_add_tip'))
   if (hasDislike(playerState.playMusicInfo.musicInfo)) {
     void playNext(true)
+  }
+}
+
+export const handleDownload = async(musicInfo: SelectInfo['musicInfo'], selectedList: SelectInfo['selectedList']) => {
+  try {
+    if (selectedList.length > 0) {
+      // 批量下载
+      await downloadManager.batchDownload(selectedList)
+    } else {
+      // 单曲下载
+      await downloadManager.downloadSong(musicInfo)
+    }
+  } catch (error: any) {
+    toast(error.message || global.i18n.t('download_failed'))
   }
 }
 
