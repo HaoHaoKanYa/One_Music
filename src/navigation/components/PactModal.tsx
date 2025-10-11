@@ -37,6 +37,23 @@ const Content = () => {
       <ScrollView style={styles.content} keyboardShouldPersistTaps={'always'}>
         {!settingState.setting['common.isAgreePact'] && <Text selectable style={styles.bold} >在使用本软件前，你（使用者）需签署本协议才可继续使用！{'\n'}</Text>}
         <Text selectable style={styles.text} >本项目基于 <Text onPress={openLicensePage} style={textLinkStyle}>Apache License 2.0</Text> 许可证发行，以下协议是对于 Apache License 2.0 的补充，如有冲突，以以下协议为准。{'\n'}</Text>
+        <Text selectable style={styles.bold} >One Music 软件使用说明{'\n'}</Text>
+        <Text selectable style={styles.text} >One Music 是一款免费开源的音乐播放器，致力于为用户提供简洁、流畅的音乐体验。{'\n'}</Text>
+        <Text selectable style={styles.bold} >主要功能：{'\n'}</Text>
+        <Text selectable style={styles.text} >• 在线音乐搜索与播放{'\n'}</Text>
+        <Text selectable style={styles.text} >• 歌曲下载与本地播放{'\n'}</Text>
+        <Text selectable style={styles.text} >• 歌单管理与收藏{'\n'}</Text>
+        <Text selectable style={styles.text} >• 播放历史记录{'\n'}</Text>
+        <Text selectable style={styles.text} >• 多设备数据同步（需登录）{'\n'}</Text>
+        <Text selectable style={styles.text} >• 自定义主题{'\n'}</Text>
+        <Text selectable style={styles.bold} >使用提示：{'\n'}</Text>
+        <Text selectable style={styles.text} >1. 建议登录账号以享受多设备同步功能{'\n'}</Text>
+        <Text selectable style={styles.text} >2. 下载的歌曲仅供个人学习使用，请在24小时内删除{'\n'}</Text>
+        <Text selectable style={styles.text} >3. 请尊重版权，支持正版音乐{'\n'}</Text>
+        <Text selectable style={styles.text} >4. 本软件完全免费，如果您是付费购买的，请立即申请退款{'\n'}</Text>
+        <Text selectable style={styles.bold} >技术支持：{'\n'}</Text>
+        <Text selectable style={styles.text} >项目地址：<Text onPress={openHomePage} style={textLinkStyle}>GitHub</Text>{'\n'}</Text>
+        <Text selectable style={styles.text} >By: One_Music 团队{'\n'}</Text>
         <Text selectable style={styles.text} >词语约定：本协议中的“本项目”指 LX Music（洛雪音乐）移动版项目；“使用者”指签署本协议的使用者；“官方音乐平台”指对本项目内置的包括酷我、酷狗、咪咕等音乐源的官方平台统称；“版权数据”指包括但不限于图像、音频、名字等在内的他人拥有所属版权的数据。{'\n'}</Text>
         <Text selectable style={styles.bold} >一、数据来源{'\n'}</Text>
         <Text selectable style={styles.text} >1.1 本项目的数据来源原理是从各官方音乐平台的公开服务器中拉取数据（与未登录状态在官方平台 APP 获取的数据相同），经过对数据简单地筛选与合并后进行展示，因此本项目不对数据的准确性负责。{'\n'}</Text>
@@ -69,7 +86,7 @@ const Footer = ({ componentId }: { componentId: string }) => {
   const theme = useTheme()
   const isAgreePact = useSettingValue('common.isAgreePact')
   // const checkUpdate = useDispatch('common', 'checkUpdate')
-  const [time, setTime] = useState(20)
+  const [time, setTime] = useState(15)
 
   const handleRejct = () => {
     exitApp()
