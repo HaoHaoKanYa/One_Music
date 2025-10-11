@@ -70,11 +70,28 @@ class DownloadManager {
     try {
       const exists = await RNFS.exists(this.downloadPath)
       if (!exists) {
-        await RNFS.mkdir(this.downloadPath)
+        // 递归创建目录
+        await RNFS.mkdir(this.downloadPath, {
+          NSURLIsExcludedFromBackupKey: true, // iOS: 不备份
+        })
         console.log('[DownloadManager] 下载目录已创建:', this.downloadPath)
+      } else {
+        console.log('[DownloadManager] 下载目录已存在:', this.downloadPath)
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('[DownloadManager] 创建下载目录失败:', error)
+      // 如果创建失败，尝试使用备用路径
+      try {
+        this.downloadPath = RNFS.DocumentDirectoryPath + '/downloads'
+        const backupExists = await RNFS.exists(this.downloadPath)
+        if (!backupExists) {
+          await RNFS.mkdir(this.downloadPath)
+          console.log('[DownloadManager] 使用备用下载目录:', this.downloadPath)
+        }
+      } catch (backupError) {
+        console.error('[DownloadManager] 创建备用目录也失败:', backupError)
+        throw new Error('无法创建下载目录，请检查存储权限')
+      }
     }
   }
 
@@ -109,6 +126,9 @@ class DownloadManager {
       }
 
       console.log('[DownloadManager] 开始下载:', musicInfo.name)
+
+      // 确保下载目录存在
+      await this.initDownloadPath()
 
       // 获取歌曲URL
       const musicUrl = await this.getMusicUrl(musicInfo, quality)
@@ -397,25 +417,37 @@ class DownloadManager {
    */
   private async getMusicUrl(musicInfo: LX.Music.MusicInfo, quality: string): Promise<string | null> {
     try {
-      // 这里需要根据实际的音乐SDK实现获取URL
-      // 暂时返回一个模拟URL
-      const { default: musicSdk } = await import('@/utils/musicSdk')
+      // 使用核心的 getMusicUrl 方法
+      const { getMusicUrl: getCoreMusicUrl } = await import('@/core/music')
       
       if (musicInfo.source === 'local') {
+        console.log('[DownloadManager] 本地歌曲无需下载')
         return null
       }
 
-      const sdk = musicSdk[musicInfo.source]
-      if (!sdk || !sdk.getMusicUrl) {
-        return null
+      // 获取音乐URL，使用标准音质类型
+      const qualityMap: Record<string, LX.Quality> = {
+        'low': '128k',
+        'standard': '320k',
+        'high': '320k',
+        'lossless': 'flac',
+      }
+      
+      const targetQuality = qualityMap[quality] || '320k'
+      const url = await getCoreMusicUrl({
+        musicInfo,
+        quality: targetQuality,
+        isRefresh: false,
+      })
+
+      if (!url) {
+        throw new Error('无法获取歌曲下载链接')
       }
 
-      // 获取音乐URL
-      const urlInfo = await sdk.getMusicUrl(musicInfo, quality)
-      return urlInfo?.url || null
+      return url
     } catch (error) {
       console.error('[DownloadManager] 获取音乐URL失败:', error)
-      return null
+      throw error
     }
   }
 
