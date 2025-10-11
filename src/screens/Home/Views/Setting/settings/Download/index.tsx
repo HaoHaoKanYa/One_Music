@@ -72,6 +72,16 @@ const Download = memo(() => {
         </View>
       </SubTitle>
 
+      {/* 下载路径 */}
+      <View style={styles.content}>
+        <Text size={14} color={theme['c-font']}>
+          {t('setting_download_path')}
+        </Text>
+        <Text style={styles.pathText} size={13} color={theme['c-font-label']}>
+          .../files/downloads
+        </Text>
+      </View>
+
       {/* 自动清理 */}
       <View style={styles.content}>
         <CheckBoxItem
@@ -101,5 +111,9 @@ const styles = createStyle({
   desc: {
     marginTop: 5,
     marginLeft: 30,
+  },
+  pathText: {
+    marginTop: 5,
+    marginLeft: 5,
   },
 })
