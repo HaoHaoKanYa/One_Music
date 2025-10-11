@@ -9,6 +9,7 @@ import UserStatsCompact from './UserStatsCompact'
 import FavoritesContent from './components/FavoritesContent'
 import PlayHistoryContent from './components/PlayHistoryContent'
 import PlaylistsContent from './components/PlaylistsContent'
+import DownloadsContent from './components/DownloadsContent'
 import { PlayStatisticsScreen } from '@/screens/Statistics/PlayStatistics'
 
 interface MenuItem {
@@ -26,6 +27,7 @@ const menuSections = [
       { id: 'favorites', icon: 'love', label: '我喜欢的音乐', color: '#FF6B6B', component: <FavoritesContent /> },
       { id: 'history', icon: 'music_time', label: '最近播放', color: '#4ECDC4', component: <PlayHistoryContent /> },
       { id: 'playlists', icon: 'album', label: '我的歌单', color: '#95E1D3', component: <PlaylistsContent /> },
+      { id: 'downloads', icon: 'download', label: '我的下载', color: '#9B59B6', component: <DownloadsContent /> },
     ],
   },
   {

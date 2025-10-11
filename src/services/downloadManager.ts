@@ -68,19 +68,26 @@ class DownloadManager {
    */
   private async initDownloadPath() {
     try {
+      // 先检查父目录是否存在
+      const parentPath = RNFS.ExternalStorageDirectoryPath + '/OneMusic'
+      const parentExists = await RNFS.exists(parentPath)
+      
+      if (!parentExists) {
+        await RNFS.mkdir(parentPath)
+        console.log('[DownloadManager] 父目录已创建:', parentPath)
+      }
+
+      // 再创建下载目录
       const exists = await RNFS.exists(this.downloadPath)
       if (!exists) {
-        // 递归创建目录
-        await RNFS.mkdir(this.downloadPath, {
-          NSURLIsExcludedFromBackupKey: true, // iOS: 不备份
-        })
+        await RNFS.mkdir(this.downloadPath)
         console.log('[DownloadManager] 下载目录已创建:', this.downloadPath)
       } else {
         console.log('[DownloadManager] 下载目录已存在:', this.downloadPath)
       }
     } catch (error: any) {
       console.error('[DownloadManager] 创建下载目录失败:', error)
-      // 如果创建失败，尝试使用备用路径
+      // 如果创建失败，尝试使用备用路径（应用私有目录）
       try {
         this.downloadPath = RNFS.DocumentDirectoryPath + '/downloads'
         const backupExists = await RNFS.exists(this.downloadPath)
