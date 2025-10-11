@@ -71,7 +71,7 @@ const FavoritesContentComponent: React.FC<{ favorites: any[] }> = ({ favorites }
         </Text>
       </View>
       <TouchableOpacity onPress={() => handleRemoveFavorite(item)} style={styles.deleteBtn}>
-        <Icon name="delete" size={20} color={theme['c-font-label']} />
+        <Icon name="close" size={20} color={theme['c-font-label']} />
       </TouchableOpacity>
     </TouchableOpacity>
   )

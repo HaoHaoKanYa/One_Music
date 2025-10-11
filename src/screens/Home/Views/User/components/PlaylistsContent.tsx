@@ -103,7 +103,7 @@ const PlaylistsContentComponent: React.FC<{ playlists: any[] }> = ({ playlists }
         </Text>
       </View>
       <TouchableOpacity onPress={() => handleDeletePlaylist(item)} style={styles.deleteBtn}>
-        <Icon name="delete" size={20} color={theme['c-font-label']} />
+        <Icon name="close" size={20} color={theme['c-font-label']} />
       </TouchableOpacity>
     </View>
   )
