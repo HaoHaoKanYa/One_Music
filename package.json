@@ -62,6 +62,7 @@
     "react": "18.2.0",
     "react-native": "0.73.11",
     "react-native-background-timer": "github:lyswhut/react-native-background-timer#55ecaa80880e9cec1fff81f3ce10e6250ab3c40c",
+    "react-native-document-picker": "^9.3.1",
     "react-native-exception-handler": "^2.10.10",
     "react-native-file-system": "github:lyswhut/react-native-file-system#2a37b90dbb8d37c5180777d0bf0d4f160812b0c1",
     "react-native-fs": "^2.20.0",

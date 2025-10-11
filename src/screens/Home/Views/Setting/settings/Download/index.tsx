@@ -1,5 +1,5 @@
 import React, { memo } from 'react'
-import { View, TouchableOpacity, Alert } from 'react-native'
+import { View, TouchableOpacity, Alert, Platform } from 'react-native'
 import { useI18n } from '@/lang'
 import { createStyle } from '@/utils/tools'
 import Section from '../../components/Section'
@@ -10,6 +10,7 @@ import Text from '@/components/common/Text'
 import { useTheme } from '@/store/theme/hook'
 import RNFS from 'react-native-fs'
 import { downloadManager } from '@/services/downloadManager'
+import DocumentPicker from 'react-native-document-picker'
 
 const QUALITY_OPTIONS = [
   { value: 'standard', label: '标准音质 (128kbps)' },
@@ -52,52 +53,61 @@ const Download = memo(() => {
     })
   }, [wifiOnly, maxConcurrent, autoCleanup])
 
-  const handleChangeDownloadPath = () => {
-    const pathOptions = [
-      {
-        label: '应用私有目录（推荐）',
-        path: RNFS.DocumentDirectoryPath + '/OneMusic',
-        desc: '无需额外权限，卸载应用时会被删除',
-      },
-      {
-        label: '应用缓存目录',
-        path: RNFS.CachesDirectoryPath + '/OneMusic',
-        desc: '无需额外权限，系统可能自动清理',
-      },
-      {
-        label: '公共下载目录',
-        path: RNFS.ExternalStorageDirectoryPath + '/Download/OneMusic',
-        desc: 'Android 11+可能需要额外权限',
-      },
-      {
-        label: '音乐目录',
-        path: RNFS.ExternalStorageDirectoryPath + '/Music/OneMusic',
-        desc: 'Android 11+可能需要额外权限',
-      },
-    ]
-
-    Alert.alert(
-      '选择下载路径',
-      '请选择歌曲下载保存位置\n\n推荐：应用私有目录（无需额外权限）',
-      [
-        ...pathOptions.map(option => ({
-          text: option.label,
-          onPress: async () => {
-            try {
-              await downloadManager.setDownloadPath(option.path)
-              setDownloadPath(option.path)
-              Alert.alert('设置成功', `下载路径：\n${option.path}\n\n${option.desc}`)
-            } catch (error: any) {
+  const handleChangeDownloadPath = async () => {
+    try {
+      if (Platform.OS === 'android') {
+        // Android: 使用 DocumentPicker 选择文件夹
+        const result = await DocumentPicker.pickDirectory()
+        
+        if (result && result.uri) {
+          // 将 content:// URI 转换为文件路径
+          let folderPath = decodeURIComponent(result.uri)
+          
+          // 处理 content:// URI
+          if (folderPath.startsWith('content://')) {
+            // 提取实际路径
+            const pathMatch = folderPath.match(/primary:(.+)/)
+            if (pathMatch) {
+              folderPath = RNFS.ExternalStorageDirectoryPath + '/' + pathMatch[1]
+            } else {
+              // 如果无法解析，使用 DocumentDirectoryPath
               Alert.alert(
-                '设置失败',
-                `无法使用该路径:\n${error.message}\n\n建议使用应用私有目录`
+                '提示',
+                '无法访问该目录，将使用应用私有目录',
+                [
+                  {
+                    text: '确定',
+                    onPress: async () => {
+                      folderPath = RNFS.DocumentDirectoryPath + '/OneMusic'
+                      await downloadManager.setDownloadPath(folderPath)
+                      setDownloadPath(folderPath)
+                    }
+                  }
+                ]
               )
+              return
             }
-          },
-        })),
-        { text: '取消', style: 'cancel' },
-      ]
-    )
+          }
+          
+          // 设置下载路径
+          await downloadManager.setDownloadPath(folderPath)
+          setDownloadPath(folderPath)
+          
+          Alert.alert('设置成功', `下载路径已设置为:\n${folderPath}`)
+        }
+      } else {
+        // iOS 或其他平台的处理
+        Alert.alert('提示', '当前平台暂不支持自定义路径选择')
+      }
+    } catch (error: any) {
+      if (DocumentPicker.isCancel(error)) {
+        // 用户取消选择
+        console.log('[Download] 用户取消选择路径')
+      } else {
+        console.error('[Download] 选择路径失败:', error)
+        Alert.alert('错误', `选择路径失败: ${error.message}`)
+      }
+    }
   }
 
   const handleCleanupNow = () => {
