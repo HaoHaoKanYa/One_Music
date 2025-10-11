@@ -9,6 +9,7 @@ import { addDislikeInfo, hasDislike } from '@/core/dislikeList'
 import playerState from '@/store/player/state'
 import musicSdk from '@/utils/musicSdk'
 import { toOldMusicInfo } from '@/utils'
+import { downloadManager } from '@/services/downloadManager'
 
 export const handlePlay = (musicInfo: LX.Music.MusicInfoOnline) => {
   void addListMusics(LIST_IDS.DEFAULT, [musicInfo], settingState.setting['list.addMusicLocationType']).then(() => {
@@ -50,6 +51,20 @@ export const handleDislikeMusic = async(musicInfo: LX.Music.MusicInfoOnline) => 
   toast(global.i18n.t('lists_dislike_music_add_tip'))
   if (hasDislike(playerState.playMusicInfo.musicInfo)) {
     void playNext(true)
+  }
+}
+
+export const handleDownload = async(musicInfo: LX.Music.MusicInfoOnline, selectedList: LX.Music.MusicInfoOnline[]) => {
+  try {
+    if (selectedList.length > 0) {
+      // 批量下载
+      await downloadManager.batchDownload(selectedList as LX.Music.MusicInfo[])
+    } else {
+      // 单曲下载
+      await downloadManager.downloadSong(musicInfo as LX.Music.MusicInfo)
+    }
+  } catch (error: any) {
+    toast(error.message || global.i18n.t('download_failed'))
   }
 }
 
