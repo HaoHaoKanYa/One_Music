@@ -8,6 +8,7 @@ import CheckBoxItem from '../../components/CheckBoxItem'
 import CheckBox from '@/components/common/CheckBox'
 import Text from '@/components/common/Text'
 import { useTheme } from '@/store/theme/hook'
+import RNFS from 'react-native-fs'
 
 const QUALITY_OPTIONS = [
   { value: 'standard', label: '标准音质 (128kbps)' },
@@ -29,6 +30,9 @@ const Download = memo(() => {
   const [wifiOnly, setWifiOnly] = React.useState(false)
   const [maxConcurrent, setMaxConcurrent] = React.useState(3)
   const [autoCleanup, setAutoCleanup] = React.useState(false)
+  
+  // 获取完整的下载路径
+  const downloadPath = RNFS.DocumentDirectoryPath + '/downloads'
 
   return (
     <Section title={t('setting_download')}>
@@ -77,8 +81,8 @@ const Download = memo(() => {
         <Text size={14} color={theme['c-font']}>
           {t('setting_download_path')}
         </Text>
-        <Text style={styles.pathText} size={13} color={theme['c-font-label']}>
-          .../files/downloads
+        <Text style={styles.pathText} size={12} color={theme['c-font-label']} selectable>
+          {downloadPath}
         </Text>
       </View>
 
