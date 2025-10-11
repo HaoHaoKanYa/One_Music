@@ -6,6 +6,8 @@ import Header from './Header'
 import Main from './Main'
 import BottomTabBar from '@/components/common/BottomTabBar'
 import { createStyle } from '@/utils/tools'
+import { useState, useEffect } from 'react'
+import commonState from '@/store/common/state'
 
 const styles = createStyle({
   container: {
@@ -19,11 +21,24 @@ const styles = createStyle({
 })
 
 export default () => {
+  const [isShowAside, setIsShowAside] = useState(commonState.isShowAside)
+  
+  useEffect(() => {
+    const handleUpdate = () => {
+      setIsShowAside(commonState.isShowAside)
+    }
+    global.state_event.on('isShowAsideUpdated', handleUpdate)
+    return () => {
+      global.state_event.off('isShowAsideUpdated', handleUpdate)
+    }
+  }, [])
+  
   return (
     <>
       <StatusBar />
       <View style={styles.container}>
-        <Aside />
+        {/* 横屏模式下侧边栏默认隐藏 */}
+        {isShowAside && <Aside />}
         <View style={styles.content}>
           <Header />
           <Main />
