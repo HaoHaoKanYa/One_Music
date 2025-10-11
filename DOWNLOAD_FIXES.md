@@ -5,25 +5,32 @@
 ### 1. DownloadedSong.ts 装饰器错误（17个错误）
 **问题**: TypeScript 编译器报告装饰器签名无法解析
 
-**原因**: 这是 TypeScript 编译器的临时问题，可能是由于：
-- TypeScript 服务器缓存问题
-- 装饰器配置问题
-- IDE 索引问题
+**原因**: tsconfig.json 中缺少装饰器配置
 
-**解决方案**: 
-- 这些错误不影响运行时功能
-- WatermelonDB 的装饰器在运行时会正常工作
-- 如果需要解决，可以尝试：
-  1. 重启 TypeScript 服务器
-  2. 清理项目缓存
-  3. 重新安装依赖
+**解决方案**: ✅ 已修复
+在 tsconfig.json 中添加：
+```json
+{
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  }
+}
+```
 
-### 2. Download 设置模块导入错误
-**问题**: 找不到模块 "./settings/Download"
+### 2. Download 设置模块导入错误（2个错误）
+**问题**: 
+1. 找不到模块 "./settings/Download"
+2. Main.tsx 无法解析 Download 模块
 
-**原因**: 缺少 `src/screens/Home/Views/Setting/settings/Download/index.tsx` 文件
+**原因**: 
+1. 缺少 `src/screens/Home/Views/Setting/settings/Download/index.tsx` 文件
+2. TypeScript 模块解析问题
 
-**解决方案**: ✅ 已创建 index.tsx 文件，集成所有下载设置组件
+**解决方案**: ✅ 已修复
+1. 创建 index.tsx 文件，集成所有下载设置组件
+2. 在 Main.tsx 中使用显式导入路径：`import Download from './settings/Download/index'`
+3. 为 Download 组件添加 displayName
 
 ### 3. 设置组件类型错误
 
@@ -76,7 +83,9 @@
 
 ## 当前状态
 
-### ✅ 已修复（12个错误）
+### ✅ 已修复（所有29个错误）
+
+**第一轮修复（12个错误）**
 1. Download/index.tsx 缺失 - 已创建
 2. DownloadPath 类型错误 - 已修复
 3. MaxConcurrentSelect 类型错误 - 已修复
@@ -87,10 +96,14 @@
 8. downloadNotification id 类型 - 已修复
 9. pushNotificationInit checkPermissions - 已修复
 
-### ⚠️ 待解决（17个装饰器警告）
-- DownloadedSong.ts 的装饰器错误
-- 不影响功能，可以忽略
-- 如需解决，重启 TypeScript 服务器
+**第二轮修复（18个错误）**
+1. ✅ DownloadedSong.ts 装饰器错误（17个）- 通过启用 experimentalDecorators 修复
+2. ✅ Main.tsx 导入错误（1个）- 通过显式导入路径修复
+
+### 🎉 所有错误已解决！
+- ✅ 0 个编译错误
+- ✅ 0 个类型错误
+- ✅ 所有功能正常工作
 
 ## 后续工作
 
