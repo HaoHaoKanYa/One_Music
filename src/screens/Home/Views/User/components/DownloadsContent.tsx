@@ -196,13 +196,13 @@ export default function DownloadsContent() {
               style={styles.actionButton}
               onPress={() => handlePause(item)}
             >
-              <Icon name="pause" size={20} color="#FF9800" />
+              <Text style={{ color: '#FF9800', fontSize: 18 }}>⏸</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.actionButton}
               onPress={() => handleCancel(item)}
             >
-              <Icon name="close" size={20} color="#F44336" />
+              <Text style={{ color: '#F44336', fontSize: 18 }}>✕</Text>
             </TouchableOpacity>
           </>
         )}
@@ -211,7 +211,7 @@ export default function DownloadsContent() {
             style={styles.actionButton}
             onPress={() => handleDelete(item)}
           >
-            <Icon name="delete" size={20} color="#F44336" />
+            <Text style={{ color: '#F44336', fontSize: 18 }}>🗑</Text>
           </TouchableOpacity>
         )}
         {item.downloadStatus === 'failed' && (
@@ -219,7 +219,7 @@ export default function DownloadsContent() {
             style={styles.actionButton}
             onPress={() => handleDelete(item)}
           >
-            <Icon name="delete" size={20} color="#F44336" />
+            <Text style={{ color: '#F44336', fontSize: 18 }}>🗑</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -292,7 +292,7 @@ export default function DownloadsContent() {
         }
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Icon name="download" size={64} color="#CCC" />
+            <Text style={{ fontSize: 64, color: '#CCC' }}>📥</Text>
             <Text style={styles.emptyText}>暂无下载</Text>
             <Text style={styles.emptyHint}>
               {filter === 'all'

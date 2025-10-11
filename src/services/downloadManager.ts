@@ -25,8 +25,9 @@ class DownloadManager {
   private autoCleanupEnabled = false
 
   constructor() {
-    // 设置默认下载路径
-    this.downloadPath = RNFS.DownloadDirectoryPath || (RNFS.ExternalStorageDirectoryPath + '/Download')
+    // 设置默认下载路径 - 使用 Music 子目录
+    const baseDownloadPath = RNFS.DownloadDirectoryPath || (RNFS.ExternalStorageDirectoryPath + '/Download')
+    this.downloadPath = baseDownloadPath + '/OneMusic'
     this.initDownloadPath()
     this.loadSettings()
   }
@@ -147,6 +148,12 @@ class DownloadManager {
 
       // 确保下载目录存在
       await this.initDownloadPath()
+      
+      // 再次确认目录存在
+      const dirExists = await RNFS.exists(this.downloadPath)
+      if (!dirExists) {
+        throw new Error(`下载目录不存在: ${this.downloadPath}`)
+      }
 
       // 获取歌曲URL
       const musicUrl = await this.getMusicUrl(musicInfo, quality)
@@ -157,6 +164,8 @@ class DownloadManager {
       // 生成文件名和路径
       const fileName = this.generateFileName(musicInfo)
       const filePath = `${this.downloadPath}/${fileName}`
+      
+      console.log('[DownloadManager] 下载路径:', filePath)
 
       // 创建数据库记录
       let dbRecord: any

@@ -22,7 +22,7 @@ export const DownloadsListScreen: React.FC<DownloadsListProps> = ({ componentId 
       {/* Header */}
       <View style={[styles.header, { backgroundColor: theme['c-primary-background'] }]}>
         <TouchableOpacity style={styles.backButton} onPress={handleClose}>
-          <Icon name="arrow-left" size={24} color={theme['c-font']} />
+          <Text style={{ fontSize: 24, color: theme['c-font'] }}>←</Text>
         </TouchableOpacity>
         <Text style={styles.title} color={theme['c-font']}>
           我的下载
