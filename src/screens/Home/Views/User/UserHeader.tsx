@@ -125,29 +125,29 @@ const UserHeaderComponent = ({ userProfiles, playHistory }: any) => {
             ]}>
               <Text style={styles.vipText} color="#FFFFFF">
                 {profile.vipStatus === 'svip' 
-                  ? 'SVIP会员' 
+                  ? 'SVIP' 
                   : profile.vipStatus === 'vip'
-                  ? 'VIP会员'
-                  : '普通会员'}
+                  ? 'VIP'
+                  : '普通'}
               </Text>
             </View>
           )}
         </View>
-        <Text style={styles.subtitle} color={theme['c-350']}>
+        <Text style={styles.subtitle} color={theme['c-350']} numberOfLines={1}>
           {currentUser 
             ? (() => {
                 const hours = Math.floor(totalPlayTime / 3600)
                 const minutes = Math.floor((totalPlayTime % 3600) / 60)
                 if (hours > 0) {
-                  return `累计听歌 ${hours} 小时 ${minutes} 分钟`
+                  return `累计 ${hours}h${minutes}m`
                 }
-                return `累计听歌 ${minutes} 分钟`
+                return `累计 ${minutes}分钟`
               })()
             : '登录后可同步收藏和歌单'}
         </Text>
       </View>
 
-      <Icon name="chevron-right" size={20} color={theme['c-350']} />
+      <Icon name="chevron-right" size={16} color={theme['c-350']} />
     </TouchableOpacity>
   )
 }
@@ -157,44 +157,48 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 12,
+    padding: 8,
+    borderRadius: 8,
     backgroundColor: 'rgba(248, 249, 250, 0.7)',
     borderWidth: 1,
     borderColor: 'rgba(232, 232, 232, 0.5)',
   },
   avatarContainer: {
-    marginRight: 12,
+    marginRight: 8,
   },
   avatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
   },
   infoContainer: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   nameRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 4,
+    marginRight: 8,
   },
   name: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    marginRight: 6,
+    marginRight: 4,
   },
   vipBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 6,
+    marginRight: 8,
   },
   vipText: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: 'bold',
   },
   subtitle: {
-    fontSize: 12,
+    fontSize: 11,
+    flex: 1,
   },
 })
 

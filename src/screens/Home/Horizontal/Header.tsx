@@ -40,11 +40,6 @@ const LeftHeader = () => {
     setNavActiveId('nav_setting')
   }
 
-  const handleToggleAside = () => {
-    commonState.isShowAside = !commonState.isShowAside
-    global.state_event.emit('isShowAsideUpdated')
-  }
-
   return (
     <View style={{
       ...styles.container,
@@ -60,11 +55,6 @@ const LeftHeader = () => {
         <Text style={styles.leftTitle} size={18}>{t(id)}</Text>
       </View>
       {headerComponents[id] ?? null}
-
-      {/* 右侧侧边栏切换按钮 */}
-      <TouchableOpacity style={styles.asideButton} onPress={handleToggleAside}>
-        <Icon name="more" size={18} color={theme['c-font-label']} />
-      </TouchableOpacity>
     </View>
   )
 }
@@ -86,11 +76,6 @@ const RightHeader = () => {
     setNavActiveId('nav_setting')
   }
 
-  const handleToggleAside = () => {
-    commonState.isShowAside = !commonState.isShowAside
-    global.state_event.emit('isShowAsideUpdated')
-  }
-
   return (
     <View style={{
       ...styles.container,
@@ -106,11 +91,6 @@ const RightHeader = () => {
         <Text style={styles.rightTitle} size={18}>{t(id)}</Text>
       </View>
       {headerComponents[id] ?? null}
-      
-      {/* 右侧侧边栏切换按钮 */}
-      <TouchableOpacity style={styles.asideButton} onPress={handleToggleAside}>
-        <Icon name="more" size={18} color={theme['c-font-label']} />
-      </TouchableOpacity>
     </View>
   )
 }

@@ -120,7 +120,7 @@ const styles = StyleSheet.create({
   },
   cardWrapper: {
     flex: 1,
-    height: 120,
+    height: 60,
   },
   mainContent: {
     flex: 1,

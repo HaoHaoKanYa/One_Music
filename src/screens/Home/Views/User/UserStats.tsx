@@ -70,26 +70,30 @@ const UserStatsComponent = ({ favorites, playlists, playHistory }: any) => {
     <View style={styles.container}>
       <Text style={styles.title} color={theme['c-font']}>📊 我的数据</Text>
 
-      <View style={styles.statsGrid}>
+      <View style={styles.statsRow}>
         <View style={styles.statItem}>
+          <Text style={styles.statLabel} color={theme['c-350']}>收藏</Text>
           <Text style={styles.statValue} color={theme['c-primary-font']}>
             {displayValue(favorites?.length || 0)}
           </Text>
-          <Text style={styles.statLabel} color={theme['c-350']}>收藏歌曲</Text>
         </View>
 
+        <View style={styles.statDivider} />
+
         <View style={styles.statItem}>
+          <Text style={styles.statLabel} color={theme['c-350']}>歌单</Text>
           <Text style={styles.statValue} color={theme['c-primary-font']}>
             {displayValue(playlists?.length || 0)}
           </Text>
-          <Text style={styles.statLabel} color={theme['c-350']}>创建歌单</Text>
         </View>
 
+        <View style={styles.statDivider} />
+
         <View style={styles.statItem}>
+          <Text style={styles.statLabel} color={theme['c-350']}>历史</Text>
           <Text style={styles.statValue} color={theme['c-primary-font']}>
             {displayValue(playHistory?.length || 0)}
           </Text>
-          <Text style={styles.statLabel} color={theme['c-350']}>播放历史</Text>
         </View>
       </View>
     </View>
@@ -99,32 +103,41 @@ const UserStatsComponent = ({ favorites, playlists, playHistory }: any) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 12,
-    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 8,
     backgroundColor: 'rgba(248, 249, 250, 0.7)',
     borderWidth: 1,
     borderColor: 'rgba(232, 232, 232, 0.5)',
-    justifyContent: 'center',
   },
   title: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginRight: 12,
   },
-  statsGrid: {
+  statsRow: {
+    flex: 1,
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-around',
   },
   statItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 2,
+    gap: 4,
   },
   statLabel: {
     fontSize: 11,
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  statDivider: {
+    width: 1,
+    height: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
   },
 })
 
