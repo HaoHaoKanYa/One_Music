@@ -158,60 +158,90 @@ export class SyncEngine {
 
   // 下载服务器数据
   private async downloadServerData() {
+    console.log('[SyncEngine] 开始下载服务器数据（启动时服务器优先）')
+
+    // 每个下载操作独立处理错误，避免一个失败影响其他
     try {
-      console.log('[SyncEngine] 开始下载服务器数据（启动时服务器优先）')
-
-      // 下载收藏（带冲突解决）
       await this.downloadFavoritesWithConflictResolution()
-      
-      // 下载歌单（带冲突解决）
-      await this.downloadPlaylistsWithConflictResolution()
-      
-      // 下载播放历史（带冲突解决）
-      await this.downloadPlayHistoryWithConflictResolution()
-      
-      // 下载播放统计（带冲突解决）
-      await this.downloadPlayStatisticsWithConflictResolution()
-      
-      // 下载用户设置（带冲突解决）
-      await this.downloadAppSettingsWithConflictResolution()
-      
-      // 下载用户资料（带冲突解决）
-      await this.downloadUserProfilesWithConflictResolution()
-
-      console.log('[SyncEngine] 下载完成')
     } catch (error) {
-      console.error('[SyncEngine] 下载失败:', error)
+      console.error('[SyncEngine] 下载收藏失败:', error)
     }
+    
+    try {
+      await this.downloadPlaylistsWithConflictResolution()
+    } catch (error) {
+      console.error('[SyncEngine] 下载歌单失败:', error)
+    }
+    
+    try {
+      await this.downloadPlayHistoryWithConflictResolution()
+    } catch (error) {
+      console.error('[SyncEngine] 下载播放历史失败:', error)
+    }
+    
+    try {
+      await this.downloadPlayStatisticsWithConflictResolution()
+    } catch (error) {
+      console.error('[SyncEngine] 下载播放统计失败:', error)
+    }
+    
+    try {
+      await this.downloadAppSettingsWithConflictResolution()
+    } catch (error) {
+      console.error('[SyncEngine] 下载应用设置失败:', error)
+    }
+    
+    try {
+      await this.downloadUserProfilesWithConflictResolution()
+    } catch (error) {
+      console.error('[SyncEngine] 下载用户资料失败:', error)
+    }
+
+    console.log('[SyncEngine] 下载完成')
   }
 
   // 下载服务器数据（用户操作优先）
   private async downloadServerDataWithUserPriority() {
+    console.log('[SyncEngine] 开始下载服务器数据（用户操作优先）')
+
+    // 每个下载操作独立处理错误
     try {
-      console.log('[SyncEngine] 开始下载服务器数据（用户操作优先）')
-
-      // 下载收藏（用户操作优先的冲突解决）
       await this.downloadFavoritesWithUserPriority()
-      
-      // 下载歌单（用户操作优先的冲突解决）
-      await this.downloadPlaylistsWithUserPriority()
-      
-      // 下载播放历史（用户操作优先的冲突解决）
-      await this.downloadPlayHistoryWithUserPriority()
-      
-      // 下载播放统计（用户操作优先的冲突解决）
-      await this.downloadPlayStatisticsWithUserPriority()
-      
-      // 下载用户设置（用户操作优先的冲突解决）
-      await this.downloadAppSettingsWithUserPriority()
-      
-      // 下载用户资料（用户操作优先的冲突解决）
-      await this.downloadUserProfilesWithUserPriority()
-
-      console.log('[SyncEngine] 用户操作优先下载完成')
     } catch (error) {
-      console.error('[SyncEngine] 用户操作优先下载失败:', error)
+      console.error('[SyncEngine] 下载收藏失败（用户操作优先）:', error)
     }
+    
+    try {
+      await this.downloadPlaylistsWithUserPriority()
+    } catch (error) {
+      console.error('[SyncEngine] 下载歌单失败（用户操作优先）:', error)
+    }
+    
+    try {
+      await this.downloadPlayHistoryWithUserPriority()
+    } catch (error) {
+      console.error('[SyncEngine] 下载播放历史失败（用户操作优先）:', error)
+    }
+    
+    try {
+      await this.downloadPlayStatisticsWithUserPriority()
+    } catch (error) {
+      console.error('[SyncEngine] 下载播放统计失败（用户操作优先）:', error)
+    }
+    
+    try {
+      await this.downloadAppSettingsWithUserPriority()
+    } catch (error) {
+      console.error('[SyncEngine] 下载应用设置失败（用户操作优先）:', error)
+    }
+    
+    try {
+      await this.downloadUserProfilesWithUserPriority()
+    } catch (error) {
+      console.error('[SyncEngine] 下载用户资料失败（用户操作优先）:', error)
+    }
+
+    console.log('[SyncEngine] 用户操作优先下载完成')
   }
 
   // 上传收藏
@@ -223,7 +253,30 @@ export class SyncEngine {
 
     if (unsyncedFavorites.length === 0) return
 
-    const favoritesData = unsyncedFavorites.map(fav => ({
+    // 过滤掉没有 user_id 的记录
+    const validRecords = unsyncedFavorites.filter(fav => {
+      const userId = (fav as any).userId
+      if (!userId) {
+        console.warn('[SyncEngine] 跳过没有 user_id 的收藏记录:', (fav as any).songName)
+        return false
+      }
+      return true
+    })
+
+    if (validRecords.length === 0) {
+      console.log('[SyncEngine] 没有有效的收藏记录需要上传')
+      await database.write(async () => {
+        for (const fav of unsyncedFavorites) {
+          if (!(fav as any).userId) {
+            await (fav as any).markAsSynced()
+          }
+        }
+      })
+      return
+    }
+
+    const favoritesData = validRecords.map(fav => ({
+      user_id: (fav as any).userId,
       song_id: (fav as any).songId,
       song_name: (fav as any).songName,
       artist: (fav as any).artist,
@@ -237,11 +290,16 @@ export class SyncEngine {
       .from('favorite_songs')
       .upsert(favoritesData)
 
-    if (error) throw error
+    if (error) {
+      console.error('[SyncEngine] 上传收藏失败:', error)
+      return
+    }
+
+    console.log(`[SyncEngine] 成功上传 ${validRecords.length} 条收藏`)
 
     // 标记为已同步
     await database.write(async () => {
-      for (const fav of unsyncedFavorites) {
+      for (const fav of validRecords) {
         await (fav as any).markAsSynced()
       }
     })
@@ -256,7 +314,30 @@ export class SyncEngine {
 
     if (unsyncedPlaylists.length === 0) return
 
-    const playlistsData = unsyncedPlaylists.map(playlist => ({
+    // 过滤掉没有 user_id 的记录
+    const validRecords = unsyncedPlaylists.filter(playlist => {
+      const userId = (playlist as any).userId
+      if (!userId) {
+        console.warn('[SyncEngine] 跳过没有 user_id 的歌单记录:', (playlist as any).name)
+        return false
+      }
+      return true
+    })
+
+    if (validRecords.length === 0) {
+      console.log('[SyncEngine] 没有有效的歌单记录需要上传')
+      await database.write(async () => {
+        for (const playlist of unsyncedPlaylists) {
+          if (!(playlist as any).userId) {
+            await (playlist as any).markAsSynced()
+          }
+        }
+      })
+      return
+    }
+
+    const playlistsData = validRecords.map(playlist => ({
+      user_id: (playlist as any).userId,
       name: (playlist as any).name,
       description: (playlist as any).description,
       cover_url: (playlist as any).coverUrl,
@@ -275,11 +356,16 @@ export class SyncEngine {
       .from('playlists')
       .upsert(playlistsData)
 
-    if (error) throw error
+    if (error) {
+      console.error('[SyncEngine] 上传歌单失败:', error)
+      return
+    }
+
+    console.log(`[SyncEngine] 成功上传 ${validRecords.length} 条歌单`)
 
     // 标记为已同步
     await database.write(async () => {
-      for (const playlist of unsyncedPlaylists) {
+      for (const playlist of validRecords) {
         await (playlist as any).markAsSynced()
       }
     })
@@ -294,7 +380,31 @@ export class SyncEngine {
 
     if (unsyncedHistory.length === 0) return
 
-    const historyData = unsyncedHistory.map(record => ({
+    // 过滤掉没有 user_id 的记录（旧数据或未登录时的数据）
+    const validRecords = unsyncedHistory.filter(record => {
+      const userId = (record as any).userId
+      if (!userId) {
+        console.warn('[SyncEngine] 跳过没有 user_id 的播放历史记录:', (record as any).songName)
+        return false
+      }
+      return true
+    })
+
+    if (validRecords.length === 0) {
+      console.log('[SyncEngine] 没有有效的播放历史记录需要上传')
+      // 标记无效记录为已同步，避免重复尝试
+      await database.write(async () => {
+        for (const record of unsyncedHistory) {
+          if (!(record as any).userId) {
+            await (record as any).markAsSynced()
+          }
+        }
+      })
+      return
+    }
+
+    const historyData = validRecords.map(record => ({
+      user_id: (record as any).userId,
       song_id: (record as any).songId,
       song_name: (record as any).songName,
       artist: (record as any).artist,
@@ -310,11 +420,16 @@ export class SyncEngine {
       .from('play_history')
       .insert(historyData)
 
-    if (error) throw error
+    if (error) {
+      console.error('[SyncEngine] 上传播放历史失败:', error)
+      return
+    }
+
+    console.log(`[SyncEngine] 成功上传 ${validRecords.length} 条播放历史`)
 
     // 标记为已同步
     await database.write(async () => {
-      for (const record of unsyncedHistory) {
+      for (const record of validRecords) {
         await (record as any).markAsSynced()
       }
     })
@@ -330,6 +445,7 @@ export class SyncEngine {
     if (unsyncedStats.length === 0) return
 
     const statsData = unsyncedStats.map(stat => ({
+      user_id: (stat as any).userId,
       song_id: (stat as any).songId,
       song_name: (stat as any).songName,
       artist: (stat as any).artist,
@@ -343,7 +459,10 @@ export class SyncEngine {
       .from('play_statistics')
       .upsert(statsData)
 
-    if (error) throw error
+    if (error) {
+      console.error('[SyncEngine] 上传播放统计失败:', error)
+      return
+    }
 
     // 标记为已同步
     await database.write(async () => {
@@ -363,6 +482,7 @@ export class SyncEngine {
     if (unsyncedSettings.length === 0) return
 
     const settingsData = unsyncedSettings.map(setting => ({
+      user_id: (setting as any).userId,
       audio_quality: (setting as any).audioQuality,
       download_quality: (setting as any).downloadQuality,
       auto_play: (setting as any).autoPlay,
@@ -386,7 +506,10 @@ export class SyncEngine {
       .from('app_settings')
       .upsert(settingsData)
 
-    if (error) throw error
+    if (error) {
+      console.error('[SyncEngine] 上传应用设置失败:', error)
+      return
+    }
 
     // 标记为已同步
     await database.write(async () => {
@@ -406,6 +529,7 @@ export class SyncEngine {
     if (unsyncedProfiles.length === 0) return
 
     const profilesData = unsyncedProfiles.map(profile => ({
+      user_id: (profile as any).userId,
       username: (profile as any).username,
       display_name: (profile as any).displayName,
       email: (profile as any).email,
@@ -432,7 +556,10 @@ export class SyncEngine {
       .from('user_profiles')
       .upsert(profilesData)
 
-    if (error) throw error
+    if (error) {
+      console.error('[SyncEngine] 上传用户资料失败:', error)
+      return
+    }
 
     // 标记为已同步
     await database.write(async () => {
@@ -638,524 +765,629 @@ export class SyncEngine {
 
   // 下载收藏（带冲突解决）
   private async downloadFavoritesWithConflictResolution() {
-    const { data, error } = await supabase
-      .from('favorite_songs')
-      .select('*')
+    try {
+      const { data, error } = await supabase
+        .from('favorite_songs')
+        .select('*')
 
-    if (error) throw error
-    if (!data || data.length === 0) return
+      if (error) {
+        console.error('[SyncEngine] 下载收藏失败:', error)
+        return
+      }
+      if (!data || data.length === 0) return
 
-    await database.write(async () => {
-      for (const item of data) {
-        // 查找本地是否存在相同记录
-        const existingFavorites = await database
-          .get('favorites')
-          .query(
-            Q.where('user_id', item.user_id),
-            Q.where('song_id', item.song_id)
-          )
-          .fetch()
-
-        if (existingFavorites.length > 0) {
-          // 存在冲突，使用冲突解决器
-          const localData = existingFavorites[0]
-          const serverData = {
-            songName: item.song_name,
-            artist: item.artist,
-            album: item.album,
-            source: item.source,
-            coverUrl: item.cover_url,
-            updatedAt: new Date(item.updated_at),
-            createdAt: new Date(item.created_at)
+      await database.write(async () => {
+        for (const item of data) {
+          if (!item || !item.user_id || !item.song_id) {
+            console.warn('[SyncEngine] 跳过无效的收藏数据:', item)
+            continue
           }
 
-          const resolvedData = await conflictResolver.resolveConflict(
-            localData,
-            serverData,
-            'startup'
-          )
+          // 查找本地是否存在相同记录
+          const existingFavorites = await database
+            .get('favorites')
+            .query(
+              Q.where('user_id', item.user_id),
+              Q.where('song_id', item.song_id)
+            )
+            .fetch()
 
-          // 更新本地数据
-          await (localData as any).update((record: any) => {
-            record.songName = resolvedData.songName || record.songName
-            record.artist = resolvedData.artist || record.artist
-            record.album = resolvedData.album || record.album
-            record.source = resolvedData.source || record.source
-            record.coverUrl = resolvedData.coverUrl || record.coverUrl
-            record.updatedAt = resolvedData.updatedAt || record.updatedAt
-            record.synced = true
-          })
-        } else {
-          // 不存在冲突，直接创建
-          await database.get('favorites').create((favorite: any) => {
-            favorite.userId = item.user_id
-            favorite.songId = item.song_id
-            favorite.songName = item.song_name
-            favorite.artist = item.artist
-            favorite.album = item.album
-            favorite.source = item.source
-            favorite.coverUrl = item.cover_url
-            favorite.createdAt = new Date(item.created_at)
-            favorite.updatedAt = new Date(item.updated_at)
-            favorite.synced = true
-          })
+          if (existingFavorites.length > 0) {
+            // 存在冲突，使用冲突解决器
+            const localData = existingFavorites[0]
+            const serverData = {
+              songName: item.song_name,
+              artist: item.artist,
+              album: item.album,
+              source: item.source,
+              coverUrl: item.cover_url,
+              updatedAt: item.updated_at ? new Date(item.updated_at) : new Date(item.created_at),
+              createdAt: new Date(item.created_at)
+            }
+
+            const resolvedData = await conflictResolver.resolveConflict(
+              localData,
+              serverData,
+              'startup'
+            )
+
+            // 更新本地数据
+            await (localData as any).update((record: any) => {
+              record.songName = resolvedData.songName || record.songName
+              record.artist = resolvedData.artist || record.artist
+              record.album = resolvedData.album || record.album
+              record.source = resolvedData.source || record.source
+              record.coverUrl = resolvedData.coverUrl || record.coverUrl
+              record.synced = true
+            })
+          } else {
+            // 不存在冲突，直接创建
+            await database.get('favorites').create((favorite: any) => {
+              favorite.userId = item.user_id
+              favorite.songId = item.song_id
+              favorite.songName = item.song_name
+              favorite.artist = item.artist
+              favorite.album = item.album
+              favorite.source = item.source
+              favorite.coverUrl = item.cover_url
+              favorite.createdAt = new Date(item.created_at)
+              favorite.synced = true
+            })
+          }
         }
-      }
-    })
+      })
+    } catch (error) {
+      console.error('[SyncEngine] 下载收藏异常:', error)
+    }
   }
 
   // 下载歌单（带冲突解决）
   private async downloadPlaylistsWithConflictResolution() {
-    const { data, error } = await supabase
-      .from('playlists')
-      .select('*')
-      .eq('is_deleted', false)
+    try {
+      const { data, error } = await supabase
+        .from('playlists')
+        .select('*')
+        .eq('is_deleted', false)
 
-    if (error) throw error
-    if (!data || data.length === 0) return
+      if (error) {
+        console.error('[SyncEngine] 下载歌单失败:', error)
+        return
+      }
+      if (!data || data.length === 0) return
 
-    await database.write(async () => {
-      for (const item of data) {
-        // 查找本地是否存在相同记录
-        const existingPlaylists = await database
-          .get('playlists')
-          .query(
-            Q.where('user_id', item.user_id),
-            Q.where('name', item.name)
-          )
-          .fetch()
-
-        if (existingPlaylists.length > 0) {
-          // 存在冲突，使用冲突解决器
-          const localData = existingPlaylists[0]
-          const serverData = {
-            description: item.description,
-            isPublic: item.is_public,
-            songCount: item.song_count,
-            playCount: item.play_count,
-            likeCount: item.like_count,
-            commentCount: item.comment_count,
-            updatedAt: new Date(item.updated_at),
-            createdAt: new Date(item.created_at)
+      await database.write(async () => {
+        for (const item of data) {
+          if (!item || !item.user_id || !item.name) {
+            console.warn('[SyncEngine] 跳过无效的歌单数据:', item)
+            continue
           }
 
-          const resolvedData = await conflictResolver.resolveConflict(
-            localData,
-            serverData,
-            'startup'
-          )
+          try {
+            // 查找本地是否存在相同记录
+            const existingPlaylists = await database
+              .get('playlists')
+              .query(
+                Q.where('user_id', item.user_id),
+                Q.where('name', item.name)
+              )
+              .fetch()
 
-          // 更新本地数据
-          await (localData as any).update((record: any) => {
-            record.description = resolvedData.description || record.description
-            record.isPublic = resolvedData.isPublic !== undefined ? resolvedData.isPublic : record.isPublic
-            record.songCount = resolvedData.songCount || record.songCount
-            record.playCount = resolvedData.playCount || record.playCount
-            record.likeCount = resolvedData.likeCount || record.likeCount
-            record.commentCount = resolvedData.commentCount || record.commentCount
-            record.updatedAt = resolvedData.updatedAt || record.updatedAt
-            record.synced = true
-          })
-        } else {
-          // 不存在冲突，直接创建
-          await database.get('playlists').create((playlist: any) => {
-            playlist.userId = item.user_id
-            playlist.name = item.name
-            playlist.description = item.description
-            playlist.isPublic = item.is_public
-            playlist.songCount = item.song_count
-            playlist.playCount = item.play_count
-            playlist.likeCount = item.like_count
-            playlist.commentCount = item.comment_count
-            playlist.isDeleted = item.is_deleted
-            playlist.createdAt = new Date(item.created_at)
-            playlist.updatedAt = new Date(item.updated_at)
-            playlist.synced = true
-          })
+            if (existingPlaylists.length > 0) {
+              // 存在冲突，使用冲突解决器
+              const localData = existingPlaylists[0]
+              const serverData = {
+                description: item.description,
+                isPublic: item.is_public,
+                songCount: item.song_count,
+                playCount: item.play_count,
+                likeCount: item.like_count,
+                commentCount: item.comment_count,
+                updatedAt: new Date(item.updated_at),
+                createdAt: new Date(item.created_at)
+              }
+
+              const resolvedData = await conflictResolver.resolveConflict(
+                localData,
+                serverData,
+                'startup'
+              )
+
+              // 更新本地数据
+              await (localData as any).update((record: any) => {
+                record.description = resolvedData.description || record.description
+                record.isPublic = resolvedData.isPublic !== undefined ? resolvedData.isPublic : record.isPublic
+                record.songCount = resolvedData.songCount || record.songCount
+                record.playCount = resolvedData.playCount || record.playCount
+                record.likeCount = resolvedData.likeCount || record.likeCount
+                record.commentCount = resolvedData.commentCount || record.commentCount
+                record.updatedAt = resolvedData.updatedAt || record.updatedAt
+                record.synced = true
+              })
+            } else {
+              // 不存在冲突，直接创建
+              await database.get('playlists').create((playlist: any) => {
+                playlist.userId = item.user_id
+                playlist.name = item.name
+                playlist.description = item.description
+                playlist.isPublic = item.is_public || false
+                playlist.songCount = item.song_count || 0
+                playlist.playCount = item.play_count || 0
+                playlist.likeCount = item.like_count || 0
+                playlist.commentCount = item.comment_count || 0
+                playlist.isDeleted = item.is_deleted || false
+                playlist.createdAt = new Date(item.created_at)
+                playlist.updatedAt = new Date(item.updated_at)
+                playlist.synced = true
+              })
+            }
+          } catch (itemError) {
+            console.error('[SyncEngine] 处理歌单记录失败:', itemError, item)
+          }
         }
-      }
-    })
+      })
+    } catch (error) {
+      console.error('[SyncEngine] 下载歌单异常:', error)
+    }
   }
 
   // 下载播放历史（带冲突解决）
   private async downloadPlayHistoryWithConflictResolution() {
-    const { data, error } = await supabase
-      .from('play_history')
-      .select('*')
-      .order('played_at', { ascending: false })
-      .limit(1000) // 限制数量避免数据过多
+    try {
+      const { data, error } = await supabase
+        .from('play_history')
+        .select('*')
+        .order('played_at', { ascending: false })
+        .limit(1000) // 限制数量避免数据过多
 
-    if (error) throw error
-    if (!data || data.length === 0) return
-
-    await database.write(async () => {
-      for (const item of data) {
-        // 查找本地是否存在相同记录（基于用户ID、歌曲ID和播放时间）
-        const existingHistory = await database
-          .get('play_history')
-          .query(
-            Q.where('user_id', item.user_id),
-            Q.where('song_id', item.song_id),
-            Q.where('played_at', Q.gte(new Date(item.played_at).getTime() - 60000)), // 1分钟内
-            Q.where('played_at', Q.lte(new Date(item.played_at).getTime() + 60000))
-          )
-          .fetch()
-
-        if (existingHistory.length === 0) {
-          // 不存在相同记录，直接创建
-          await database.get('play_history').create((record: any) => {
-            record.userId = item.user_id
-            record.songId = item.song_id
-            record.songName = item.song_name
-            record.artist = item.artist
-            record.album = item.album
-            record.source = item.source
-            record.playDuration = item.play_duration
-            record.totalDuration = item.total_duration
-            record.completed = item.completed
-            record.playedAt = new Date(item.played_at)
-            record.synced = true
-          })
-        }
+      if (error) {
+        console.error('[SyncEngine] 下载播放历史失败:', error)
+        return
       }
-    })
+      if (!data || data.length === 0) return
+
+      await database.write(async () => {
+        for (const item of data) {
+          if (!item || !item.user_id || !item.song_id || !item.played_at) {
+            console.warn('[SyncEngine] 跳过无效的播放历史数据:', item)
+            continue
+          }
+
+          try {
+            // 查找本地是否存在相同记录（基于用户ID、歌曲ID和播放时间）
+            const playedAtTime = new Date(item.played_at).getTime()
+            const existingHistory = await database
+              .get('play_history')
+              .query(
+                Q.where('user_id', item.user_id),
+                Q.where('song_id', item.song_id),
+                Q.where('played_at', Q.gte(playedAtTime - 60000)), // 1分钟内
+                Q.where('played_at', Q.lte(playedAtTime + 60000))
+              )
+              .fetch()
+
+            if (existingHistory.length === 0) {
+              // 不存在相同记录，直接创建
+              await database.get('play_history').create((record: any) => {
+                record.userId = item.user_id
+                record.songId = item.song_id
+                record.songName = item.song_name || ''
+                record.artist = item.artist
+                record.album = item.album
+                record.source = item.source || ''
+                record.playDuration = item.play_duration || 0
+                record.totalDuration = item.total_duration || 0
+                record.completed = item.completed || false
+                record.playedAt = new Date(item.played_at)
+                record.synced = true
+              })
+            }
+          } catch (itemError) {
+            console.error('[SyncEngine] 处理播放历史记录失败:', itemError, item)
+          }
+        }
+      })
+    } catch (error) {
+      console.error('[SyncEngine] 下载播放历史异常:', error)
+    }
   }
 
   // 下载播放统计（带冲突解决）
   private async downloadPlayStatisticsWithConflictResolution() {
-    const { data, error } = await supabase
-      .from('play_statistics')
-      .select('*')
+    try {
+      const { data, error } = await supabase
+        .from('play_statistics')
+        .select('*')
 
-    if (error) throw error
-    if (!data || data.length === 0) return
+      if (error) {
+        console.error('[SyncEngine] 下载播放统计失败:', error)
+        return
+      }
+      if (!data || data.length === 0) return
 
-    await database.write(async () => {
-      for (const item of data) {
-        // 查找本地是否存在相同记录
-        const existingStats = await database
-          .get('play_statistics')
-          .query(
-            Q.where('user_id', item.user_id),
-            Q.where('song_id', item.song_id)
-          )
-          .fetch()
-
-        if (existingStats.length > 0) {
-          // 存在冲突，使用冲突解决器
-          const localData = existingStats[0]
-          const serverData = {
-            playCount: item.play_count,
-            totalDuration: item.total_duration,
-            lastPlayedAt: new Date(item.last_played_at),
-            updatedAt: new Date(item.updated_at),
-            createdAt: new Date(item.created_at)
+      await database.write(async () => {
+        for (const item of data) {
+          if (!item || !item.user_id || !item.song_id) {
+            console.warn('[SyncEngine] 跳过无效的播放统计数据:', item)
+            continue
           }
 
-          const resolvedData = await conflictResolver.resolveConflict(
-            localData,
-            serverData,
-            'startup'
-          )
+          try {
+            // 查找本地是否存在相同记录
+            const existingStats = await database
+              .get('play_statistics')
+              .query(
+                Q.where('user_id', item.user_id),
+                Q.where('song_id', item.song_id)
+              )
+              .fetch()
 
-          // 更新本地数据
-          await (localData as any).update((record: any) => {
-            record.playCount = resolvedData.playCount || record.playCount
-            record.totalDuration = resolvedData.totalDuration || record.totalDuration
-            record.lastPlayedAt = resolvedData.lastPlayedAt || record.lastPlayedAt
-            record.updatedAt = resolvedData.updatedAt || record.updatedAt
-            record.synced = true
-          })
-        } else {
-          // 不存在冲突，直接创建
-          await database.get('play_statistics').create((stat: any) => {
-            stat.userId = item.user_id
-            stat.songId = item.song_id
-            stat.songName = item.song_name
-            stat.artist = item.artist
-            stat.playCount = item.play_count
-            stat.totalDuration = item.total_duration
-            stat.lastPlayedAt = new Date(item.last_played_at)
-            stat.createdAt = new Date(item.created_at)
-            stat.updatedAt = new Date(item.updated_at)
-            stat.synced = true
-          })
+            if (existingStats.length > 0) {
+              // 存在冲突，使用冲突解决器
+              const localData = existingStats[0]
+              const serverData = {
+                playCount: item.play_count,
+                totalDuration: item.total_duration,
+                lastPlayedAt: item.last_played_at ? new Date(item.last_played_at) : undefined,
+                updatedAt: item.updated_at ? new Date(item.updated_at) : new Date(item.created_at),
+                createdAt: new Date(item.created_at)
+              }
+
+              const resolvedData = await conflictResolver.resolveConflict(
+                localData,
+                serverData,
+                'startup'
+              )
+
+              // 更新本地数据
+              await (localData as any).update((record: any) => {
+                record.playCount = resolvedData.playCount || record.playCount
+                record.totalDuration = resolvedData.totalDuration || record.totalDuration
+                record.lastPlayedAt = resolvedData.lastPlayedAt || record.lastPlayedAt
+                record.synced = true
+              })
+            } else {
+              // 不存在冲突，直接创建
+              await database.get('play_statistics').create((stat: any) => {
+                stat.userId = item.user_id
+                stat.songId = item.song_id
+                stat.songName = item.song_name || ''
+                stat.artist = item.artist
+                stat.source = item.source || ''
+                stat.playCount = item.play_count || 0
+                stat.totalDuration = item.total_duration || 0
+                stat.lastPlayedAt = item.last_played_at ? new Date(item.last_played_at) : undefined
+                stat.synced = true
+              })
+            }
+          } catch (itemError) {
+            console.error('[SyncEngine] 处理播放统计记录失败:', itemError, item)
+          }
         }
-      }
-    })
+      })
+    } catch (error) {
+      console.error('[SyncEngine] 下载播放统计异常:', error)
+    }
   }
 
   // 下载应用设置（带冲突解决）
   private async downloadAppSettingsWithConflictResolution() {
-    const { data, error } = await supabase
-      .from('app_settings')
-      .select('*')
+    try {
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('*')
 
-    if (error) throw error
-    if (!data || data.length === 0) return
+      if (error) {
+        console.error('[SyncEngine] 下载应用设置失败:', error)
+        return
+      }
+      if (!data || data.length === 0) return
 
-    await database.write(async () => {
-      for (const item of data) {
-        // 查找本地是否存在相同记录
-        const existingSettings = await database
-          .get('app_settings')
-          .query(Q.where('user_id', item.user_id))
-          .fetch()
-
-        if (existingSettings.length > 0) {
-          // 存在冲突，使用冲突解决器
-          const localData = existingSettings[0]
-          const serverData = {
-            audioQuality: item.audio_quality,
-            downloadQuality: item.download_quality,
-            autoPlay: item.auto_play,
-            shuffleMode: item.shuffle_mode,
-            repeatMode: item.repeat_mode,
-            wifiOnlyDownload: item.wifi_only_download,
-            wifiOnlyStream: item.wifi_only_stream,
-            enableNotifications: item.enable_notifications,
-            notifyNewFollower: item.notify_new_follower,
-            notifyNewComment: item.notify_new_comment,
-            notifyNewLike: item.notify_new_like,
-            notifyVipExpire: item.notify_vip_expire,
-            showOnlineStatus: item.show_online_status,
-            showListening: item.show_listening,
-            theme: item.theme,
-            language: item.language,
-            updatedAt: new Date(item.updated_at),
-            createdAt: new Date(item.created_at)
+      await database.write(async () => {
+        for (const item of data) {
+          if (!item || !item.user_id) {
+            console.warn('[SyncEngine] 跳过无效的应用设置数据:', item)
+            continue
           }
 
-          const resolvedData = await conflictResolver.resolveConflict(
-            localData,
-            serverData,
-            'startup'
-          )
+          try {
+            // 查找本地是否存在相同记录
+            const existingSettings = await database
+              .get('app_settings')
+              .query(Q.where('user_id', item.user_id))
+              .fetch()
 
-          // 更新本地数据
-          await (localData as any).update((record: any) => {
-            record.audioQuality = resolvedData.audioQuality || record.audioQuality
-            record.downloadQuality = resolvedData.downloadQuality || record.downloadQuality
-            record.autoPlay = resolvedData.autoPlay !== undefined ? resolvedData.autoPlay : record.autoPlay
-            record.shuffleMode = resolvedData.shuffleMode !== undefined ? resolvedData.shuffleMode : record.shuffleMode
-            record.repeatMode = resolvedData.repeatMode || record.repeatMode
-            record.wifiOnlyDownload = resolvedData.wifiOnlyDownload !== undefined ? resolvedData.wifiOnlyDownload : record.wifiOnlyDownload
-            record.wifiOnlyStream = resolvedData.wifiOnlyStream !== undefined ? resolvedData.wifiOnlyStream : record.wifiOnlyStream
-            record.enableNotifications = resolvedData.enableNotifications !== undefined ? resolvedData.enableNotifications : record.enableNotifications
-            record.notifyNewFollower = resolvedData.notifyNewFollower !== undefined ? resolvedData.notifyNewFollower : record.notifyNewFollower
-            record.notifyNewComment = resolvedData.notifyNewComment !== undefined ? resolvedData.notifyNewComment : record.notifyNewComment
-            record.notifyNewLike = resolvedData.notifyNewLike !== undefined ? resolvedData.notifyNewLike : record.notifyNewLike
-            record.notifyVipExpire = resolvedData.notifyVipExpire !== undefined ? resolvedData.notifyVipExpire : record.notifyVipExpire
-            record.showOnlineStatus = resolvedData.showOnlineStatus !== undefined ? resolvedData.showOnlineStatus : record.showOnlineStatus
-            record.showListening = resolvedData.showListening !== undefined ? resolvedData.showListening : record.showListening
-            record.theme = resolvedData.theme || record.theme
-            record.language = resolvedData.language || record.language
-            record.updatedAt = resolvedData.updatedAt || record.updatedAt
-            record.synced = true
-          })
-        } else {
-          // 不存在冲突，直接创建
-          await database.get('app_settings').create((setting: any) => {
-            setting.userId = item.user_id
-            setting.audioQuality = item.audio_quality
-            setting.downloadQuality = item.download_quality
-            setting.autoPlay = item.auto_play
-            setting.shuffleMode = item.shuffle_mode
-            setting.repeatMode = item.repeat_mode
-            setting.wifiOnlyDownload = item.wifi_only_download
-            setting.wifiOnlyStream = item.wifi_only_stream
-            setting.enableNotifications = item.enable_notifications
-            setting.notifyNewFollower = item.notify_new_follower
-            setting.notifyNewComment = item.notify_new_comment
-            setting.notifyNewLike = item.notify_new_like
-            setting.notifyVipExpire = item.notify_vip_expire
-            setting.showOnlineStatus = item.show_online_status
-            setting.showListening = item.show_listening
-            setting.theme = item.theme
-            setting.language = item.language
-            setting.createdAt = new Date(item.created_at)
-            setting.updatedAt = new Date(item.updated_at)
-            setting.synced = true
-          })
+            if (existingSettings.length > 0) {
+              // 存在冲突，使用冲突解决器
+              const localData = existingSettings[0]
+              const serverData = {
+                audioQuality: item.audio_quality,
+                downloadQuality: item.download_quality,
+                autoPlay: item.auto_play,
+                shuffleMode: item.shuffle_mode,
+                repeatMode: item.repeat_mode,
+                wifiOnlyDownload: item.wifi_only_download,
+                wifiOnlyStream: item.wifi_only_stream,
+                enableNotifications: item.enable_notifications,
+                notifyNewFollower: item.notify_new_follower,
+                notifyNewComment: item.notify_new_comment,
+                notifyNewLike: item.notify_new_like,
+                notifyVipExpire: item.notify_vip_expire,
+                showOnlineStatus: item.show_online_status,
+                showListening: item.show_listening,
+                theme: item.theme,
+                language: item.language,
+                updatedAt: new Date(item.updated_at),
+                createdAt: new Date(item.created_at)
+              }
+
+              const resolvedData = await conflictResolver.resolveConflict(
+                localData,
+                serverData,
+                'startup'
+              )
+
+              // 更新本地数据
+              await (localData as any).update((record: any) => {
+                record.audioQuality = resolvedData.audioQuality || record.audioQuality
+                record.downloadQuality = resolvedData.downloadQuality || record.downloadQuality
+                record.autoPlay = resolvedData.autoPlay !== undefined ? resolvedData.autoPlay : record.autoPlay
+                record.shuffleMode = resolvedData.shuffleMode !== undefined ? resolvedData.shuffleMode : record.shuffleMode
+                record.repeatMode = resolvedData.repeatMode || record.repeatMode
+                record.wifiOnlyDownload = resolvedData.wifiOnlyDownload !== undefined ? resolvedData.wifiOnlyDownload : record.wifiOnlyDownload
+                record.wifiOnlyStream = resolvedData.wifiOnlyStream !== undefined ? resolvedData.wifiOnlyStream : record.wifiOnlyStream
+                record.enableNotifications = resolvedData.enableNotifications !== undefined ? resolvedData.enableNotifications : record.enableNotifications
+                record.notifyNewFollower = resolvedData.notifyNewFollower !== undefined ? resolvedData.notifyNewFollower : record.notifyNewFollower
+                record.notifyNewComment = resolvedData.notifyNewComment !== undefined ? resolvedData.notifyNewComment : record.notifyNewComment
+                record.notifyNewLike = resolvedData.notifyNewLike !== undefined ? resolvedData.notifyNewLike : record.notifyNewLike
+                record.notifyVipExpire = resolvedData.notifyVipExpire !== undefined ? resolvedData.notifyVipExpire : record.notifyVipExpire
+                record.showOnlineStatus = resolvedData.showOnlineStatus !== undefined ? resolvedData.showOnlineStatus : record.showOnlineStatus
+                record.showListening = resolvedData.showListening !== undefined ? resolvedData.showListening : record.showListening
+                record.theme = resolvedData.theme || record.theme
+                record.language = resolvedData.language || record.language
+                record.updatedAt = resolvedData.updatedAt || record.updatedAt
+                record.synced = true
+              })
+            } else {
+              // 不存在冲突，直接创建
+              await database.get('app_settings').create((setting: any) => {
+                setting.userId = item.user_id
+                setting.audioQuality = item.audio_quality || 'standard'
+                setting.downloadQuality = item.download_quality || 'high'
+                setting.autoPlay = item.auto_play !== undefined ? item.auto_play : false
+                setting.shuffleMode = item.shuffle_mode !== undefined ? item.shuffle_mode : false
+                setting.repeatMode = item.repeat_mode || 'off'
+                setting.wifiOnlyDownload = item.wifi_only_download !== undefined ? item.wifi_only_download : true
+                setting.wifiOnlyStream = item.wifi_only_stream !== undefined ? item.wifi_only_stream : false
+                setting.enableNotifications = item.enable_notifications !== undefined ? item.enable_notifications : true
+                setting.notifyNewFollower = item.notify_new_follower !== undefined ? item.notify_new_follower : true
+                setting.notifyNewComment = item.notify_new_comment !== undefined ? item.notify_new_comment : true
+                setting.notifyNewLike = item.notify_new_like !== undefined ? item.notify_new_like : true
+                setting.notifyVipExpire = item.notify_vip_expire !== undefined ? item.notify_vip_expire : true
+                setting.showOnlineStatus = item.show_online_status !== undefined ? item.show_online_status : true
+                setting.showListening = item.show_listening !== undefined ? item.show_listening : true
+                setting.theme = item.theme || 'auto'
+                setting.language = item.language || 'zh-cn'
+                setting.createdAt = new Date(item.created_at)
+                setting.updatedAt = new Date(item.updated_at)
+                setting.synced = true
+              })
+            }
+          } catch (itemError) {
+            console.error('[SyncEngine] 处理应用设置记录失败:', itemError, item)
+          }
         }
-      }
-    })
+      })
+    } catch (error) {
+      console.error('[SyncEngine] 下载应用设置异常:', error)
+    }
   }
 
   // 下载用户资料（带冲突解决）
   private async downloadUserProfilesWithConflictResolution() {
-    const { data, error } = await supabase
-      .from('user_profiles')
-      .select('*')
+    try {
+      const { data, error } = await supabase
+        .from('user_profiles')
+        .select('*')
 
-    if (error) throw error
-    if (!data || data.length === 0) return
+      if (error) {
+        console.error('[SyncEngine] 下载用户资料失败:', error)
+        return
+      }
+      if (!data || data.length === 0) return
 
-    await database.write(async () => {
-      for (const item of data) {
-        // 查找本地是否存在相同记录
-        const existingProfiles = await database
-          .get('user_profiles')
-          .query(Q.where('user_id', item.user_id))
-          .fetch()
-
-        if (existingProfiles.length > 0) {
-          // 存在冲突，使用冲突解决器
-          const localData = existingProfiles[0]
-          const serverData = {
-            username: item.username,
-            displayName: item.display_name,
-            email: item.email,
-            avatarUrl: item.avatar_url,
-            bio: item.bio,
-            gender: item.gender,
-            birthday: item.birthday ? new Date(item.birthday) : undefined,
-            location: item.location,
-            website: item.website,
-            totalPlayTime: item.total_play_time,
-            totalSongs: item.total_songs,
-            totalPlaylists: item.total_playlists,
-            followingCount: item.following_count,
-            followersCount: item.followers_count,
-            isPublic: item.is_public,
-            showPlayHistory: item.show_play_history,
-            showPlaylists: item.show_playlists,
-            vipStatus: item.vip_status,
-            vipExpireAt: item.vip_expire_at ? new Date(item.vip_expire_at) : undefined,
-            updatedAt: new Date(item.updated_at),
-            createdAt: new Date(item.created_at)
+      await database.write(async () => {
+        for (const item of data) {
+          if (!item || !item.user_id) {
+            console.warn('[SyncEngine] 跳过无效的用户资料数据:', item)
+            continue
           }
 
-          const resolvedData = await conflictResolver.resolveConflict(
-            localData,
-            serverData,
-            'startup'
-          )
+          try {
+            // 查找本地是否存在相同记录
+            const existingProfiles = await database
+              .get('user_profiles')
+              .query(Q.where('user_id', item.user_id))
+              .fetch()
 
-          // 更新本地数据
-          await (localData as any).update((record: any) => {
-            record.username = resolvedData.username || record.username
-            record.displayName = resolvedData.displayName || record.displayName
-            record.email = resolvedData.email || record.email
-            record.avatarUrl = resolvedData.avatarUrl || record.avatarUrl
-            record.bio = resolvedData.bio || record.bio
-            record.gender = resolvedData.gender || record.gender
-            record.birthday = resolvedData.birthday || record.birthday
-            record.location = resolvedData.location || record.location
-            record.website = resolvedData.website || record.website
-            record.totalPlayTime = resolvedData.totalPlayTime || record.totalPlayTime
-            record.totalSongs = resolvedData.totalSongs || record.totalSongs
-            record.totalPlaylists = resolvedData.totalPlaylists || record.totalPlaylists
-            record.followingCount = resolvedData.followingCount || record.followingCount
-            record.followersCount = resolvedData.followersCount || record.followersCount
-            record.isPublic = resolvedData.isPublic !== undefined ? resolvedData.isPublic : record.isPublic
-            record.showPlayHistory = resolvedData.showPlayHistory !== undefined ? resolvedData.showPlayHistory : record.showPlayHistory
-            record.showPlaylists = resolvedData.showPlaylists !== undefined ? resolvedData.showPlaylists : record.showPlaylists
-            record.vipStatus = resolvedData.vipStatus || record.vipStatus
-            record.vipExpireAt = resolvedData.vipExpireAt || record.vipExpireAt
-            record.updatedAt = resolvedData.updatedAt || record.updatedAt
-            record.synced = true
-          })
-        } else {
-          // 不存在冲突，直接创建
-          await database.get('user_profiles').create((profile: any) => {
-            profile.userId = item.user_id
-            profile.username = item.username
-            profile.displayName = item.display_name
-            profile.email = item.email
-            profile.avatarUrl = item.avatar_url
-            profile.bio = item.bio
-            profile.gender = item.gender
-            profile.birthday = item.birthday ? new Date(item.birthday) : undefined
-            profile.location = item.location
-            profile.website = item.website
-            profile.totalPlayTime = item.total_play_time
-            profile.totalSongs = item.total_songs
-            profile.totalPlaylists = item.total_playlists
-            profile.followingCount = item.following_count
-            profile.followersCount = item.followers_count
-            profile.isPublic = item.is_public
-            profile.showPlayHistory = item.show_play_history
-            profile.showPlaylists = item.show_playlists
-            profile.vipStatus = item.vip_status
-            profile.vipExpireAt = item.vip_expire_at ? new Date(item.vip_expire_at) : undefined
-            profile.createdAt = new Date(item.created_at)
-            profile.updatedAt = new Date(item.updated_at)
-            profile.synced = true
-          })
+            if (existingProfiles.length > 0) {
+              // 存在冲突，使用冲突解决器
+              const localData = existingProfiles[0]
+              const serverData = {
+                username: item.username,
+                displayName: item.display_name,
+                email: item.email,
+                avatarUrl: item.avatar_url,
+                bio: item.bio,
+                gender: item.gender,
+                birthday: item.birthday ? new Date(item.birthday) : undefined,
+                location: item.location,
+                website: item.website,
+                totalPlayTime: item.total_play_time,
+                totalSongs: item.total_songs,
+                totalPlaylists: item.total_playlists,
+                followingCount: item.following_count,
+                followersCount: item.followers_count,
+                isPublic: item.is_public,
+                showPlayHistory: item.show_play_history,
+                showPlaylists: item.show_playlists,
+                vipStatus: item.vip_status,
+                vipExpireAt: item.vip_expire_at ? new Date(item.vip_expire_at) : undefined,
+                updatedAt: new Date(item.updated_at),
+                createdAt: new Date(item.created_at)
+              }
+
+              const resolvedData = await conflictResolver.resolveConflict(
+                localData,
+                serverData,
+                'startup'
+              )
+
+              // 更新本地数据
+              await (localData as any).update((record: any) => {
+                record.username = resolvedData.username || record.username
+                record.displayName = resolvedData.displayName || record.displayName
+                record.email = resolvedData.email || record.email
+                record.avatarUrl = resolvedData.avatarUrl || record.avatarUrl
+                record.bio = resolvedData.bio || record.bio
+                record.gender = resolvedData.gender || record.gender
+                record.birthday = resolvedData.birthday || record.birthday
+                record.location = resolvedData.location || record.location
+                record.website = resolvedData.website || record.website
+                record.totalPlayTime = resolvedData.totalPlayTime || record.totalPlayTime
+                record.totalSongs = resolvedData.totalSongs || record.totalSongs
+                record.totalPlaylists = resolvedData.totalPlaylists || record.totalPlaylists
+                record.followingCount = resolvedData.followingCount || record.followingCount
+                record.followersCount = resolvedData.followersCount || record.followersCount
+                record.isPublic = resolvedData.isPublic !== undefined ? resolvedData.isPublic : record.isPublic
+                record.showPlayHistory = resolvedData.showPlayHistory !== undefined ? resolvedData.showPlayHistory : record.showPlayHistory
+                record.showPlaylists = resolvedData.showPlaylists !== undefined ? resolvedData.showPlaylists : record.showPlaylists
+                record.vipStatus = resolvedData.vipStatus || record.vipStatus
+                record.vipExpireAt = resolvedData.vipExpireAt || record.vipExpireAt
+                record.updatedAt = resolvedData.updatedAt || record.updatedAt
+                record.synced = true
+              })
+            } else {
+              // 不存在冲突，直接创建
+              await database.get('user_profiles').create((profile: any) => {
+                profile.userId = item.user_id
+                profile.username = item.username || ''
+                profile.displayName = item.display_name
+                profile.email = item.email || ''
+                profile.avatarUrl = item.avatar_url
+                profile.bio = item.bio
+                profile.gender = item.gender
+                profile.birthday = item.birthday ? new Date(item.birthday) : undefined
+                profile.location = item.location
+                profile.website = item.website
+                profile.totalPlayTime = item.total_play_time || 0
+                profile.totalSongs = item.total_songs || 0
+                profile.totalPlaylists = item.total_playlists || 0
+                profile.followingCount = item.following_count || 0
+                profile.followersCount = item.followers_count || 0
+                profile.isPublic = item.is_public !== undefined ? item.is_public : true
+                profile.showPlayHistory = item.show_play_history !== undefined ? item.show_play_history : true
+                profile.showPlaylists = item.show_playlists !== undefined ? item.show_playlists : true
+                profile.vipStatus = item.vip_status || 'free'
+                profile.vipExpireAt = item.vip_expire_at ? new Date(item.vip_expire_at) : undefined
+                profile.createdAt = new Date(item.created_at)
+                profile.updatedAt = new Date(item.updated_at)
+                profile.synced = true
+              })
+            }
+          } catch (itemError) {
+            console.error('[SyncEngine] 处理用户资料记录失败:', itemError, item)
+          }
         }
-      }
-    })
+      })
+    } catch (error) {
+      console.error('[SyncEngine] 下载用户资料异常:', error)
+    }
   }
 
   // ==================== 用户操作优先的下载方法 ====================
 
   // 下载收藏（用户操作优先）
   private async downloadFavoritesWithUserPriority() {
-    const { data, error } = await supabase
-      .from('favorite_songs')
-      .select('*')
+    try {
+      const { data, error } = await supabase
+        .from('favorite_songs')
+        .select('*')
 
-    if (error) throw error
-    if (!data || data.length === 0) return
+      if (error) {
+        console.error('[SyncEngine] 下载收藏失败（用户操作优先）:', error)
+        return
+      }
+      if (!data || data.length === 0) return
 
-    await database.write(async () => {
-      for (const item of data) {
-        // 查找本地是否存在相同记录
-        const existingFavorites = await database
-          .get('favorites')
-          .query(
-            Q.where('user_id', item.user_id),
-            Q.where('song_id', item.song_id)
-          )
-          .fetch()
-
-        if (existingFavorites.length > 0) {
-          // 存在冲突，使用用户操作优先的冲突解决器
-          const localData = existingFavorites[0]
-          const serverData = {
-            songName: item.song_name,
-            artist: item.artist,
-            album: item.album,
-            source: item.source,
-            coverUrl: item.cover_url,
-            updatedAt: new Date(item.updated_at),
-            createdAt: new Date(item.created_at)
+      await database.write(async () => {
+        for (const item of data) {
+          if (!item || !item.user_id || !item.song_id) {
+            console.warn('[SyncEngine] 跳过无效的收藏数据:', item)
+            continue
           }
 
-          const resolvedData = await conflictResolver.resolveConflict(
-            localData,
-            serverData,
-            'user_action' // 用户操作优先
-          )
+          try {
+            // 查找本地是否存在相同记录
+            const existingFavorites = await database
+              .get('favorites')
+              .query(
+                Q.where('user_id', item.user_id),
+                Q.where('song_id', item.song_id)
+              )
+              .fetch()
 
-          // 更新本地数据
-          await (localData as any).update((record: any) => {
-            record.songName = resolvedData.songName || record.songName
-            record.artist = resolvedData.artist || record.artist
-            record.album = resolvedData.album || record.album
-            record.source = resolvedData.source || record.source
-            record.coverUrl = resolvedData.coverUrl || record.coverUrl
-            record.updatedAt = resolvedData.updatedAt || record.updatedAt
-            record.synced = resolvedData.synced !== undefined ? resolvedData.synced : true
-          })
-        } else {
-          // 不存在冲突，直接创建
-          await database.get('favorites').create((favorite: any) => {
-            favorite.userId = item.user_id
-            favorite.songId = item.song_id
-            favorite.songName = item.song_name
-            favorite.artist = item.artist
-            favorite.album = item.album
-            favorite.source = item.source
-            favorite.coverUrl = item.cover_url
-            favorite.createdAt = new Date(item.created_at)
-            favorite.updatedAt = new Date(item.updated_at)
-            favorite.synced = true
-          })
+            if (existingFavorites.length > 0) {
+              // 存在冲突，使用用户操作优先的冲突解决器
+              const localData = existingFavorites[0]
+              const serverData = {
+                songName: item.song_name,
+                artist: item.artist,
+                album: item.album,
+                source: item.source,
+                coverUrl: item.cover_url,
+                updatedAt: item.updated_at ? new Date(item.updated_at) : new Date(item.created_at),
+                createdAt: new Date(item.created_at)
+              }
+
+              const resolvedData = await conflictResolver.resolveConflict(
+                localData,
+                serverData,
+                'user_action' // 用户操作优先
+              )
+
+              // 更新本地数据（只有在本地数据未被修改时才更新）
+              if ((localData as any).synced) {
+                await (localData as any).update((record: any) => {
+                  record.songName = resolvedData.songName || record.songName
+                  record.artist = resolvedData.artist || record.artist
+                  record.album = resolvedData.album || record.album
+                  record.source = resolvedData.source || record.source
+                  record.coverUrl = resolvedData.coverUrl || record.coverUrl
+                  record.synced = true
+                })
+              }
+            } else {
+              // 不存在冲突，直接创建
+              await database.get('favorites').create((favorite: any) => {
+                favorite.userId = item.user_id
+                favorite.songId = item.song_id
+                favorite.songName = item.song_name
+                favorite.artist = item.artist
+                favorite.album = item.album
+                favorite.source = item.source
+                favorite.coverUrl = item.cover_url
+                favorite.createdAt = new Date(item.created_at)
+                favorite.synced = true
+              })
+            }
+          } catch (itemError) {
+            console.error('[SyncEngine] 处理收藏记录失败（用户操作优先）:', itemError, item)
+          }
         }
-      }
-    })
+      })
+    } catch (error) {
+      console.error('[SyncEngine] 下载收藏异常（用户操作优先）:', error)
+    }
   }
 
   // 下载歌单（用户操作优先）
@@ -1233,46 +1465,63 @@ export class SyncEngine {
 
   // 下载播放历史（用户操作优先）
   private async downloadPlayHistoryWithUserPriority() {
-    const { data, error } = await supabase
-      .from('play_history')
-      .select('*')
-      .order('played_at', { ascending: false })
-      .limit(1000)
+    try {
+      const { data, error } = await supabase
+        .from('play_history')
+        .select('*')
+        .order('played_at', { ascending: false })
+        .limit(1000)
 
-    if (error) throw error
-    if (!data || data.length === 0) return
-
-    await database.write(async () => {
-      for (const item of data) {
-        // 查找本地是否存在相同记录（基于用户ID、歌曲ID和播放时间）
-        const existingHistory = await database
-          .get('play_history')
-          .query(
-            Q.where('user_id', item.user_id),
-            Q.where('song_id', item.song_id),
-            Q.where('played_at', Q.gte(new Date(item.played_at).getTime() - 60000)), // 1分钟内
-            Q.where('played_at', Q.lte(new Date(item.played_at).getTime() + 60000))
-          )
-          .fetch()
-
-        if (existingHistory.length === 0) {
-          // 不存在相同记录，直接创建
-          await database.get('play_history').create((record: any) => {
-            record.userId = item.user_id
-            record.songId = item.song_id
-            record.songName = item.song_name
-            record.artist = item.artist
-            record.album = item.album
-            record.source = item.source
-            record.playDuration = item.play_duration
-            record.totalDuration = item.total_duration
-            record.completed = item.completed
-            record.playedAt = new Date(item.played_at)
-            record.synced = true
-          })
-        }
+      if (error) {
+        console.error('[SyncEngine] 下载播放历史失败（用户操作优先）:', error)
+        return
       }
-    })
+      if (!data || data.length === 0) return
+
+      await database.write(async () => {
+        for (const item of data) {
+          if (!item || !item.user_id || !item.song_id || !item.played_at) {
+            console.warn('[SyncEngine] 跳过无效的播放历史数据:', item)
+            continue
+          }
+
+          try {
+            // 查找本地是否存在相同记录（基于用户ID、歌曲ID和播放时间）
+            const playedAtTime = new Date(item.played_at).getTime()
+            const existingHistory = await database
+              .get('play_history')
+              .query(
+                Q.where('user_id', item.user_id),
+                Q.where('song_id', item.song_id),
+                Q.where('played_at', Q.gte(playedAtTime - 60000)), // 1分钟内
+                Q.where('played_at', Q.lte(playedAtTime + 60000))
+              )
+              .fetch()
+
+            if (existingHistory.length === 0) {
+              // 不存在相同记录，直接创建
+              await database.get('play_history').create((record: any) => {
+                record.userId = item.user_id
+                record.songId = item.song_id
+                record.songName = item.song_name || ''
+                record.artist = item.artist
+                record.album = item.album
+                record.source = item.source || ''
+                record.playDuration = item.play_duration || 0
+                record.totalDuration = item.total_duration || 0
+                record.completed = item.completed || false
+                record.playedAt = new Date(item.played_at)
+                record.synced = true
+              })
+            }
+          } catch (itemError) {
+            console.error('[SyncEngine] 处理播放历史记录失败（用户操作优先）:', itemError, item)
+          }
+        }
+      })
+    } catch (error) {
+      console.error('[SyncEngine] 下载播放历史异常（用户操作优先）:', error)
+    }
   }
 
   // 下载播放统计（用户操作优先）

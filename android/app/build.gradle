@@ -199,6 +199,9 @@ dependencies {
     // implementation "androidx.javascriptengine:javascriptengine:1.0.0-alpha07"
     // implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation 'wang.harlon.quickjs:wrapper-android:2.4.0'
+    
+    // 添加 WatermelonDB JSI 支持
+    implementation project(':watermelondb-jsi')
 
   if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")

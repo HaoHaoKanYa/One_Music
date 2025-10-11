@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState } from 'react'
 import {
   View,
   Text,
@@ -7,28 +7,24 @@ import {
   StyleSheet,
   RefreshControl,
   Alert,
-  ActivityIndicator,
 } from 'react-native'
 import { withObservables } from '@nozbe/watermelondb/react'
-import { Q } from '@nozbe/watermelondb'
 import { database } from '@/database'
-import { authAPI } from '@/services/api/auth'
 import { RequireAuth } from '@/components/common/RequireAuth'
+import { playList } from '@/core/player/player'
+import { LIST_IDS } from '@/config/constant'
 
 interface FavoritesListProps {
   componentId: string
-  onSongPress?: (song: any) => void
-  onPlayAll?: (songs: any[]) => void
 }
 
 const FavoritesListScreenComponent: React.FC<FavoritesListProps & {
   favorites: any[]
-}> = ({ componentId, onSongPress, onPlayAll, favorites }) => {
+}> = ({ componentId, favorites }) => {
   const [refreshing, setRefreshing] = useState(false)
 
   const handleRefresh = () => {
     setRefreshing(true)
-    // 本地数据库数据是实时的，不需要重新加载
     setTimeout(() => setRefreshing(false), 500)
   }
 
@@ -46,7 +42,6 @@ const FavoritesListScreenComponent: React.FC<FavoritesListProps & {
               await database.write(async () => {
                 await song.destroyPermanently()
               })
-              // 触发收藏更新事件
               global.app_event.favoritesUpdated()
             } catch (error: any) {
               Alert.alert('错误', error.message || '取消收藏失败')
@@ -57,32 +52,56 @@ const FavoritesListScreenComponent: React.FC<FavoritesListProps & {
     )
   }
 
-  const handlePlayAll = () => {
+  const handlePlayAll = async () => {
     if (favorites.length === 0) {
       Alert.alert('提示', '收藏列表为空')
       return
     }
-    onPlayAll?.(favorites)
+
+    try {
+      console.log('[FavoritesList] 开始播放全部，歌曲数量:', favorites.length)
+      // 直接播放收藏列表（LOVE列表）的第一首歌
+      await playList(LIST_IDS.LOVE, 0)
+      console.log('[FavoritesList] 播放全部成功')
+    } catch (error: any) {
+      console.error('[FavoritesList] 播放全部失败:', error)
+      Alert.alert('错误', '播放失败，请重试')
+    }
   }
 
-  const renderSongItem = ({ item }: { item: any }) => (
+  const handleSongPress = async (_song: any, index: number) => {
+    try {
+      console.log('[FavoritesList] 开始播放歌曲，索引:', index)
+      // 直接播放收藏列表（LOVE列表）中的指定歌曲
+      await playList(LIST_IDS.LOVE, index)
+      console.log('[FavoritesList] 播放歌曲成功')
+    } catch (error: any) {
+      console.error('[FavoritesList] 播放歌曲失败:', error)
+      Alert.alert('错误', '播放失败，请重试')
+    }
+  }
+
+  const renderSongItem = ({ item, index }: { item: any; index: number }) => (
     <TouchableOpacity
       style={styles.songItem}
-      onPress={() => onSongPress?.(item)}
+      onPress={() => handleSongPress(item, index)}
+      activeOpacity={0.6}
     >
-      <View style={styles.songInfo}>
-        <Text style={styles.songName} numberOfLines={1}>
-          {item.songName}
-        </Text>
-        <Text style={styles.artistName} numberOfLines={1}>
-          {item.artist}
-        </Text>
-      </View>
+      <Text style={styles.songIndex}>{index + 1}</Text>
+      <Text style={styles.songName} numberOfLines={1}>
+        {item.songName || '未知歌曲'}
+      </Text>
+      <Text style={styles.artistName} numberOfLines={1}>
+        {item.artist || '未知歌手'}
+      </Text>
       <TouchableOpacity
-        style={styles.removeButton}
-        onPress={() => handleRemoveFavorite(item)}
+        style={styles.moreButton}
+        onPress={(e) => {
+          e.stopPropagation()
+          handleRemoveFavorite(item)
+        }}
       >
-        <Text style={styles.removeButtonText}>取消收藏</Text>
+        <Text style={styles.moreButtonText}>⋮</Text>
       </TouchableOpacity>
     </TouchableOpacity>
   )
@@ -90,31 +109,35 @@ const FavoritesListScreenComponent: React.FC<FavoritesListProps & {
   return (
     <RequireAuth componentId={componentId}>
       <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.title}>我的收藏</Text>
-        <Text style={styles.count}>{favorites.length} 首歌曲</Text>
-        {favorites.length > 0 && (
-          <TouchableOpacity style={styles.playAllButton} onPress={handlePlayAll}>
-            <Text style={styles.playAllText}>播放全部</Text>
-          </TouchableOpacity>
-        )}
-      </View>
-
-      <FlatList
-        data={favorites}
-        renderItem={renderSongItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={favorites.length === 0 ? styles.emptyContainer : undefined}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>还没有收藏的歌曲</Text>
-            <Text style={styles.emptyHint}>点击歌曲旁的爱心图标来收藏</Text>
+        <View style={styles.header}>
+          <Text style={styles.title}>我的收藏</Text>
+          <View style={styles.headerRow}>
+            <Text style={styles.count}>{favorites.length} 首歌曲</Text>
+            {favorites.length > 0 && (
+              <TouchableOpacity style={styles.playAllButton} onPress={handlePlayAll}>
+                <Text style={styles.playAllText}>▶ 播放全部</Text>
+              </TouchableOpacity>
+            )}
           </View>
-        }
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-      />
+        </View>
+
+        <View style={styles.listContainer}>
+          <FlatList
+            data={favorites}
+            renderItem={renderSongItem}
+            keyExtractor={item => item.id}
+            contentContainerStyle={favorites.length === 0 ? styles.emptyContainer : styles.listContent}
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyText}>还没有收藏的歌曲</Text>
+                <Text style={styles.emptyHint}>点击歌曲旁的爱心图标来收藏</Text>
+              </View>
+            }
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+            }
+          />
+        </View>
       </View>
     </RequireAuth>
   )
@@ -123,72 +146,86 @@ const FavoritesListScreenComponent: React.FC<FavoritesListProps & {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#121212',
+    backgroundColor: 'transparent',
   },
   header: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#282828',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+    backgroundColor: 'transparent',
   },
   title: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#333',
     marginBottom: 8,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   count: {
     fontSize: 14,
-    color: '#B3B3B3',
-    marginBottom: 12,
+    color: '#999',
   },
   playAllButton: {
-    backgroundColor: '#1DB954',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 24,
-    alignSelf: 'flex-start',
+    backgroundColor: '#4A90E2',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
   },
   playAllText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
+  },
+  listContainer: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
+  listContent: {
+    paddingHorizontal: 0,
   },
   songItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#282828',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    borderRadius: 0,
+    marginHorizontal: 0,
+    marginVertical: 0,
   },
-  songInfo: {
-    flex: 1,
-    marginRight: 12,
+  songIndex: {
+    width: 28,
+    fontSize: 15,
+    color: '#999',
+    fontWeight: '600',
+    textAlign: 'left',
   },
   songName: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    marginBottom: 4,
+    flex: 2,
+    fontSize: 15,
+    color: '#333',
+    marginLeft: 8,
+    marginRight: 12,
   },
   artistName: {
-    fontSize: 14,
-    color: '#B3B3B3',
+    flex: 1.5,
+    fontSize: 13,
+    color: '#999',
+    marginRight: 12,
   },
-  removeButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#B3B3B3',
+  moreButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 8,
   },
-  removeButtonText: {
-    color: '#B3B3B3',
-    fontSize: 12,
+  moreButtonText: {
+    fontSize: 18,
+    color: '#999',
+    lineHeight: 18,
   },
   emptyContainer: {
     flex: 1,
@@ -201,12 +238,12 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    color: '#B3B3B3',
+    color: '#999',
     marginBottom: 8,
   },
   emptyHint: {
     fontSize: 14,
-    color: '#666666',
+    color: '#BBB',
   },
 })
 

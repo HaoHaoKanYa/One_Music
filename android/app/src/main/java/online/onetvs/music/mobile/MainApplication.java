@@ -14,6 +14,7 @@ import online.onetvs.music.mobile.crypto.CryptoPackage;
 import online.onetvs.music.mobile.lyric.LyricPackage;
 import online.onetvs.music.mobile.userApi.UserApiPackage;
 import online.onetvs.music.mobile.utils.UtilsPackage;
+import com.nozbe.watermelondb.jsi.WatermelonDBJSIPackage;
 
 public class MainApplication extends NavigationApplication {
 
@@ -35,6 +36,8 @@ public class MainApplication extends NavigationApplication {
           packages.add(new UtilsPackage());
           packages.add(new CryptoPackage());
           packages.add(new UserApiPackage());
+          // 添加 WatermelonDB JSI 支持以启用高性能数据库操作
+          packages.add(new WatermelonDBJSIPackage());
           return packages;
         }
 

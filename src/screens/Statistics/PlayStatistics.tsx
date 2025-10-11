@@ -1,11 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import {
   View,
   Text,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
-  Alert,
   TouchableOpacity,
   Image,
 } from 'react-native'
@@ -43,7 +41,7 @@ const PlayStatisticsScreenComponent: React.FC<PlayStatisticsScreenProps & {
   dailyPlayStats: any[]
   favorites: any[]
   playlists: any[]
-}> = ({ componentId, playHistory, playStatistics, artistPlayStats, dailyPlayStats, favorites, playlists }) => {
+}> = ({ componentId, playHistory, favorites, playlists }) => {
   const theme = useTheme()
   const [selectedPeriod, setSelectedPeriod] = useState<'7' | '30'>('7')
 
@@ -57,41 +55,164 @@ const PlayStatisticsScreenComponent: React.FC<PlayStatisticsScreenProps & {
     total_playlists: playlists?.length || 0
   }
 
-  // 计算每日统计
-  const dailyStats = dailyPlayStats?.map(stat => ({
-    date: stat.date,
-    total_plays: stat.playCount,
-    total_duration: stat.totalDuration,
-    unique_songs: stat.uniqueSongs,
-    unique_artists: stat.uniqueArtists
-  })) || []
+  // 从播放历史计算每日统计
+  const dailyStats = React.useMemo(() => {
+    console.log('[PlayStatistics] ========== 开始计算每日统计 ==========')
+    console.log('[PlayStatistics] 播放历史数量:', playHistory?.length || 0)
 
-  // 计算歌手统计
-  const artistStats = artistPlayStats?.map(stat => ({
-    artist: stat.artist,
-    play_count: stat.playCount,
-    total_duration: stat.totalDuration,
-    last_played_at: stat.lastPlayedAt
-  })) || []
+    if (!playHistory || playHistory.length === 0) {
+      console.log('[PlayStatistics] 播放历史为空，返回空数组')
+      return []
+    }
 
-  // 计算歌曲统计
-  const songStats = playHistory?.reduce((acc: any[], record: any) => {
-    const existing = acc.find((song: any) => song.song_id === record.songId)
-    if (existing) {
-      existing.play_count++
-      existing.total_duration += record.playDuration || 0
-    } else {
-      acc.push({
-        song_id: record.songId,
-        song_name: record.songName,
-        artist: record.artist,
-        play_count: 1,
-        total_duration: record.playDuration || 0,
-        last_played_at: record.playedAt
+    // 打印前几条播放历史数据
+    if (playHistory.length > 0) {
+      console.log('[PlayStatistics] 播放历史示例数据（前3条）:')
+      playHistory.slice(0, 3).forEach((record: any, idx: number) => {
+        console.log(`  [${idx}] songName: ${record.songName}, playedAt: ${record.playedAt}, playDuration: ${record.playDuration}`)
       })
     }
-    return acc
-  }, [] as any[]) || []
+
+    const dailyMap = new Map<string, DailyStats>()
+    const songsByDate = new Map<string, Set<string>>()
+    const artistsByDate = new Map<string, Set<string>>()
+
+    playHistory.forEach((record: any) => {
+      // 确保 playedAt 是有效的日期
+      const playedAt = record.playedAt
+      if (!playedAt) {
+        console.log('[PlayStatistics] 跳过无效记录（无playedAt）:', record)
+        return
+      }
+
+      const date = new Date(playedAt)
+      if (isNaN(date.getTime())) {
+        console.log('[PlayStatistics] 跳过无效日期:', playedAt)
+        return
+      }
+
+      // 使用本地时间格式化日期，避免时区问题
+      const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+
+      if (!dailyMap.has(dateStr)) {
+        dailyMap.set(dateStr, {
+          date: dateStr,
+          total_plays: 0,
+          total_duration: 0,
+          unique_songs: 0,
+          unique_artists: 0
+        })
+        songsByDate.set(dateStr, new Set())
+        artistsByDate.set(dateStr, new Set())
+      }
+
+      const stat = dailyMap.get(dateStr)!
+      stat.total_plays++
+      stat.total_duration += record.playDuration || 0
+
+      // 记录唯一歌曲和歌手
+      if (record.songId) {
+        songsByDate.get(dateStr)!.add(record.songId)
+      }
+      if (record.artist) {
+        artistsByDate.get(dateStr)!.add(record.artist)
+      }
+    })
+
+    // 更新唯一歌曲和歌手数量
+    dailyMap.forEach((stat, dateStr) => {
+      stat.unique_songs = songsByDate.get(dateStr)?.size || 0
+      stat.unique_artists = artistsByDate.get(dateStr)?.size || 0
+    })
+
+    const result = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date))
+
+    console.log('[PlayStatistics] 每日统计结果（共', result.length, '天）:')
+    result.forEach(d => {
+      console.log(`  ${d.date}: ${d.total_plays}次播放, ${d.total_duration}秒, ${d.unique_songs}首歌, ${d.unique_artists}位歌手`)
+    })
+
+    return result
+  }, [playHistory])
+
+  // 从播放历史计算歌手统计
+  const artistStats = React.useMemo(() => {
+    console.log('[PlayStatistics] 计算歌手统计，播放历史数量:', playHistory?.length || 0)
+
+    if (!playHistory || playHistory.length === 0) {
+      console.log('[PlayStatistics] 播放历史为空，返回空数组')
+      return []
+    }
+
+    const artistMap = new Map<string, ArtistStats>()
+
+    playHistory.forEach((record: any) => {
+      const artist = record.artist || '未知歌手'
+
+      if (!artistMap.has(artist)) {
+        artistMap.set(artist, {
+          artist,
+          play_count: 0,
+          total_duration: 0,
+          last_played_at: record.playedAt
+        })
+      }
+
+      const stat = artistMap.get(artist)!
+      stat.play_count++
+      stat.total_duration += record.playDuration || 0
+
+      // 更新最后播放时间
+      if (new Date(record.playedAt) > new Date(stat.last_played_at)) {
+        stat.last_played_at = record.playedAt
+      }
+    })
+
+    // 按播放次数排序，取前10
+    const result = Array.from(artistMap.values())
+      .sort((a, b) => b.play_count - a.play_count)
+      .slice(0, 10)
+
+    console.log('[PlayStatistics] 歌手统计结果:', result.map(a => `${a.artist}: ${a.play_count}次`).join(', '))
+
+    return result
+  }, [playHistory])
+
+  // 从播放历史计算歌曲统计
+  const songStats = React.useMemo(() => {
+    if (!playHistory || playHistory.length === 0) return []
+
+    const songMap = new Map<string, any>()
+
+    playHistory.forEach((record: any) => {
+      const songId = record.songId
+
+      if (!songMap.has(songId)) {
+        songMap.set(songId, {
+          song_id: songId,
+          song_name: record.songName,
+          artist: record.artist,
+          play_count: 0,
+          total_duration: 0,
+          last_played_at: record.playedAt
+        })
+      }
+
+      const stat = songMap.get(songId)!
+      stat.play_count++
+      stat.total_duration += record.playDuration || 0
+
+      // 更新最后播放时间
+      if (new Date(record.playedAt) > new Date(stat.last_played_at)) {
+        stat.last_played_at = record.playedAt
+      }
+    })
+
+    // 按播放次数排序，取前10
+    return Array.from(songMap.values())
+      .sort((a, b) => b.play_count - a.play_count)
+      .slice(0, 10)
+  }, [playHistory])
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600)
@@ -184,6 +305,9 @@ const PlayStatisticsScreenComponent: React.FC<PlayStatisticsScreenProps & {
   )
 
   const renderDailyChart = () => {
+    console.log('[PlayStatistics] ========== 开始渲染图表 ==========')
+    console.log('[PlayStatistics] dailyStats 原始数据长度:', dailyStats.length)
+
     // 填充缺失的日期，确保连续性，以今天为结束日期
     const days = selectedPeriod === '7' ? 7 : 30
     const today = new Date()
@@ -196,19 +320,26 @@ const PlayStatisticsScreenComponent: React.FC<PlayStatisticsScreenProps & {
       return `${year}-${month}-${day}`
     }
 
+    // 设置日期范围：从 startDate 到 endDate（今天）
     const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate())
     const startDate = new Date(endDate)
     startDate.setDate(endDate.getDate() - days + 1)
 
-    const filledData: DailyStats[] = []
-    const statsMap = new Map(dailyStats.map(s => [s.date, s]))
+    console.log('[PlayStatistics] 日期范围:', formatDate(startDate), '到', formatDate(endDate))
 
+    // 创建日期到统计数据的映射
+    const statsMap = new Map(dailyStats.map(s => [s.date, s]))
+    console.log('[PlayStatistics] statsMap keys:', Array.from(statsMap.keys()).join(', '))
+
+    // 填充所有日期，包括没有数据的日期
+    const filledData: DailyStats[] = []
     for (let i = 0; i < days; i++) {
       const currentDate = new Date(startDate)
       currentDate.setDate(startDate.getDate() + i)
       const dateStr = formatDate(currentDate)
 
-      filledData.push(statsMap.get(dateStr) || {
+      const existingStat = statsMap.get(dateStr)
+      filledData.push(existingStat || {
         date: dateStr,
         total_plays: 0,
         total_duration: 0,
@@ -217,13 +348,14 @@ const PlayStatisticsScreenComponent: React.FC<PlayStatisticsScreenProps & {
       })
     }
 
-    console.log('[PlayStatistics] ========== 开始渲染图表 ==========')
-    console.log('[PlayStatistics] 原始数据长度:', dailyStats.length)
-    console.log('[PlayStatistics] 原始数据:', JSON.stringify(dailyStats))
-    console.log('[PlayStatistics] 填充后数据:', filledData.map(d => `${d.date}: ${d.total_plays}`).join(', '))
+    console.log('[PlayStatistics] 填充后数据（共', filledData.length, '天）:')
+    filledData.forEach(d => {
+      console.log(`  ${d.date}: ${d.total_plays}次`)
+    })
 
     // 计算Y轴刻度：根据数据自适应
     const maxPlays = Math.max(...filledData.map(s => s.total_plays), 1)
+    console.log('[PlayStatistics] 最大播放次数:', maxPlays)
 
     // 计算合适的Y轴最大值和刻度间隔
     const calculateYAxisScale = (maxValue: number) => {
@@ -244,7 +376,7 @@ const PlayStatisticsScreenComponent: React.FC<PlayStatisticsScreenProps & {
     const yAxisStep = yAxisScale.step
     const yAxisTicks = Array.from({ length: Math.floor(yAxisMax / yAxisStep) + 1 }, (_, i) => i * yAxisStep)
 
-    console.log('[PlayStatistics] maxPlays:', maxPlays, 'yAxisMax:', yAxisMax, 'yAxisStep:', yAxisStep)
+    console.log('[PlayStatistics] Y轴配置: max=', yAxisMax, ', step=', yAxisStep, ', ticks=', yAxisTicks)
 
     const chartHeight = 150
     const pointWidth = 50
@@ -252,25 +384,11 @@ const PlayStatisticsScreenComponent: React.FC<PlayStatisticsScreenProps & {
     const paddingLeft = 35
     const paddingBottom = 50
 
-    // 计算今天的索引，用于初始滚动位置
+    // 计算今天的索引
     const todayStr = formatDate(endDate)
     const todayIndex = filledData.findIndex(d => d.date === todayStr)
 
-    console.log('[PlayStatistics] 图表参数:', {
-      days,
-      maxPlays,
-      chartWidth,
-      chartHeight,
-      paddingBottom,
-      todayIndex,
-      todayStr,
-      dataCount: filledData.length
-    })
-
-    console.log('[PlayStatistics] Y轴计算示例:', {
-      '0次播放': `y=${(0 / maxPlays) * chartHeight}, bottom=${paddingBottom + (0 / maxPlays) * chartHeight}`,
-      '7次播放': `y=${(7 / maxPlays) * chartHeight}, bottom=${paddingBottom + (7 / maxPlays) * chartHeight}`
-    })
+    console.log('[PlayStatistics] 图表参数: chartWidth=', chartWidth, ', chartHeight=', chartHeight, ', todayIndex=', todayIndex, ', todayStr=', todayStr)
 
     return (
       <View style={styles.section}>
@@ -332,17 +450,22 @@ const PlayStatisticsScreenComponent: React.FC<PlayStatisticsScreenProps & {
                 if (index === filledData.length - 1) return null
 
                 const x1 = index * pointWidth + pointWidth / 2
-                const top1 = 20 + chartHeight - (stat.total_plays / yAxisMax) * chartHeight
+                const y1Ratio = stat.total_plays / yAxisMax
+                const top1 = 20 + chartHeight - (y1Ratio * chartHeight)
+
                 const nextStat = filledData[index + 1]
                 const x2 = (index + 1) * pointWidth + pointWidth / 2
-                const top2 = 20 + chartHeight - (nextStat.total_plays / yAxisMax) * chartHeight
+                const y2Ratio = nextStat.total_plays / yAxisMax
+                const top2 = 20 + chartHeight - (y2Ratio * chartHeight)
 
                 const dx = x2 - x1
                 const dy = top2 - top1
                 const length = Math.sqrt(dx * dx + dy * dy)
                 const angle = Math.atan2(dy, dx) * (180 / Math.PI)
 
-                console.log(`[Line ${index}] from (${x1}, ${top1}) to (${x2}, ${top2}), length: ${length}, angle: ${angle}`)
+                if (index < 3) {
+                  console.log(`[折线 ${index}→${index + 1}] ${stat.date}(${stat.total_plays}次)→${nextStat.date}(${nextStat.total_plays}次): from (${x1.toFixed(1)}, ${top1.toFixed(1)}) to (${x2.toFixed(1)}, ${top2.toFixed(1)}), length=${length.toFixed(1)}, angle=${angle.toFixed(1)}°`)
+                }
 
                 return (
                   <View
@@ -364,12 +487,15 @@ const PlayStatisticsScreenComponent: React.FC<PlayStatisticsScreenProps & {
               {/* 数据点和标签 */}
               {filledData.map((stat, index) => {
                 const x = index * pointWidth + pointWidth / 2
-                const top = 20 + chartHeight - (stat.total_plays / yAxisMax) * chartHeight
+                const yRatio = stat.total_plays / yAxisMax
+                const top = 20 + chartHeight - (yRatio * chartHeight)
                 const date = new Date(stat.date)
                 const isToday = stat.date === todayStr
                 const dayOfMonth = date.getDate()
 
-                console.log(`[Point ${index}] ${dayOfMonth}: plays=${stat.total_plays}, x=${x}, top=${top}`)
+                if (index < 3 || stat.total_plays > 0) {
+                  console.log(`[数据点 ${index}] ${stat.date}(${dayOfMonth}日): plays=${stat.total_plays}, yRatio=${yRatio.toFixed(3)}, x=${x.toFixed(1)}, top=${top.toFixed(1)}`)
+                }
 
                 return (
                   <View key={`point-${index}`}>
@@ -386,6 +512,10 @@ const PlayStatisticsScreenComponent: React.FC<PlayStatisticsScreenProps & {
                         borderWidth: 3,
                         borderColor: '#FFF',
                         elevation: 3,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.25,
+                        shadowRadius: 3.84,
                       }}
                     />
 

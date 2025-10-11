@@ -33,7 +33,8 @@ export default async(appSetting: LX.AppSetting) => {
   // 初始化本地数据库
   bootLog('Initializing local database...')
   try {
-    await database.adapter.setUp()
+    // WatermelonDB 会自动初始化，不需要手动调用 setUp
+    // 只需要确保数据库实例已创建
     bootLog('Local database initialized.')
   } catch (error) {
     console.error('Failed to initialize local database:', error)

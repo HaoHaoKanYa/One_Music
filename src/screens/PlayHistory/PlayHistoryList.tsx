@@ -92,22 +92,31 @@ const PlayHistoryListScreenComponent: React.FC<PlayHistoryListProps & {
     return date.toLocaleDateString('zh-CN')
   }
 
-  const renderHistoryItem = ({ item }: { item: PlayRecord }) => (
+  const handlePlayAll = async () => {
+    if (playHistory.length === 0) {
+      Alert.alert('提示', '播放历史为空')
+      return
+    }
+    // TODO: 实现播放全部功能
+    Alert.alert('提示', '播放全部功能开发中')
+  }
+
+  const renderHistoryItem = ({ item, index }: { item: PlayRecord; index: number }) => (
     <TouchableOpacity
       style={styles.historyItem}
       onPress={() => onSongPress?.(item)}
+      activeOpacity={0.6}
     >
-      <View style={styles.songInfo}>
-        <Text style={styles.songName} numberOfLines={1}>
-          {item.songName}
-        </Text>
-        <Text style={styles.artistName} numberOfLines={1}>
-          {item.artist || '未知艺术家'}
-        </Text>
-        <Text style={styles.playTime}>
-          {formatDate(item.playedAt)} · {formatDuration(item.playDuration || 0)}
-        </Text>
-      </View>
+      <Text style={styles.historyIndex}>{index + 1}</Text>
+      <Text style={styles.songName} numberOfLines={1}>
+        {item.songName}
+      </Text>
+      <Text style={styles.artistName} numberOfLines={1}>
+        {item.artist || '未知'}
+      </Text>
+      <Text style={styles.playTime} numberOfLines={1}>
+        {formatDate(item.playedAt)}
+      </Text>
     </TouchableOpacity>
   )
 
@@ -137,12 +146,20 @@ const PlayHistoryListScreenComponent: React.FC<PlayHistoryListProps & {
         )}
 
         {playHistory.length > 0 && (
-          <TouchableOpacity
-            style={styles.clearButton}
-            onPress={handleClearHistory}
-          >
-            <Text style={styles.clearButtonText}>清空历史</Text>
-          </TouchableOpacity>
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={handleClearHistory}
+            >
+              <Text style={styles.clearButtonText}>清空历史</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.playAllButton}
+              onPress={handlePlayAll}
+            >
+              <Text style={styles.playAllText}>▶ 播放全部</Text>
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -169,81 +186,107 @@ const PlayHistoryListScreenComponent: React.FC<PlayHistoryListProps & {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: 'transparent',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#121212',
+    backgroundColor: 'transparent',
   },
   header: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#282828',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+    backgroundColor: 'transparent',
   },
   title: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 16,
+    color: '#333',
+    marginBottom: 8,
+    textAlign: 'center',
   },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 16,
+    marginBottom: 12,
     paddingVertical: 12,
-    backgroundColor: '#282828',
+    backgroundColor: '#F5F5F5',
     borderRadius: 8,
   },
   statItem: {
     alignItems: 'center',
   },
   statValue: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#1DB954',
+    color: '#4A90E2',
     marginBottom: 4,
   },
   statLabel: {
     fontSize: 12,
-    color: '#B3B3B3',
+    color: '#999',
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   clearButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#B3B3B3',
-    alignSelf: 'flex-start',
+    backgroundColor: '#E0E0E0',
   },
   clearButtonText: {
-    color: '#B3B3B3',
+    color: '#666',
     fontSize: 14,
+    fontWeight: '600',
+  },
+  playAllButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#4A90E2',
+  },
+  playAllText: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   historyItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#282828',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    backgroundColor: 'transparent',
   },
-  songInfo: {
-    flex: 1,
+  historyIndex: {
+    width: 28,
+    fontSize: 15,
+    color: '#999',
+    fontWeight: '600',
+    textAlign: 'left',
   },
   songName: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    marginBottom: 4,
+    flex: 2,
+    fontSize: 15,
+    color: '#333',
+    marginLeft: 8,
+    marginRight: 12,
   },
   artistName: {
-    fontSize: 14,
-    color: '#B3B3B3',
-    marginBottom: 4,
+    flex: 1.5,
+    fontSize: 13,
+    color: '#999',
+    marginRight: 12,
   },
   playTime: {
-    fontSize: 12,
-    color: '#666666',
+    flex: 1,
+    fontSize: 13,
+    color: '#999',
+    textAlign: 'right',
   },
   emptyContainer: {
     flex: 1,
@@ -256,12 +299,12 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    color: '#B3B3B3',
+    color: '#999',
     marginBottom: 8,
   },
   emptyHint: {
     fontSize: 14,
-    color: '#666666',
+    color: '#BBB',
   },
 })
 

@@ -14,6 +14,7 @@ import { useTheme } from '@/store/theme/hook'
 import { withObservables } from '@nozbe/watermelondb/react'
 import { Q } from '@nozbe/watermelondb'
 import { database } from '@/database'
+import { vipAPI } from '@/services/api/vip'
 
 interface VipPlan {
   id: string
@@ -40,10 +41,63 @@ const VipPlansScreenComponent: React.FC<VipPlansScreenProps & {
   const theme = useTheme()
   const [loading, setLoading] = useState(true)
   const [purchasing, setPurchasing] = useState(false)
+  const [serverPlans, setServerPlans] = useState<VipPlan[]>([])
 
+  // 从服务器加载VIP套餐
   useEffect(() => {
-    setLoading(false)
-  }, [vipPlans])
+    const loadPlansFromServer = async () => {
+      try {
+        setLoading(true)
+        console.log('[VipPlans] 开始从服务器加载VIP套餐...')
+        
+        const plans = await vipAPI.getPlans()
+        console.log('[VipPlans] 服务器返回套餐数量:', plans.length)
+        
+        if (plans.length > 0) {
+          console.log('[VipPlans] 套餐列表:', plans.map(p => `${p.name}(${p.type})`).join(', '))
+          setServerPlans(plans)
+          
+          // 同步到本地数据库
+          await database.write(async () => {
+            const vipPlansCollection = database.get('vip_plans')
+            
+            // 清空旧数据
+            const oldPlans = await vipPlansCollection.query().fetch()
+            for (const oldPlan of oldPlans) {
+              await oldPlan.markAsDeleted()
+            }
+            
+            // 插入新数据
+            for (const plan of plans) {
+              await vipPlansCollection.create((record: any) => {
+                record.name = plan.name
+                record.type = plan.type
+                record.durationDays = plan.duration_days
+                record.price = plan.price
+                record.originalPrice = plan.original_price || null
+                record.features = JSON.stringify(plan.features)
+                record.isActive = plan.is_active
+                record.sortOrder = plan.sort_order
+                record.synced = true
+              })
+            }
+          })
+          
+          console.log('[VipPlans] 套餐数据已同步到本地数据库')
+        } else {
+          console.log('[VipPlans] 服务器未返回套餐数据，使用本地数据')
+        }
+      } catch (error) {
+        console.error('[VipPlans] 加载套餐失败:', error)
+        // 失败时使用本地数据
+        console.log('[VipPlans] 使用本地数据库中的套餐')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadPlansFromServer()
+  }, [])
 
   const handlePurchase = async (plan: any) => {
     Alert.alert(
@@ -122,7 +176,10 @@ const VipPlansScreenComponent: React.FC<VipPlansScreenProps & {
 
   const renderPlanCard = (plan: VipPlan) => {
     const isSvip = plan.type === 'svip'
-    const features = plan.features as any
+    // 处理features字段：可能是字符串或对象
+    const features = typeof plan.features === 'string' 
+      ? JSON.parse(plan.features) 
+      : plan.features
 
     // 根据duration_days计算显示单位
     const getPeriodText = (days: number) => {
@@ -131,6 +188,9 @@ const VipPlansScreenComponent: React.FC<VipPlansScreenProps & {
       if (days === 365) return '年'
       return `${days}天`
     }
+
+    // 处理字段名称差异：服务器用duration_days，本地用durationDays
+    const durationDays = (plan as any).duration_days || (plan as any).durationDays || 30
 
     return (
       <View
@@ -177,7 +237,7 @@ const VipPlansScreenComponent: React.FC<VipPlansScreenProps & {
                 {plan.price}
               </Text>
               <Text style={[styles.pricePeriod, isSvip && styles.svipText]}>
-                /{getPeriodText(plan.duration_days)}
+                /{getPeriodText(durationDays)}
               </Text>
             </View>
             {plan.original_price && (
@@ -241,10 +301,26 @@ const VipPlansScreenComponent: React.FC<VipPlansScreenProps & {
     )
   }
 
+  // 优先使用服务器数据，如果没有则使用本地数据
+  const displayPlans = serverPlans.length > 0 ? serverPlans : vipPlans
+
   if (loading) {
     return (
       <View style={[styles.container, styles.centerContainer]}>
         <ActivityIndicator size="large" color={theme['c-primary-font']} />
+        <Text style={[styles.loadingText, { color: theme['c-350'] }]}>
+          正在加载套餐信息...
+        </Text>
+      </View>
+    )
+  }
+
+  if (displayPlans.length === 0) {
+    return (
+      <View style={[styles.container, styles.centerContainer]}>
+        <Text style={[styles.emptyText, { color: theme['c-350'] }]}>
+          暂无可用套餐
+        </Text>
       </View>
     )
   }
@@ -263,7 +339,7 @@ const VipPlansScreenComponent: React.FC<VipPlansScreenProps & {
         </Text>
       </View>
 
-      {vipPlans.map(renderPlanCard)}
+      {displayPlans.map(renderPlanCard)}
 
       <View style={styles.tipsContainer}>
         <Text style={[styles.tipsTitle, { color: theme['c-font'] }]}>购买说明</Text>
@@ -505,6 +581,13 @@ const styles = StyleSheet.create({
   tipsText: {
     fontSize: 14,
     lineHeight: 22,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 14,
+  },
+  emptyText: {
+    fontSize: 16,
   },
 })
 

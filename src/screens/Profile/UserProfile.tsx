@@ -120,28 +120,59 @@ const UserProfileScreenComponent: React.FC<UserProfileScreenProps & {
           text: '确定',
           onPress: async () => {
             try {
-              // 导入同步引擎
-              const { syncEngine } = require('@/database/sync/syncEngine')
-
-              // 退出前同步数据到云端
-              Alert.alert('提示', '正在同步数据到云端...')
-              await syncEngine.performSync()
-
-              // 清除本地用户资料
-              await database.write(async () => {
-                const profiles = await database.get('user_profiles').query().fetch()
-                for (const profile of profiles) {
-                  await profile.destroyPermanently()
-                }
-              })
-
-              // 退出登录
-              await supabase.auth.signOut()
-
+              // 1. 立即关闭页面，避免显示"请先登录"
               Navigation.dismissModal(componentId)
+
+              // 2. 显示退出成功提示
               setTimeout(() => {
                 Alert.alert('成功', '已退出登录')
-              }, 300)
+              }, 100)
+
+              // 3. 后台执行清理操作（不阻塞UI）
+              setTimeout(async () => {
+                try {
+                  console.log('[退出登录] 开始后台清理...')
+
+                  // 同步数据到云端（后台执行）
+                  try {
+                    const { syncEngine } = require('@/database/sync/syncEngine')
+                    console.log('[退出登录] 开始后台同步数据...')
+                    await syncEngine.performSync()
+                    console.log('[退出登录] 数据同步完成')
+                  } catch (syncError) {
+                    console.error('[退出登录] 同步失败:', syncError)
+                    // 同步失败不影响退出流程
+                  }
+
+                  // 清除本地用户资料
+                  await database.write(async () => {
+                    const profiles = await database.get('user_profiles').query().fetch()
+                    for (const profile of profiles) {
+                      await profile.destroyPermanently()
+                    }
+                  })
+                  console.log('[退出登录] 已清除本地用户资料')
+
+                  // 清空内存中的收藏列表
+                  const { clearFavoritesFromMemory } = require('@/core/list/favoritesIntegration')
+                  await clearFavoritesFromMemory()
+                  console.log('[退出登录] 已清空收藏列表')
+
+                  // 清空内存中的用户歌单
+                  const { setUserList } = require('@/core/list')
+                  setUserList([])
+                  console.log('[退出登录] 已清空用户歌单')
+
+                  // 退出登录
+                  await supabase.auth.signOut()
+                  console.log('[退出登录] 已退出登录会话')
+
+                  console.log('[退出登录] ✅ 后台清理完成')
+                } catch (error) {
+                  console.error('[退出登录] 后台清理失败:', error)
+                  // 后台清理失败不影响用户体验
+                }
+              }, 100)
             } catch (error: any) {
               Alert.alert('错误', error.message)
             }

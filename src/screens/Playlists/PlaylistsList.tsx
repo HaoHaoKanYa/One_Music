@@ -99,27 +99,28 @@ const PlaylistsListScreenComponent: React.FC<PlaylistsListProps & {
     )
   }
 
-  const renderPlaylistItem = ({ item }: { item: any }) => (
+  const renderPlaylistItem = ({ item, index }: { item: any; index: number }) => (
     <TouchableOpacity
       style={styles.playlistItem}
       onPress={() => onPlaylistPress?.(item)}
+      activeOpacity={0.6}
     >
-      <View style={styles.playlistInfo}>
-        <Text style={styles.playlistName} numberOfLines={1}>
-          {item.name}
-        </Text>
-        {item.description && (
-          <Text style={styles.playlistDesc} numberOfLines={2}>
-            {item.description}
-          </Text>
-        )}
-        <Text style={styles.playlistMeta}>
-          {item.songCount || 0} 首歌曲 · {item.isPublic ? '公开' : '私密'}
-        </Text>
-      </View>
+      <Text style={styles.playlistIndex}>{index + 1}</Text>
+      <Text style={styles.playlistName} numberOfLines={1}>
+        {item.name}
+      </Text>
+      <Text style={styles.playlistDesc} numberOfLines={1}>
+        {item.description || '暂无描述'}
+      </Text>
+      <Text style={styles.playlistMeta} numberOfLines={1}>
+        {item.songCount || 0}首 · {item.isPublic ? '公开' : '私密'}
+      </Text>
       <TouchableOpacity
         style={styles.deleteButton}
-        onPress={() => handleDeletePlaylist(item)}
+        onPress={(e) => {
+          e.stopPropagation()
+          handleDeletePlaylist(item)
+        }}
       >
         <Text style={styles.deleteButtonText}>删除</Text>
       </TouchableOpacity>
@@ -131,12 +132,15 @@ const PlaylistsListScreenComponent: React.FC<PlaylistsListProps & {
       <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>我的歌单</Text>
-        <TouchableOpacity
-          style={styles.createButton}
-          onPress={() => setCreateModalVisible(true)}
-        >
-          <Text style={styles.createButtonText}>+ 创建歌单</Text>
-        </TouchableOpacity>
+        <View style={styles.headerRow}>
+          <Text style={styles.count}>{playlists.length} 个歌单</Text>
+          <TouchableOpacity
+            style={styles.createButton}
+            onPress={() => setCreateModalVisible(true)}
+          >
+            <Text style={styles.createButtonText}>+ 创建歌单</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <FlatList
@@ -213,73 +217,87 @@ const PlaylistsListScreenComponent: React.FC<PlaylistsListProps & {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: 'transparent',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#121212',
+    backgroundColor: 'transparent',
   },
   header: {
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#282828',
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+    backgroundColor: 'transparent',
   },
   title: {
-    fontSize: 28,
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 16,
+    color: '#333',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  count: {
+    fontSize: 14,
+    color: '#999',
   },
   createButton: {
-    backgroundColor: '#1DB954',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 24,
-    alignSelf: 'flex-start',
+    backgroundColor: '#4A90E2',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
   },
   createButtonText: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: '600',
   },
   playlistItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#282828',
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    backgroundColor: 'transparent',
   },
-  playlistInfo: {
-    flex: 1,
-    marginRight: 12,
+  playlistIndex: {
+    width: 28,
+    fontSize: 15,
+    color: '#999',
+    fontWeight: '600',
+    textAlign: 'left',
   },
   playlistName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 4,
+    flex: 1.5,
+    fontSize: 15,
+    color: '#333',
+    marginLeft: 8,
+    marginRight: 12,
   },
   playlistDesc: {
-    fontSize: 14,
-    color: '#B3B3B3',
-    marginBottom: 4,
+    flex: 2,
+    fontSize: 13,
+    color: '#999',
+    marginRight: 12,
   },
   playlistMeta: {
-    fontSize: 12,
-    color: '#666666',
+    flex: 1,
+    fontSize: 13,
+    color: '#999',
+    marginRight: 12,
   },
   deleteButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#B3B3B3',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   deleteButtonText: {
-    color: '#B3B3B3',
-    fontSize: 12,
+    color: '#E74C3C',
+    fontSize: 13,
   },
   emptyContainer: {
     flex: 1,
@@ -292,38 +310,41 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 18,
-    color: '#B3B3B3',
+    color: '#999',
     marginBottom: 8,
   },
   emptyHint: {
     fontSize: 14,
-    color: '#666666',
+    color: '#BBB',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modalContent: {
     width: '85%',
-    backgroundColor: '#282828',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 24,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#FFFFFF',
+    color: '#333',
     marginBottom: 20,
+    textAlign: 'center',
   },
   input: {
-    backgroundColor: '#121212',
+    backgroundColor: '#F5F5F5',
     borderRadius: 8,
     padding: 12,
-    color: '#FFFFFF',
+    color: '#333',
     fontSize: 16,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
   },
   textArea: {
     height: 80,
@@ -337,19 +358,19 @@ const styles = StyleSheet.create({
   modalButton: {
     flex: 1,
     paddingVertical: 12,
-    borderRadius: 24,
+    borderRadius: 20,
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#404040',
+    backgroundColor: '#E0E0E0',
     marginRight: 8,
   },
   confirmButton: {
-    backgroundColor: '#1DB954',
+    backgroundColor: '#4A90E2',
     marginLeft: 8,
   },
   cancelButtonText: {
-    color: '#B3B3B3',
+    color: '#666',
     fontSize: 16,
     fontWeight: '600',
   },

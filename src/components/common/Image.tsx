@@ -4,8 +4,6 @@ import { createStyle } from '@/utils/tools'
 import { type ComponentProps, memo, useCallback, useEffect, useMemo, useState } from 'react'
 import { View, type ViewProps, StyleSheet, Image as FastImage } from 'react-native'
 // import FastImage, { type FastImageProps } from 'react-native-fast-image'
-import Text from './Text'
-import { useLayout } from '@/utils/hooks'
 // export type { OnLoadEvent } from 'react-native-fast-image'
 
 export interface ImageProps extends ViewProps {
@@ -14,6 +12,7 @@ export interface ImageProps extends ViewProps {
   cache?: boolean
   resizeMode?: ComponentProps<typeof FastImage>['resizeMode']
   onError?: (url: string | number) => void
+  showEmptyBackground?: boolean
 }
 
 
@@ -21,11 +20,14 @@ export const defaultHeaders = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36',
 }
 
-const EmptyPic = memo(({ style, nativeID }: { style: ImageProps['style'], nativeID: ImageProps['nativeID'] }) => {
+const EmptyPic = memo(({ style, nativeID, showBackground = true }: { style: ImageProps['style'], nativeID: ImageProps['nativeID'], showBackground?: boolean }) => {
   const theme = useTheme()
 
   return (
-    <View style={StyleSheet.compose({ ...styles.emptyPic, backgroundColor: theme['c-primary-light-900-alpha-200'] }, style)} nativeID={nativeID}>
+    <View style={StyleSheet.compose({
+      ...styles.emptyPic,
+      backgroundColor: showBackground ? theme['c-primary-light-900-alpha-200'] : 'transparent'
+    }, style)} nativeID={nativeID}>
       <FastImage
         source={require('@/theme/themes/images/one_logo.png')}
         style={styles.emptyPicImage}
@@ -35,7 +37,7 @@ const EmptyPic = memo(({ style, nativeID }: { style: ImageProps['style'], native
   )
 })
 
-const Image = memo(({ url, cache, resizeMode = 'cover', style, onError, nativeID }: ImageProps) => {
+const Image = memo(({ url, cache, resizeMode = 'cover', style, onError, nativeID, showEmptyBackground = true }: ImageProps) => {
   const [isError, setError] = useState(false)
   const handleError = useCallback(() => {
     setError(true)
@@ -46,38 +48,39 @@ const Image = memo(({ url, cache, resizeMode = 'cover', style, onError, nativeID
   }, [url])
   let uri = typeof url == 'number'
     ? FastImage.resolveAssetSource(url).uri
-    : url?.startsWith('/')
+    : typeof url === 'string' && url.startsWith('/')
       ? 'file://' + url
       : url
   const showDefault = useMemo(() => !uri || isError, [isError, uri])
   return (
-    showDefault ? <EmptyPic style={style} nativeID={nativeID} />
+    showDefault ? <EmptyPic style={style} nativeID={nativeID} showBackground={showEmptyBackground} />
       : (
-          <FastImage
-            style={style}
-            source={{
-              uri: uri!,
-              headers: defaultHeaders,
-              cache: cache === false ? 'reload' : 'force-cache',
-              // priority: FastImage.priority.normal,
-              // cache: cache === false ? 'web' : 'immutable',
-            }}
-            onError={handleError}
-            resizeMode={resizeMode}
-            nativeID={nativeID}
-          />
-        )
+        <FastImage
+          style={style}
+          source={{
+            uri: uri!,
+            headers: defaultHeaders,
+            cache: cache === false ? 'reload' : 'force-cache',
+            // priority: FastImage.priority.normal,
+            // cache: cache === false ? 'web' : 'immutable',
+          }}
+          onError={handleError}
+          resizeMode={resizeMode}
+          nativeID={nativeID}
+        />
+      )
   )
 }, (prevProps, nextProps) => {
   return prevProps.url == nextProps.url &&
     prevProps.style == nextProps.style &&
-    prevProps.nativeID == nextProps.nativeID
+    prevProps.nativeID == nextProps.nativeID &&
+    prevProps.showEmptyBackground == nextProps.showEmptyBackground
 })
 
 export const getSize = (uri: string, success: (width: number, height: number) => void, failure?: (error: any) => void) => {
   FastImage.getSize(uri, success, failure)
 }
-export const clearMemoryCache = async() => {
+export const clearMemoryCache = async () => {
   // return Promise.all([FastImage.clearMemoryCache(), FastImage.clearDiskCache()])
 }
 export default Image
