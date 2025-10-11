@@ -78,14 +78,15 @@ const Download = memo(() => {
 
     Alert.alert(
       '选择下载路径',
-      '请选择歌曲下载保存位置\n\n推荐使用应用私有目录，无需额外权限',
+      '请选择歌曲下载保存位置\n\n推荐：应用私有目录（无需额外权限）',
       [
         ...pathOptions.map(option => ({
-          text: `${option.label}\n${option.desc}`,
+          text: option.label,
           onPress: async () => {
             try {
               await downloadManager.setDownloadPath(option.path)
-              Alert.alert('成功', `下载路径已设置为:\n${option.path}\n\n新下载的歌曲将保存到此位置`)
+              setDownloadPath(option.path)
+              Alert.alert('设置成功', `下载路径：\n${option.path}\n\n${option.desc}`)
             } catch (error: any) {
               Alert.alert(
                 '设置失败',
@@ -171,8 +172,8 @@ const Download = memo(() => {
           </Text>
           <Text style={styles.arrow}>›</Text>
         </View>
-        <Text style={styles.pathText} size={12} color={theme['c-font-label']} selectable>
-          {downloadPath}
+        <Text style={styles.pathText} size={12} color={downloadPath ? theme['c-font-label'] : '#FF6B6B'} selectable>
+          {downloadPath || '未设置（点击选择下载路径）'}
         </Text>
       </TouchableOpacity>
 

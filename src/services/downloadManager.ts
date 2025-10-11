@@ -25,11 +25,9 @@ class DownloadManager {
   private autoCleanupEnabled = false
 
   constructor() {
-    // 设置默认下载路径 - 使用应用私有目录（无需额外权限）
-    // Android 11+ 对公共目录访问有严格限制
-    this.downloadPath = RNFS.DocumentDirectoryPath + '/OneMusic'
-    console.log('[DownloadManager] 默认下载路径:', this.downloadPath)
-    this.initDownloadPath()
+    // 初始不设置路径，让用户自己选择
+    this.downloadPath = ''
+    console.log('[DownloadManager] 等待用户选择下载路径')
     this.loadSettings()
   }
 
@@ -104,6 +102,11 @@ class DownloadManager {
    * 初始化下载目录
    */
   private async initDownloadPath() {
+    if (!this.downloadPath) {
+      console.log('[DownloadManager] 下载路径未设置，跳过初始化')
+      return
+    }
+
     try {
       console.log('[DownloadManager] 初始化下载路径:', this.downloadPath)
       
@@ -119,18 +122,7 @@ class DownloadManager {
       console.log('[DownloadManager] 下载目录创建成功')
     } catch (error: any) {
       console.error('[DownloadManager] 创建下载目录失败:', error)
-      // 使用缓存目录作为最后的备用方案
-      this.downloadPath = RNFS.CachesDirectoryPath + '/OneMusic'
-      console.log('[DownloadManager] 使用缓存目录:', this.downloadPath)
-      try {
-        const cacheExists = await RNFS.exists(this.downloadPath)
-        if (!cacheExists) {
-          await RNFS.mkdir(this.downloadPath)
-          console.log('[DownloadManager] 缓存目录创建成功')
-        }
-      } catch (cacheError) {
-        console.error('[DownloadManager] 创建缓存目录失败:', cacheError)
-      }
+      throw error
     }
   }
 
@@ -139,6 +131,12 @@ class DownloadManager {
    */
   async downloadSong(musicInfo: LX.Music.MusicInfo, quality: string = 'standard') {
     try {
+      // 检查下载路径是否已设置
+      if (!this.downloadPath) {
+        toast('请先在设置中选择下载路径')
+        throw new Error('下载路径未设置')
+      }
+
       const user = await authAPI.getCurrentUser()
       if (!user) {
         throw new Error('用户未登录')
