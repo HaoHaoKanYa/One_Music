@@ -25,19 +25,26 @@ class DownloadManager {
   private autoCleanupEnabled = false
 
   constructor() {
-    // 初始不设置路径，让用户自己选择
-    this.downloadPath = ''
-    console.log('[DownloadManager] 等待用户选择下载路径')
+    // 设置默认下载路径为公共下载目录
+    this.downloadPath = RNFS.ExternalStorageDirectoryPath + '/Download/OneMusic'
+    console.log('[DownloadManager] 默认下载路径:', this.downloadPath)
     this.loadSettings()
+    this.initDownloadPath()
   }
 
   /**
    * 加载设置
    */
-  private loadSettings() {
+  private async loadSettings() {
     // 从设置中加载配置
     try {
       const settings = (global.lx as any).config?.download || {}
+      
+      // 加载保存的下载路径
+      if (settings.downloadPath) {
+        this.downloadPath = settings.downloadPath
+        console.log('[DownloadManager] 加载保存的下载路径:', this.downloadPath)
+      }
       this.maxConcurrentDownloads = settings.maxConcurrent || 3
       this.isWifiOnly = settings.wifiOnly || false
       this.autoCleanupEnabled = settings.autoCleanup || false
@@ -75,8 +82,9 @@ class DownloadManager {
       // 检查路径是否存在
       const exists = await RNFS.exists(path)
       if (!exists) {
-        // 尝试创建目录
-        await RNFS.mkdir(path)
+        // 递归创建目录（支持多级目录）
+        console.log('[DownloadManager] 目录不存在，开始创建...')
+        await this.createDirectoryRecursive(path)
         console.log('[DownloadManager] 创建下载目录成功')
       }
       
@@ -84,10 +92,68 @@ class DownloadManager {
       this.downloadPath = path
       console.log('[DownloadManager] 下载路径已更新为:', this.downloadPath)
       
+      // 保存到配置
+      this.saveDownloadPath(path)
+      
       return true
     } catch (error: any) {
       console.error('[DownloadManager] 设置下载路径失败:', error)
       throw new Error('设置下载路径失败: ' + error.message)
+    }
+  }
+
+  /**
+   * 保存下载路径到配置
+   */
+  private saveDownloadPath(path: string) {
+    try {
+      const lx = global.lx as any
+      if (!lx.config) {
+        lx.config = {}
+      }
+      if (!lx.config.download) {
+        lx.config.download = {}
+      }
+      lx.config.download.downloadPath = path
+      
+      // 触发配置保存
+      const appEvent = global.app_event as any
+      appEvent.configSaved?.()
+      
+      console.log('[DownloadManager] 下载路径已保存到配置')
+    } catch (error) {
+      console.error('[DownloadManager] 保存下载路径失败:', error)
+    }
+  }
+
+  /**
+   * 递归创建目录
+   */
+  private async createDirectoryRecursive(path: string) {
+    try {
+      // 检查目录是否已存在
+      const exists = await RNFS.exists(path)
+      if (exists) {
+        return
+      }
+
+      // 获取父目录
+      const parentPath = path.substring(0, path.lastIndexOf('/'))
+      
+      // 如果父目录不存在，先创建父目录
+      if (parentPath && parentPath !== path) {
+        const parentExists = await RNFS.exists(parentPath)
+        if (!parentExists) {
+          await this.createDirectoryRecursive(parentPath)
+        }
+      }
+
+      // 创建当前目录
+      await RNFS.mkdir(path)
+      console.log('[DownloadManager] 创建目录:', path)
+    } catch (error: any) {
+      console.error('[DownloadManager] 创建目录失败:', path, error)
+      throw error
     }
   }
 
@@ -116,9 +182,9 @@ class DownloadManager {
         return
       }
 
-      // 下载目录不存在，尝试创建
+      // 下载目录不存在，递归创建
       console.log('[DownloadManager] 下载目录不存在，开始创建...')
-      await RNFS.mkdir(this.downloadPath)
+      await this.createDirectoryRecursive(this.downloadPath)
       console.log('[DownloadManager] 下载目录创建成功')
     } catch (error: any) {
       console.error('[DownloadManager] 创建下载目录失败:', error)
@@ -135,6 +201,14 @@ class DownloadManager {
       if (!this.downloadPath) {
         toast('请先在设置中选择下载路径')
         throw new Error('下载路径未设置')
+      }
+
+      // 请求存储权限
+      const { requestStoragePermission } = await import('@/utils/tools')
+      const hasPermission = await requestStoragePermission()
+      if (!hasPermission) {
+        toast('需要存储权限才能下载')
+        throw new Error('没有存储权限')
       }
 
       const user = await authAPI.getCurrentUser()

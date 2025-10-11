@@ -55,49 +55,48 @@ const Download = memo(() => {
 
   const handleChangeDownloadPath = async () => {
     try {
-      if (Platform.OS === 'android') {
-        // Android: 使用 DocumentPicker 选择文件夹
-        const result = await DocumentPicker.pickDirectory()
-        
-        if (result && result.uri) {
-          // 将 content:// URI 转换为文件路径
-          let folderPath = decodeURIComponent(result.uri)
-          
-          // 处理 content:// URI
-          if (folderPath.startsWith('content://')) {
-            // 提取实际路径
-            const pathMatch = folderPath.match(/primary:(.+)/)
-            if (pathMatch) {
-              folderPath = RNFS.ExternalStorageDirectoryPath + '/' + pathMatch[1]
-            } else {
-              // 如果无法解析，使用 DocumentDirectoryPath
-              Alert.alert(
-                '提示',
-                '无法访问该目录，将使用应用私有目录',
-                [
-                  {
-                    text: '确定',
-                    onPress: async () => {
-                      folderPath = RNFS.DocumentDirectoryPath + '/OneMusic'
-                      await downloadManager.setDownloadPath(folderPath)
-                      setDownloadPath(folderPath)
-                    }
+      // 使用 DocumentPicker 选择文件夹
+      const result = await DocumentPicker.pickDirectory()
+
+      if (result && result.uri) {
+        // 将 content:// URI 转换为文件路径
+        let folderPath = decodeURIComponent(result.uri)
+
+        console.log('[Download] 选择的URI:', folderPath)
+
+        // 处理 content:// URI
+        if (folderPath.startsWith('content://')) {
+          // 提取实际路径
+          const pathMatch = folderPath.match(/primary:(.+)/)
+          if (pathMatch) {
+            folderPath = RNFS.ExternalStorageDirectoryPath + '/' + pathMatch[1]
+          } else {
+            // 如果无法解析，提示用户
+            Alert.alert(
+              '提示',
+              '无法访问该目录，请选择其他目录或使用应用私有目录',
+              [
+                {
+                  text: '使用应用私有目录',
+                  onPress: async () => {
+                    const privatePath = RNFS.DocumentDirectoryPath + '/OneMusic'
+                    await downloadManager.setDownloadPath(privatePath)
+                    setDownloadPath(privatePath)
+                    Alert.alert('设置成功', `下载路径:\n${privatePath}`)
                   }
-                ]
-              )
-              return
-            }
+                },
+                { text: '重新选择', onPress: handleChangeDownloadPath }
+              ]
+            )
+            return
           }
-          
-          // 设置下载路径
-          await downloadManager.setDownloadPath(folderPath)
-          setDownloadPath(folderPath)
-          
-          Alert.alert('设置成功', `下载路径已设置为:\n${folderPath}`)
         }
-      } else {
-        // iOS 或其他平台的处理
-        Alert.alert('提示', '当前平台暂不支持自定义路径选择')
+
+        // 设置下载路径
+        await downloadManager.setDownloadPath(folderPath)
+        setDownloadPath(folderPath)
+
+        Alert.alert('设置成功', `下载路径已设置为:\n${folderPath}`)
       }
     } catch (error: any) {
       if (DocumentPicker.isCancel(error)) {

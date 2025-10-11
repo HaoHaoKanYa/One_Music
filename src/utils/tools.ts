@@ -58,39 +58,84 @@ export const TEMP_FILE_PATH = temporaryDirectoryPath + '/tempFile'
 
 export const checkStoragePermissions = async () => PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE)
 
-export const requestStoragePermission = async () => {
-  const isGranted = await checkStoragePermissions()
-  if (isGranted) return isGranted
+// 检查 Android 11+ 的所有文件访问权限
+export const checkManageStoragePermission = async (): Promise<boolean> => {
+  if (Platform.OS !== 'android' || Platform.Version < 30) {
+    return true
+  }
 
   try {
+    // 通过尝试创建测试文件来检查权限
+    const testPath = '/storage/emulated/0/Download/.onemusic_test'
+    const RNFS = require('react-native-fs')
+
+    try {
+      await RNFS.writeFile(testPath, 'test', 'utf8')
+      await RNFS.unlink(testPath)
+      return true
+    } catch (error) {
+      return false
+    }
+  } catch (error) {
+    return false
+  }
+}
+
+export const requestStoragePermission = async (): Promise<boolean> => {
+  try {
+    // Android 11+ 需要 MANAGE_EXTERNAL_STORAGE 权限
+    if (Platform.OS === 'android' && Platform.Version >= 30) {
+      // 先检查是否已经有权限
+      const hasPermission = await checkManageStoragePermission()
+      if (hasPermission) {
+        return true
+      }
+
+      // 没有权限，引导用户去设置
+      return new Promise((resolve) => {
+        Alert.alert(
+          '需要文件管理权限',
+          '为了能够下载歌曲到您选择的文件夹，需要授予"所有文件访问权限"。\n\n点击"去设置"后，请找到"OneMusic"并开启"允许管理所有文件"权限，然后返回应用。',
+          [
+            {
+              text: '取消',
+              style: 'cancel',
+              onPress: () => resolve(false)
+            },
+            {
+              text: '去设置',
+              onPress: () => {
+                // 监听应用回到前台
+                const subscription = AppState.addEventListener('change', async (nextAppState) => {
+                  if (nextAppState === 'active') {
+                    // 用户返回应用，检查权限
+                    subscription.remove()
+                    const hasPermissionNow = await checkManageStoragePermission()
+                    resolve(hasPermissionNow)
+                  }
+                })
+
+                // 打开应用设置页面
+                Linking.openSettings()
+              }
+            }
+          ]
+        )
+      })
+    }
+
+    // Android 10 及以下使用传统权限
+    const isGranted = await checkStoragePermissions()
+    if (isGranted) return true
+
     const granted = await PermissionsAndroid.requestMultiple(
       [
         PermissionsAndroid.PERMISSIONS.WRITE_EXTERNAL_STORAGE,
         PermissionsAndroid.PERMISSIONS.READ_EXTERNAL_STORAGE,
       ],
-      // {
-      //   title: '存储读写权限申请',
-      //   message:
-      //     '洛雪音乐助手需要使用存储读写权限才能下载歌曲.',
-      //   buttonNeutral: '一会再问我',
-      //   buttonNegative: '取消',
-      //   buttonPositive: '确定',
-      // },
     )
-    // console.log(granted)
-    // console.log(Object.values(granted).every(r => r === PermissionsAndroid.RESULTS.GRANTED))
-    // console.log(PermissionsAndroid.RESULTS)
     const granteds = Object.values(granted)
     return granteds.every(r => r === PermissionsAndroid.RESULTS.GRANTED)
-      ? true
-      : granteds.includes(PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN)
-        ? null
-        : false
-    // if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-    //   console.log('You can use the storage')
-    // } else {
-    //   console.log('Storage permission denied')
-    // }
   } catch (err: any) {
     // console.warn(err)
     return false

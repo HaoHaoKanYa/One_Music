@@ -5,6 +5,8 @@
     <!-- 获取读写外置存储权限 -->
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <!-- Android 11+ 需要此权限才能访问所有文件 -->
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE" />
     <!-- Android 13+ 图片权限 -->
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
     <!-- 相机权限（用于拍照上传头像） -->
