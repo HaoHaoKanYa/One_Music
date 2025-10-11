@@ -594,12 +594,11 @@ export const cheatTip = async () => {
   if (isRead) return
 
   return tipDialog({
-    title: '重要提示',
-    message: `1. One Music 完全免费且开源，如果您是付费购买的，请立即申请退款并给予差评！\n
-2. 本项目无微信公众号之类的所谓「官方账号」，也未在小米、华为、vivo 等应用商店发布应用，商店内的「One Music」相关应用全部属于假冒应用，请谨防被骗！\n
-3. 本软件完全无广告且无引流（如需要加群、关注公众号之类才能使用或升级）的行为，若您使用过程中遇到广告或引流信息，则表明您当前运行的软件是第三方修改版。\n
-4. 目前本项目的原始发布地址只有 GitHub (https://github.com/HaoHaoKanYa/One_Music)，其他渠道均为第三方转载发布，可信度请自行鉴别。`,
-    btnText: '我知道了',
+    title: '友情提示',
+    message: `欢迎使用 One Music！\n
+为了获得更好的使用体验，建议您前往「我的」页面登录账号。\n
+登录后，您的歌单、收藏和播放历史将自动在多个设备间同步，让您随时随地畅享音乐！`,
+    btnText: '好的 (OK)',
     bgClose: true,
   }).then(() => {
     void saveData(storageDataPrefix.cheatTip, true)
