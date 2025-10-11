@@ -10,7 +10,7 @@ import MaxConcurrentSelect from './MaxConcurrentSelect'
 import DownloadPath from './DownloadPath'
 import AutoCleanup from './AutoCleanup'
 
-export default memo(() => {
+const Download = memo(() => {
   const t = useI18n()
   const theme = useTheme()
 
@@ -26,6 +26,10 @@ export default memo(() => {
     </Section>
   )
 })
+
+Download.displayName = 'Download'
+
+export default Download
 
 const styles = createStyle({
   container: {

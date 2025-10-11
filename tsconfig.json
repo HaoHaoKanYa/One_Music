@@ -7,6 +7,10 @@
     "types": ["react-native", "node"],
     /* Completeness */
     "skipLibCheck": true,                                 /* Skip type checking all .d.ts files. */
+    
+    /* Decorator support */
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
 
     "baseUrl": "./",
     "paths": {
