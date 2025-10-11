@@ -38,7 +38,10 @@ const menuSections = [
 
 export default () => {
   const theme = useTheme()
-  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null)
+  // 默认选中"我喜欢的音乐"
+  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(
+    menuSections[0].items[0] // 第一个分组的第一个项目
+  )
 
   const handleMenuPress = () => {
     setNavActiveId('nav_setting')
@@ -100,16 +103,7 @@ export default () => {
 
         {/* 右侧内容 */}
         <View style={[styles.rightPanel, { backgroundColor: theme['c-content-background'] }]}>
-          {selectedItem ? (
-            selectedItem.component
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Icon name="music" size={64} color={theme['c-300']} />
-              <Text style={styles.emptyText} color={theme['c-300']}>
-                请从左侧选择一个功能
-              </Text>
-            </View>
-          )}
+          {selectedItem && selectedItem.component}
         </View>
       </View>
     </View>
