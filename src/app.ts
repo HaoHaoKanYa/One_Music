@@ -7,9 +7,19 @@ import { exitApp } from './utils/nativeModules/utils'
 import { windowSizeTools } from './utils/windowSizeTools'
 import { listenLaunchEvent } from './navigation/regLaunchedEvent'
 import { tipDialog } from './utils/tools'
+import { initPushNotification } from './services/pushNotificationInit'
 
 console.log('starting app...')
 listenLaunchEvent()
+
+// 初始化推送通知
+try {
+  initPushNotification()
+  bootLog('Push notification initialized.')
+} catch (error) {
+  console.error('Failed to initialize push notification:', error)
+  bootLog('Push notification initialization failed.')
+}
 
 void Promise.all([getFontSize(), windowSizeTools.init()]).then(async([fontSize]) => {
   global.lx.fontSize = fontSize

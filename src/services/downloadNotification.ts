@@ -1,56 +1,23 @@
 /**
  * 下载通知服务
  * 负责显示下载进度通知
- * 注意：需要安装 react-native-push-notification 才能使用完整功能
  */
+import PushNotification from 'react-native-push-notification'
 
 class DownloadNotificationService {
   private channelId = 'download-channel'
   private notificationId = 1000
-  private notificationsEnabled = false
 
   constructor() {
-    this.initNotifications()
-  }
-
-  /**
-   * 初始化通知
-   */
-  private async initNotifications() {
-    try {
-      // 尝试导入 push notification 库
-      const PushNotification = require('react-native-push-notification')
-      
-      // 创建通知频道
-      PushNotification.createChannel(
-        {
-          channelId: this.channelId,
-          channelName: '下载通知',
-          channelDescription: '显示歌曲下载进度',
-          playSound: false,
-          soundName: 'default',
-          importance: 4,
-          vibrate: false,
-        },
-        (created: boolean) => {
-          console.log(`[DownloadNotification] 通知频道创建: ${created}`)
-          this.notificationsEnabled = true
-        }
-      )
-    } catch (error) {
-      console.log('[DownloadNotification] Push notification 未安装，通知功能已禁用')
-      this.notificationsEnabled = false
-    }
+    // 通知频道在 pushNotificationInit.ts 中已创建
+    console.log('[DownloadNotification] 下载通知服务已初始化')
   }
 
   /**
    * 显示下载开始通知
    */
   showDownloadStarted(songName: string, songId: string) {
-    if (!this.notificationsEnabled) return
-
     try {
-      const PushNotification = require('react-native-push-notification')
       PushNotification.localNotification({
         channelId: this.channelId,
         id: this.getNotificationId(songId),
@@ -75,10 +42,7 @@ class DownloadNotificationService {
    * 更新下载进度
    */
   updateDownloadProgress(songName: string, songId: string, progress: number) {
-    if (!this.notificationsEnabled) return
-
     try {
-      const PushNotification = require('react-native-push-notification')
       PushNotification.localNotification({
         channelId: this.channelId,
         id: this.getNotificationId(songId),
@@ -103,10 +67,7 @@ class DownloadNotificationService {
    * 显示下载完成通知
    */
   showDownloadCompleted(songName: string, songId: string) {
-    if (!this.notificationsEnabled) return
-
     try {
-      const PushNotification = require('react-native-push-notification')
       PushNotification.localNotification({
         channelId: this.channelId,
         id: this.getNotificationId(songId),
@@ -126,10 +87,7 @@ class DownloadNotificationService {
    * 显示下载失败通知
    */
   showDownloadFailed(songName: string, songId: string, error: string) {
-    if (!this.notificationsEnabled) return
-
     try {
-      const PushNotification = require('react-native-push-notification')
       PushNotification.localNotification({
         channelId: this.channelId,
         id: this.getNotificationId(songId),
@@ -149,10 +107,7 @@ class DownloadNotificationService {
    * 取消通知
    */
   cancelNotification(songId: string) {
-    if (!this.notificationsEnabled) return
-
     try {
-      const PushNotification = require('react-native-push-notification')
       PushNotification.cancelLocalNotification(this.getNotificationId(songId))
     } catch (error) {
       console.error('[DownloadNotification] 取消通知失败:', error)
@@ -163,10 +118,7 @@ class DownloadNotificationService {
    * 取消所有下载通知
    */
   cancelAllNotifications() {
-    if (!this.notificationsEnabled) return
-
     try {
-      const PushNotification = require('react-native-push-notification')
       PushNotification.cancelAllLocalNotifications()
     } catch (error) {
       console.error('[DownloadNotification] 取消通知失败:', error)
